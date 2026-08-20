@@ -1,0 +1,136 @@
+@model SACCOBlockChainSystem.Models.ViewModels.AuditTrailReportViewModel
+
+@{
+    ViewData["Title"] = "Audit Trail Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h3>AUDIT TRAIL REPORT - BY USER</h3>
+        </div>
+        <div class="card-body">
+            <!-- Date Filter Section -->
+            <form method="post" asp-action="GenerateReport" class="mb-4">
+                <div class="row">
+                    <div class="col-md-4">
+                        <label>Start Date</label>
+                        <input type="date" name="startDate" value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" class="form-control" required />
+                    </div>
+                    <div class="col-md-4">
+                        <label>End Date</label>
+                        <input type="date" name="endDate" value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" class="form-control" required />
+                    </div>
+                    <div class="col-md-4" style="margin-top: 32px;">
+                        <button type="submit" class="btn btn-primary">Generate Report</button>
+                        <button type="submit" formaction="@Url.Action("ExportToCsv")" formmethod="post" class="btn btn-success">Export to CSV</button>
+                    </div>
+                </div>
+            </form>
+
+            @if (Model.UserBlocks.Any())
+            {
+                <!-- Summary Stats -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="alert alert-info">
+                            <strong>Date Range:</strong> @(Model.StartDate?.ToString("dd/MM/yyyy") ?? "All") - @(Model.EndDate?.ToString("dd/MM/yyyy") ?? "All")
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="alert alert-success">
+                            <strong>Total Records:</strong> @Model.TotalRecords
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="alert alert-warning">
+                            <strong>Unique Users:</strong> @Model.UniqueUsers
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="alert alert-secondary">
+                            <strong>Generated:</strong> @Model.ReportGeneratedDate.ToString("dd/MM/yyyy HH:mm:ss")
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Audit Trail Report -->
+                @foreach (var userBlock in Model.UserBlocks)
+                {
+                    <div class="card mb-4">
+                        <div class="card-header bg-secondary text-white">
+                            <h4>@userBlock.UserName</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <strong>Location:</strong> @userBlock.Location
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>IP Address:</strong> @userBlock.IpAddress
+                                </div>
+                                <div class="col-md-4">
+                                    <strong>Host Name:</strong> @userBlock.HostName
+                                </div>
+                            </div>
+
+                            @if (userBlock.Txns.Any())
+                            {
+                                <table class="table table-bordered table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>Transaction Date</th>
+                                            <th class="text-end">Amount</th>
+                                            <th>Audit Time</th>
+                                            <th>Transaction Description</th>
+                                            <th>Transtable</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var txn in userBlock.Txns)
+                                        {
+                                            <tr>
+                                                <td>@(txn.TransactionDate?.ToString("dd/MM/yyyy") ?? "")</td>
+                                                <td class="text-end">@(txn.Amount?.ToString("N2") ?? "0.00")</td>
+                                                <td>@(txn.AuditTime?.ToString("dd/MM/yyyy HH:mm:ss") ?? "")</td>
+                                                <td>@txn.ActionDescription</td>
+                                                <td>@txn.TableName</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                            else
+                            {
+                                <p class="text-muted">No transactions found for this user.</p>
+                            }
+                        </div>
+                    </div>
+                }
+            }
+            else if (Model.StartDate.HasValue && Model.EndDate.HasValue)
+            {
+                <div class="alert alert-warning">
+                    No audit records found for the selected date range: @(Model.StartDate?.ToString("dd/MM/yyyy")) to @(Model.EndDate?.ToString("dd/MM/yyyy"))
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    Please select a date range and click "Generate Report" to view audit trail records.
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .table th, .table td {
+        vertical-align: middle;
+    }
+
+    .text-end {
+        text-align: right;
+    }
+</style>

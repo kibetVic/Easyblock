@@ -1,0 +1,700 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.ShareTransferDTO
+@{
+    ViewData["Title"] = "New Share Transfer";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var shareTypes = ViewBag.ShareTypes as IEnumerable<SACCOBlockChainSystem.Models.Sharetype> ?? new List<SACCOBlockChainSystem.Models.Sharetype>();
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center">
+                <a asp-action="Index" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+                <h2 class="page-title mb-0">
+                    <i class="bi bi-arrow-left-right me-2"></i>New Share Transfer
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-pencil-square me-2"></i>Transfer Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Create" method="post" id="transferForm">
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" style="display: none;"></div>
+
+                        <!-- Transferor (Seller) Search Section -->
+                        <div class="card bg-light mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="card-title mb-0">
+                                    <i class="bi bi-person-x me-2"></i>Transferor (Seller)
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row align-items-end">
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label class="fw-bold">Search By</label>
+                                            <select id="transferorSearchType" class="form-select">
+                                                <option value="memberNo">Member Number</option>
+                                                <option value="idNo">ID Number</option>
+                                                <option value="phoneNo">Phone Number</option>
+                                                <option value="fullName">Full Name</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="fw-bold" id="transferorSearchLabel">Member Number</label>
+                                            <div class="input-group">
+                                                <input type="text" id="transferorSearchValue" class="form-control"
+                                                       placeholder="Enter member number..." />
+                                                <button type="button" class="btn btn-primary" onclick="searchTransferor()">
+                                                    <i class="bi bi-search"></i> Search
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label>&nbsp;</label>
+                                            <button type="button" class="btn btn-outline-secondary w-100" onclick="clearTransferor()">
+                                                <i class="bi bi-eraser"></i> Clear
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Transferor Search Results -->
+                                <div id="transferorResults" class="mt-3" style="display: none;">
+                                    <div class="alert alert-success">
+                                        <div class="row">
+                                            <div class="col-md-12 mb-2">
+                                                <strong>Member Found:</strong>
+                                                <span id="transferorMemberInfo"></span>
+                                            </div>
+                                            <div class="col-md-12">
+                                                <button type="button" class="btn btn-sm btn-success" onclick="selectTransferor()">
+                                                    <i class="bi bi-check-circle me-1"></i> Select This Member as Transferor
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Selected Transferor Display -->
+                                <div id="selectedTransferorInfo" class="mt-3" style="display: none;">
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-person-check-fill me-2"></i>
+                                        <strong>Selected Transferor:</strong>
+                                        <span id="selectedTransferorName"></span>
+                                        <input type="hidden" id="selectedTransferorNo" name="TransferorMemberNo" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Transferee (Buyer) Search Section -->
+                        <div class="card bg-light mb-4">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="card-title mb-0">
+                                    <i class="bi bi-person-plus me-2"></i>Transferee (Buyer)
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row align-items-end">
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label class="fw-bold">Search By</label>
+                                            <select id="transfereeSearchType" class="form-select">
+                                                <option value="memberNo">Member Number</option>
+                                                <option value="idNo">ID Number</option>
+                                                <option value="phoneNo">Phone Number</option>
+                                                <option value="fullName">Full Name</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="fw-bold" id="transfereeSearchLabel">Member Number</label>
+                                            <div class="input-group">
+                                                <input type="text" id="transfereeSearchValue" class="form-control"
+                                                       placeholder="Enter member number..." />
+                                                <button type="button" class="btn btn-primary" onclick="searchTransferee()">
+                                                    <i class="bi bi-search"></i> Search
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label>&nbsp;</label>
+                                            <button type="button" class="btn btn-outline-secondary w-100" onclick="clearTransferee()">
+                                                <i class="bi bi-eraser"></i> Clear
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Transferee Search Results -->
+                                <div id="transfereeResults" class="mt-3" style="display: none;">
+                                    <div class="alert alert-success">
+                                        <div class="row">
+                                            <div class="col-md-12 mb-2">
+                                                <strong>Member Found:</strong>
+                                                <span id="transfereeMemberInfo"></span>
+                                            </div>
+                                            <div class="col-md-12">
+                                                <button type="button" class="btn btn-sm btn-success" onclick="selectTransferee()">
+                                                    <i class="bi bi-check-circle me-1"></i> Select This Member as Transferee
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Selected Transferee Display -->
+                                <div id="selectedTransfereeInfo" class="mt-3" style="display: none;">
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-person-check-fill me-2"></i>
+                                        <strong>Selected Transferee:</strong>
+                                        <span id="selectedTransfereeName"></span>
+                                        <input type="hidden" id="selectedTransfereeNo" name="TransfereeMemberNo" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Share Details -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="SharesCode" class="form-label fw-bold">Share Type *</label>
+                                <select asp-for="SharesCode" class="form-select" id="sharesCodeSelect" required>
+                                    <option value="">-- Select Share Type --</option>
+                                    @foreach (var shareType in shareTypes)
+                                    {
+                                        <option value="@shareType.SharesCode" data-min-amount="@shareType.MinAmount">
+                                            @shareType.SharesType (@shareType.SharesCode) - Min: KES @shareType.MinAmount.ToString("N2")
+                                        </option>
+                                    }
+                                </select>
+                                <span asp-validation-for="SharesCode" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label asp-for="NumberOfShares" class="form-label fw-bold">Number of Shares *</label>
+                                <input asp-for="NumberOfShares" type="number" class="form-control" step="1" min="1" id="numberOfShares" required />
+                                <span asp-validation-for="NumberOfShares" class="text-danger"></span>
+                                <small class="text-muted" id="availableShares"></small>
+                            </div>
+                            <div class="col-md-3 mb-3">
+                                <label asp-for="PricePerShare" class="form-label fw-bold">Price per Share *</label>
+                                <input asp-for="PricePerShare" type="number" class="form-control" step="0.01" min="0.01" id="pricePerShare" required />
+                                <span asp-validation-for="PricePerShare" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="TransferDate" class="form-label fw-bold">Transfer Date *</label>
+                                <input asp-for="TransferDate" type="date" class="form-control" required />
+                                <span asp-validation-for="TransferDate" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="TransferType" class="form-label fw-bold">Transfer Type *</label>
+                                <select asp-for="TransferType" class="form-select" required>
+                                    <option value="Sale">Sale</option>
+                                    <option value="Gift">Gift</option>
+                                    <option value="Inheritance">Inheritance</option>
+                                    <option value="Transfer">Transfer</option>
+                                </select>
+                                <span asp-validation-for="TransferType" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="PaymentMethod" class="form-label">Payment Method</label>
+                                <select asp-for="PaymentMethod" class="form-select" id="paymentMethod">
+                                    <option value="">-- Select Payment Method --</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="Cheque">Cheque</option>
+                                    <option value="Mobile Money">Mobile Money</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="PaymentReference" class="form-label">Payment Reference</label>
+                                <input asp-for="PaymentReference" class="form-control" placeholder="Transaction ID, Cheque No, etc." />
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label asp-for="TransferDocumentPath" class="form-label">Transfer Document</label>
+                                <input asp-for="TransferDocumentPath" class="form-control" placeholder="Path to uploaded document" />
+                                <small class="text-muted">Upload the transfer agreement or supporting documents</small>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label asp-for="Remarks" class="form-label">Remarks</label>
+                                <textarea asp-for="Remarks" class="form-control" rows="3" placeholder="Any additional information..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Calculation Summary -->
+                        <div class="card bg-light mt-3">
+                            <div class="card-body">
+                                <h6 class="card-title fw-bold">Transfer Summary</h6>
+                                <table class="table table-sm table-borderless mb-0">
+                                    <tr>
+                                        <td>Total Amount:</th>
+                                        <td class="text-end"><strong id="totalAmount">KES 0.00</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Transfer Fee (1%):</th>
+                                        <td class="text-end"><span id="transferFee">KES 0.00</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Stamp Duty (0.5%):</th>
+                                        <td class="text-end"><span id="stampDuty">KES 0.00</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Total Charges:</th>
+                                        <td class="text-end"><span id="totalCharges">KES 0.00</span></td>
+                                    </tr>
+                                    <tr class="border-top">
+                                        <td><strong>Net to Transferor:</strong></th>
+                                        <td class="text-end text-success"><strong id="netToTransferor">KES 0.00</strong></td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <i class="bi bi-send me-2"></i>Submit Transfer Request
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-info-circle me-2"></i>Instructions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info small">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        <strong>Share Transfer Process:</strong>
+                        <ul class="mt-2 mb-0">
+                            <li>First search and select the Transferor (Seller)</li>
+                            <li>Then search and select the Transferee (Buyer)</li>
+                            <li>Choose share type and enter number of shares</li>
+                            <li>Set the price per share (can be negotiated)</li>
+                            <li>Transfer fee (1%) and stamp duty (0.5%) are automatically calculated</li>
+                            <li>Transfer must be approved by the SACCO before completion</li>
+                            <li>Once approved, shares will be transferred automatically</li>
+                        </ul>
+                    </div>
+                    <div class="alert alert-warning small mt-3">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Important:</strong>
+                        <ul class="mt-2 mb-0">
+                            <li>Transferor must have sufficient shares available</li>
+                            <li>Transferee must be an active member</li>
+                            <li>All transfers are recorded on the blockchain</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        let currentTransferor = null;
+        let currentTransferee = null;
+        let currentTransferorData = null;
+        let currentTransfereeData = null;
+
+        $(document).ready(function() {
+            // Update search label based on selection
+            $('#transferorSearchType').on('change', function() {
+                const searchType = $(this).val();
+                const searchLabel = $('#transferorSearchLabel');
+                const searchInput = $('#transferorSearchValue');
+
+                if (searchType === 'memberNo') {
+                    searchLabel.text('Member Number');
+                    searchInput.attr('placeholder', 'Enter member number...');
+                } else if (searchType === 'idNo') {
+                    searchLabel.text('ID Number');
+                    searchInput.attr('placeholder', 'Enter ID number...');
+                } else if (searchType === 'phoneNo') {
+                    searchLabel.text('Phone Number');
+                    searchInput.attr('placeholder', 'Enter phone number...');
+                } else {
+                    searchLabel.text('Full Name');
+                    searchInput.attr('placeholder', 'Enter full name...');
+                }
+                searchInput.val('');
+                $('#transferorResults').hide();
+            });
+
+            $('#transfereeSearchType').on('change', function() {
+                const searchType = $(this).val();
+                const searchLabel = $('#transfereeSearchLabel');
+                const searchInput = $('#transfereeSearchValue');
+
+                if (searchType === 'memberNo') {
+                    searchLabel.text('Member Number');
+                    searchInput.attr('placeholder', 'Enter member number...');
+                } else if (searchType === 'idNo') {
+                    searchLabel.text('ID Number');
+                    searchInput.attr('placeholder', 'Enter ID number...');
+                } else if (searchType === 'phoneNo') {
+                    searchLabel.text('Phone Number');
+                    searchInput.attr('placeholder', 'Enter phone number...');
+                } else {
+                    searchLabel.text('Full Name');
+                    searchInput.attr('placeholder', 'Enter full name...');
+                }
+                searchInput.val('');
+                $('#transfereeResults').hide();
+            });
+
+            // Calculate on input changes
+            $('#numberOfShares, #pricePerShare').on('input', calculateTransfer);
+            $('#sharesCodeSelect').on('change', function() {
+                loadAvailableShares();
+                calculateTransfer();
+            });
+
+            // Allow Enter key to search
+            $('#transferorSearchValue').on('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchTransferor();
+                }
+            });
+
+            $('#transfereeSearchValue').on('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchTransferee();
+                }
+            });
+        });
+
+        async function searchTransferor() {
+            const searchType = $('#transferorSearchType').val();
+            const searchValue = $('#transferorSearchValue').val().trim();
+
+            if (!searchValue) {
+                alert('Please enter a ' + $('#transferorSearchLabel').text());
+                return;
+            }
+
+            let url = '';
+            let params = {};
+
+            if (searchType === 'memberNo') {
+                url = '/MemberMvc/SearchMember';
+                params = { memberNo: searchValue };
+            } else if (searchType === 'idNo') {
+                url = '/MemberMvc/SearchMember';
+                params = { idNo: searchValue };
+            } else if (searchType === 'phoneNo') {
+                url = '/MemberMvc/SearchMember';
+                params = { phoneNo: searchValue };
+            } else {
+                url = '/MemberMvc/SearchMember';
+                params = { fullName: searchValue };
+            }
+
+            const queryString = new URLSearchParams(params).toString();
+            url = `${url}?${queryString}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success && data.member) {
+                    currentTransferorData = data.member;
+                    $('#transferorMemberInfo').html(`
+                        <strong>${data.member.memberNo}</strong> - ${data.member.fullName}<br/>
+                        <small>ID: ${data.member.idNo || 'N/A'} | Phone: ${data.member.phoneNo || 'N/A'}</small>
+                    `);
+                    $('#transferorResults').show();
+                } else {
+                    alert(data.message || 'Member not found');
+                    $('#transferorResults').hide();
+                }
+            } catch (error) {
+                console.error('Error searching member:', error);
+                alert('Error searching for member. Please try again.');
+            }
+        }
+
+        async function searchTransferee() {
+            const searchType = $('#transfereeSearchType').val();
+            const searchValue = $('#transfereeSearchValue').val().trim();
+
+            if (!searchValue) {
+                alert('Please enter a ' + $('#transfereeSearchLabel').text());
+                return;
+            }
+
+            let url = '';
+            let params = {};
+
+            if (searchType === 'memberNo') {
+                url = '/MemberMvc/SearchMember';
+                params = { memberNo: searchValue };
+            } else if (searchType === 'idNo') {
+                url = '/MemberMvc/SearchMember';
+                params = { idNo: searchValue };
+            } else if (searchType === 'phoneNo') {
+                url = '/MemberMvc/SearchMember';
+                params = { phoneNo: searchValue };
+            } else {
+                url = '/MemberMvc/SearchMember';
+                params = { fullName: searchValue };
+            }
+
+            const queryString = new URLSearchParams(params).toString();
+            url = `${url}?${queryString}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success && data.member) {
+                    currentTransfereeData = data.member;
+                    $('#transfereeMemberInfo').html(`
+                        <strong>${data.member.memberNo}</strong> - ${data.member.fullName}<br/>
+                        <small>ID: ${data.member.idNo || 'N/A'} | Phone: ${data.member.phoneNo || 'N/A'}</small>
+                    `);
+                    $('#transfereeResults').show();
+                } else {
+                    alert(data.message || 'Member not found');
+                    $('#transfereeResults').hide();
+                }
+            } catch (error) {
+                console.error('Error searching member:', error);
+                alert('Error searching for member. Please try again.');
+            }
+        }
+
+        function selectTransferor() {
+            if (currentTransferorData) {
+                $('#selectedTransferorName').html(`<strong>${currentTransferorData.memberNo}</strong> - ${currentTransferorData.fullName}`);
+                $('#selectedTransferorNo').val(currentTransferorData.memberNo);
+                $('#selectedTransferorInfo').show();
+                $('#transferorResults').hide();
+                $('#transferorSearchValue').val('');
+                currentTransferor = currentTransferorData.memberNo;
+                
+                // Load available shares for transferor
+                loadAvailableShares();
+                calculateTransfer();
+                
+                // Check if both parties are selected
+                checkBothPartiesSelected();
+            }
+        }
+
+        function selectTransferee() {
+            if (currentTransfereeData) {
+                $('#selectedTransfereeName').html(`<strong>${currentTransfereeData.memberNo}</strong> - ${currentTransfereeData.fullName}`);
+                $('#selectedTransfereeNo').val(currentTransfereeData.memberNo);
+                $('#selectedTransfereeInfo').show();
+                $('#transfereeResults').hide();
+                $('#transfereeSearchValue').val('');
+                currentTransferee = currentTransfereeData.memberNo;
+                
+                calculateTransfer();
+                
+                // Check if both parties are selected
+                checkBothPartiesSelected();
+            }
+        }
+
+        function checkBothPartiesSelected() {
+            if (currentTransferor && currentTransferee) {
+                if (currentTransferor === currentTransferee) {
+                    alert('Transferor and Transferee cannot be the same member');
+                    clearTransferor();
+                    clearTransferee();
+                }
+            }
+        }
+
+        function clearTransferor() {
+            currentTransferor = null;
+            currentTransferorData = null;
+            $('#selectedTransferorInfo').hide();
+            $('#selectedTransferorNo').val('');
+            $('#transferorSearchValue').val('');
+            $('#transferorResults').hide();
+        }
+
+        function clearTransferee() {
+            currentTransferee = null;
+            currentTransfereeData = null;
+            $('#selectedTransfereeInfo').hide();
+            $('#selectedTransfereeNo').val('');
+            $('#transfereeSearchValue').val('');
+            $('#transfereeResults').hide();
+        }
+
+        async function loadAvailableShares() {
+            const transferor = $('#selectedTransferorNo').val();
+            const sharesCode = $('#sharesCodeSelect').val();
+
+            if (transferor && sharesCode) {
+                try {
+                    const response = await fetch(`/ShareTransfer/GetMemberShares?memberNo=${transferor}&sharesCode=${sharesCode}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        const available = data.balance;
+                        $('#availableShares').html(`Available: ${available.toLocaleString()} shares`);
+                        $('#availableShares').css('color', available > 0 ? 'green' : 'red');
+                        $('#numberOfShares').attr('max', available);
+                    } else {
+                        $('#availableShares').html('Error loading shares');
+                    }
+                } catch (error) {
+                    console.error('Error loading shares:', error);
+                    $('#availableShares').html('Error loading shares');
+                }
+            }
+        }
+
+        async function calculateTransfer() {
+            const transferor = $('#selectedTransferorNo').val();
+            const transferee = $('#selectedTransfereeNo').val();
+            const sharesCode = $('#sharesCodeSelect').val();
+            const numberOfShares = parseFloat($('#numberOfShares').val()) || 0;
+            const pricePerShare = parseFloat($('#pricePerShare').val()) || 0;
+
+            if (!transferor || !transferee || !sharesCode || numberOfShares <= 0 || pricePerShare <= 0) {
+                $('#totalAmount').text('KES 0.00');
+                $('#transferFee').text('KES 0.00');
+                $('#stampDuty').text('KES 0.00');
+                $('#totalCharges').text('KES 0.00');
+                $('#netToTransferor').text('KES 0.00');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/ShareTransfer/Calculate?transferorMemberNo=${transferor}&transfereeMemberNo=${transferee}&sharesCode=${sharesCode}&numberOfShares=${numberOfShares}&pricePerShare=${pricePerShare}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const calc = data.data;
+                    $('#totalAmount').text(`KES ${calc.totalAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}`);
+                    $('#transferFee').text(`KES ${calc.transferFee.toLocaleString(undefined, {minimumFractionDigits: 2})}`);
+                    $('#stampDuty').text(`KES ${calc.stampDuty.toLocaleString(undefined, {minimumFractionDigits: 2})}`);
+                    $('#totalCharges').text(`KES ${calc.totalCharges.toLocaleString(undefined, {minimumFractionDigits: 2})}`);
+                    $('#netToTransferor').text(`KES ${(calc.totalAmount - calc.totalCharges).toLocaleString(undefined, {minimumFractionDigits: 2})}`);
+                }
+            } catch (error) {
+                console.error('Error calculating transfer:', error);
+            }
+        }
+
+        // Form validation
+        $('#transferForm').on('submit', function(e) {
+            const transferor = $('#selectedTransferorNo').val();
+            const transferee = $('#selectedTransfereeNo').val();
+            const sharesCode = $('#sharesCodeSelect').val();
+            const numberOfShares = parseFloat($('#numberOfShares').val()) || 0;
+            const maxShares = parseInt($('#numberOfShares').attr('max')) || 0;
+            const pricePerShare = parseFloat($('#pricePerShare').val()) || 0;
+
+            if (!transferor) {
+                e.preventDefault();
+                alert('Please search and select a Transferor (Seller)');
+                return false;
+            }
+
+            if (!transferee) {
+                e.preventDefault();
+                alert('Please search and select a Transferee (Buyer)');
+                return false;
+            }
+
+            if (transferor === transferee) {
+                e.preventDefault();
+                alert('Transferor and Transferee cannot be the same member');
+                return false;
+            }
+
+            if (!sharesCode) {
+                e.preventDefault();
+                alert('Please select a Share Type');
+                return false;
+            }
+
+            if (numberOfShares <= 0) {
+                e.preventDefault();
+                alert('Number of shares must be greater than 0');
+                return false;
+            }
+
+            if (numberOfShares > maxShares) {
+                e.preventDefault();
+                alert(`Insufficient shares. Available: ${maxShares} shares. Requested: ${numberOfShares} shares`);
+                return false;
+            }
+
+            if (pricePerShare <= 0) {
+                e.preventDefault();
+                alert('Price per share must be greater than 0');
+                return false;
+            }
+
+            const totalAmount = parseFloat($('#totalAmount').text().replace(/[^0-9.-]+/g, '')) || 0;
+            
+            return confirm(`Please confirm share transfer:\n\n` +
+                `Transferor: ${$('#selectedTransferorName').text()}\n` +
+                `Transferee: ${$('#selectedTransfereeName').text()}\n` +
+                `Share Type: ${$('#sharesCodeSelect option:selected').text()}\n` +
+                `Number of Shares: ${numberOfShares}\n` +
+                `Price per Share: KES ${pricePerShare.toFixed(2)}\n` +
+                `Total Amount: ${$('#totalAmount').text()}\n` +
+                `Net to Transferor: ${$('#netToTransferor').text()}\n\n` +
+                `Proceed with transfer request?`);
+        });
+    </script>
+}

@@ -1,0 +1,795 @@
+﻿@model IEnumerable<SACCOBlockChainSystem.Models.DTOs.CompanyResponseDTO>
+@{
+    ViewData["Title"] = "Companies";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var newCompanyCode = ViewBag.NewCompanyCode as string;
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary me-3">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                    <h2 class="page-title mb-0">
+                        <i class="bi bi-building me-2"></i>Companies
+                    </h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (ViewBag.CurrentUserRole == "Super Admin")
+    {
+        <!-- Company Form (Top Section) -->
+        <div class="card shadow-sm mb-4" id="companyFormCard">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0" id="formTitle">
+                    <i class="bi bi-plus-circle me-2"></i>Add New Company
+                </h5>
+            </div>
+            <div class="card-body">
+                <form id="companyForm" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" id="companyId" name="Id" />
+
+                    <div class="row">
+                        <!-- Company Code - Auto-generated, read-only -->
+                        <div class="col-md-4 mb-3">
+                            <label for="CompanyCode" class="form-label fw-bold">Company Code *</label>
+                            <input type="text" class="form-control bg-light" id="CompanyCode" name="CompanyCode"
+                                   value="@newCompanyCode" required maxlength="50" readonly />
+                            <small class="text-muted">Auto-generated unique code</small>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="CompanyName" class="form-label fw-bold">Company Name *</label>
+                            <input type="text" class="form-control" id="CompanyName" name="CompanyName" required maxlength="200" />
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="Contactperson" class="form-label fw-bold">Contact Person *</label>
+                            <input type="text" class="form-control" id="Contactperson" name="Contactperson" required maxlength="100" />
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="Telephone" class="form-label fw-bold">Telephone No *</label>
+                            <input type="tel" class="form-control" id="Telephone" name="Telephone" required maxlength="50" />
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="Email" class="form-label fw-bold">Email Address *</label>
+                            <input type="email" class="form-control" id="Email" name="Email" required maxlength="100" />
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="Address" class="form-label fw-bold">Postal Address *</label>
+                            <input type="text" class="form-control" id="Address" name="Address" required maxlength="200" placeholder="P.O. Box 123-00100" />
+                        </div>
+
+                        <!-- County Dropdown -->
+                        <div class="col-md-4 mb-3">
+                            <label for="County" class="form-label fw-bold">County *</label>
+                            <select class="form-select" id="County" name="County" required>
+                                <option value="">-- Select County --</option>
+                            </select>
+                        </div>
+
+                        <!-- Sub County Dropdown -->
+                        <div class="col-md-4 mb-3">
+                            <label for="SubCounty" class="form-label fw-bold">Sub County *</label>
+                            <select class="form-select" id="SubCounty" name="SubCounty" required>
+                                <option value="">-- Select Sub County --</option>
+                            </select>
+                        </div>
+
+                        <!-- Ward Dropdown -->
+                        <div class="col-md-4 mb-3">
+                            <label for="Ward" class="form-label fw-bold">Ward *</label>
+                            <select class="form-select" id="Ward" name="Ward" required>
+                                <option value="">-- Select Ward --</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="Village" class="form-label">Village</label>
+                            <input type="text" class="form-control" id="Village" name="Village" maxlength="100" />
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="NoEmployees" class="form-label fw-bold">Number of Members *</label>
+                            <input type="number" class="form-control" id="NoEmployees" name="NoEmployees" required min="1" />
+                        </div>
+
+                        <div class="col-md-4 mb-3">
+                            <label for="BusinessStatus" class="form-label fw-bold">Business Status *</label>
+                            <select class="form-select" id="BusinessStatus" name="BusinessStatus" required>
+                                <option value="Active">Active</option>
+                                <option value="Inactive">Inactive</option>
+                                <option value="Pending">Pending</option>
+                                <option value="Suspended">Suspended</option>
+                            </select>
+                        </div>
+
+                        <!-- Hidden fields -->
+                        <input type="hidden" id="CountyId" name="CountyId" />
+                        <input type="hidden" id="SubCountyId" name="SubCountyId" />
+                        <input type="hidden" id="WardId" name="WardId" />
+                        <input type="hidden" id="Cigcode" name="Cigcode" />
+                        <input type="hidden" id="Unitcode" name="Unitcode" />
+                        <input type="hidden" id="AccountNo" name="AccountNo" />
+                        <input type="hidden" id="NoYears" name="NoYears" />
+                        <input type="hidden" id="Type" name="Type" />
+                        <input type="hidden" id="Capital" name="Capital" />
+                        <input type="hidden" id="Project" name="Project" value="true" />
+                        <input type="hidden" id="CountyCode" name="CountyCode" />
+                        <input type="hidden" id="Location" name="Location" />
+                    </div>
+
+                    <hr />
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                            <i class="bi bi-eraser me-2"></i>Reset
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <i class="bi bi-save me-2"></i>Save Company
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    }
+
+    <!-- Companies List (Bottom Section) -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-list-check me-2"></i>Companies List
+                    </h5>
+                    <small class="text-muted">Manage your companies</small>
+                </div>
+                <div class="col-md-4 offset-md-4">
+                    <form asp-action="Index" method="get" class="d-flex gap-2" id="searchForm">
+                        <div class="input-group">
+                            <input type="text" name="search" class="form-control" placeholder="Search by code, name, email, contact..." value="@ViewBag.CurrentSearch" id="searchInput" />
+                            <button type="submit" class="btn btn-outline-secondary">
+                                <i class="bi bi-search"></i>
+                            </button>
+                            @if (!string.IsNullOrEmpty(ViewBag.CurrentSearch))
+                            {
+                                <a asp-action="Index" class="btn btn-outline-danger">
+                                    <i class="bi bi-x-lg"></i> Clear
+                                </a>
+                            }
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            @if (!Model.Any())
+            {
+                <div class="alert alert-info text-center py-5">
+                    <i class="bi bi-info-circle fs-1"></i>
+                    <h5 class="mt-3">No companies found</h5>
+                    <p class="mb-0">Use the form above to create your first company.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover" id="companiesTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Company Code</th>
+                                <th>Company Name</th>
+                                <th>Contact Person</th>
+                                <th>Telephone</th>
+                                <th>Email</th>
+                                <th>County</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var company in Model)
+                            {
+                                <tr id="company-row-@company.Id">
+                                    <td><strong>@company.CompanyCode</strong></td>
+                                    <td>@company.CompanyName</td>
+                                    <td>@company.Contactperson</td>
+                                    <td>@company.Telephone</td>
+                                    <td>@company.Email</td>
+                                    <td>@company.County</td> 
+                                    <td>
+                                        <span class="badge bg-success">Active</span>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-info" title="View Details" onclick="viewDetails(@company.Id)">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" title="Edit" onclick="editCompany(@company.Id)">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3 text-muted">
+                    <small>Total: @Model.Count() company(s)</small>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- View Company Modal -->
+<div class="modal fade" id="viewCompanyModal" tabindex="-1" aria-labelledby="viewCompanyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="viewCompanyModalLabel">
+                    <i class="bi bi-eye me-2"></i>Company Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="fw-bold text-muted">Company Code:</label>
+                        <p class="mb-0" id="view_CompanyCode">-</p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="fw-bold text-muted">Company Name:</label>
+                        <p class="mb-0" id="view_CompanyName">-</p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="fw-bold text-muted">Contact Person:</label>
+                        <p class="mb-0" id="view_Contactperson">-</p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="fw-bold text-muted">Telephone:</label>
+                        <p class="mb-0" id="view_Telephone">-</p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="fw-bold text-muted">Email:</label>
+                        <p class="mb-0" id="view_Email">-</p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="fw-bold text-muted">Postal Address:</label>
+                        <p class="mb-0" id="view_Address">-</p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="fw-bold text-muted">County:</label>
+                        <p class="mb-0" id="view_County">-</p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="fw-bold text-muted">Sub County:</label>
+                        <p class="mb-0" id="view_SubCounty">-</p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="fw-bold text-muted">Ward:</label>
+                        <p class="mb-0" id="view_Ward">-</p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="fw-bold text-muted">Village:</label>
+                        <p class="mb-0" id="view_Village">-</p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="fw-bold text-muted">Number of Members:</label>
+                        <p class="mb-0" id="view_NoEmployees">-</p>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="fw-bold text-muted">Business Status:</label>
+                        <p class="mb-0" id="view_BusinessStatus">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Make sure jQuery is loaded
+        if (typeof jQuery === 'undefined') {
+            console.error('jQuery is not loaded!');
+        }
+
+        $(document).ready(function() {
+            console.log('Document ready, loading counties...');
+
+            // Load counties on page load
+            loadCounties();
+
+            // Initialize DataTable
+            if ($.fn.DataTable) {
+                $('#companiesTable').DataTable({
+                    pageLength: 10,
+                    ordering: true,
+                    responsive: true,
+                    searching: false,
+                    paging: true,
+                    language: {
+                        lengthMenu: "Show _MENU_ companies per page",
+                        info: "Showing _START_ to _END_ of _TOTAL_ companies",
+                        infoEmpty: "No companies found",
+                        zeroRecords: "No matching companies found"
+                    }
+                });
+            }
+
+            // Handle form submission
+            $('#companyForm').on('submit', function(e) {
+                e.preventDefault();
+
+                // Validate form
+                var isValid = true;
+                var errorMessages = [];
+
+                if (!$('#CompanyName').val().trim()) {
+                    isValid = false;
+                    errorMessages.push('Company Name is required');
+                    $('#CompanyName').addClass('is-invalid');
+                } else {
+                    $('#CompanyName').removeClass('is-invalid');
+                }
+
+                if (!$('#Contactperson').val().trim()) {
+                    isValid = false;
+                    errorMessages.push('Contact Person is required');
+                    $('#Contactperson').addClass('is-invalid');
+                } else {
+                    $('#Contactperson').removeClass('is-invalid');
+                }
+
+                if (!$('#Telephone').val().trim()) {
+                    isValid = false;
+                    errorMessages.push('Telephone Number is required');
+                    $('#Telephone').addClass('is-invalid');
+                } else {
+                    $('#Telephone').removeClass('is-invalid');
+                }
+
+                if (!$('#Email').val().trim()) {
+                    isValid = false;
+                    errorMessages.push('Email Address is required');
+                    $('#Email').addClass('is-invalid');
+                } else {
+                    $('#Email').removeClass('is-invalid');
+                }
+
+                if (!$('#Address').val().trim()) {
+                    isValid = false;
+                    errorMessages.push('Postal Address is required');
+                    $('#Address').addClass('is-invalid');
+                } else {
+                    $('#Address').removeClass('is-invalid');
+                }
+
+                if (!$('#NoEmployees').val() || parseInt($('#NoEmployees').val()) <= 0) {
+                    isValid = false;
+                    errorMessages.push('Number of Members is required');
+                    $('#NoEmployees').addClass('is-invalid');
+                } else {
+                    $('#NoEmployees').removeClass('is-invalid');
+                }
+
+                if (!$('#County').val()) {
+                    isValid = false;
+                    errorMessages.push('County is required');
+                    $('#County').addClass('is-invalid');
+                } else {
+                    $('#County').removeClass('is-invalid');
+                }
+
+                if (!$('#SubCounty').val()) {
+                    isValid = false;
+                    errorMessages.push('Sub County is required');
+                    $('#SubCounty').addClass('is-invalid');
+                } else {
+                    $('#SubCounty').removeClass('is-invalid');
+                }
+
+                if (!$('#Ward').val()) {
+                    isValid = false;
+                    errorMessages.push('Ward is required');
+                    $('#Ward').addClass('is-invalid');
+                } else {
+                    $('#Ward').removeClass('is-invalid');
+                }
+
+                if (!isValid) {
+                    showToast('error', 'Please fix the following errors:\n' + errorMessages.join('\n'));
+                    return;
+                }
+
+                // Build form data
+                var formData = {
+                    Id: $('#companyId').val() || null,
+                    CompanyCode: $('#CompanyCode').val(),
+                    CompanyName: $('#CompanyName').val().trim(),
+                    Contactperson: $('#Contactperson').val().trim(),
+                    Telephone: $('#Telephone').val().trim(),
+                    Email: $('#Email').val().trim(),
+                    Address: $('#Address').val().trim(),
+                    NoEmployees: parseInt($('#NoEmployees').val()),
+                    CountyId: parseInt($('#County').val()),
+                    SubCountyId: parseInt($('#SubCounty').val()),
+                    WardId: parseInt($('#Ward').val()),
+                    Village: $('#Village').val().trim() || null,
+                    County: $('#County option:selected').text(),
+                    SubCounty: $('#SubCounty option:selected').text(),
+                    Ward: $('#Ward option:selected').text(),
+                    Project: true,
+                    BusinessStatus: 'Active'
+                };
+
+                console.log('Sending data:', formData);
+
+                var companyId = $('#companyId').val();
+                var url = companyId ? '/Company/Edit' : '/Company/Create';
+
+                if (companyId) {
+                    url += '?id=' + companyId;
+                }
+
+                var submitBtn = $('#submitBtn');
+                submitBtn.prop('disabled', true).html('<i class="bi bi-hourglass-split me-2"></i>Saving...');
+
+                $.ajax({
+                    url: url,
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(formData),
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showToast('success', response.message);
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            showToast('error', response.message || 'An error occurred');
+                            submitBtn.prop('disabled', false).html('<i class="bi bi-save me-2"></i>Save Company');
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error('AJAX Error:', xhr);
+                        var message = xhr.responseJSON?.message || xhr.responseText || 'An error occurred. Please try again.';
+                        showToast('error', message);
+                        submitBtn.prop('disabled', false).html('<i class="bi bi-save me-2"></i>Save Company');
+                    }
+                });
+            });
+        });
+
+        function loadCounties() {
+            console.log('Loading counties...');
+            $.ajax({
+                url: '/Company/GetCounties',
+                type: 'GET',
+                dataType: 'json',
+                success: function(counties) {
+                    console.log('Counties loaded:', counties);
+                    var countySelect = $('#County');
+                    countySelect.empty();
+                    countySelect.append('<option value="">-- Select County --</option>');
+
+                    if (counties && counties.length > 0) {
+                        $.each(counties, function(index, county) {
+                            countySelect.append('<option value="' + county.value + '">' + county.text + '</option>');
+                        });
+                    } else {
+                        console.warn('No counties returned from server');
+                        countySelect.append('<option value="">No counties available</option>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading counties:', error);
+                    console.error('Status:', status);
+                    console.error('Response:', xhr.responseText);
+                    showToast('error', 'Error loading counties. Please check the console for details.');
+                }
+            });
+        }
+
+        function loadSubCounties(countyId) {
+            console.log('Loading sub counties for countyId:', countyId);
+            if (!countyId) {
+                $('#SubCounty').empty().append('<option value="">-- Select Sub County --</option>');
+                $('#Ward').empty().append('<option value="">-- Select Ward --</option>');
+                return;
+            }
+
+            $.ajax({
+                url: '/Company/GetSubCounties',
+                type: 'GET',
+                data: { countyId: countyId },
+                dataType: 'json',
+                success: function(subCounties) {
+                    console.log('Sub counties loaded:', subCounties);
+                    var subCountySelect = $('#SubCounty');
+                    subCountySelect.empty();
+                    subCountySelect.append('<option value="">-- Select Sub County --</option>');
+
+                    if (subCounties && subCounties.length > 0) {
+                        $.each(subCounties, function(index, sc) {
+                            subCountySelect.append('<option value="' + sc.value + '">' + sc.text + '</option>');
+                        });
+                    } else {
+                        subCountySelect.append('<option value="">No sub counties available</option>');
+                    }
+
+                    $('#Ward').empty().append('<option value="">-- Select Ward --</option>');
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading sub counties:', error);
+                    showToast('error', 'Error loading sub counties');
+                }
+            });
+        }
+
+        function loadWards(subCountyId) {
+            console.log('Loading wards for subCountyId:', subCountyId);
+            if (!subCountyId) {
+                $('#Ward').empty().append('<option value="">-- Select Ward --</option>');
+                return;
+            }
+
+            $.ajax({
+                url: '/Company/GetWards',
+                type: 'GET',
+                data: { subCountyId: subCountyId },
+                dataType: 'json',
+                success: function(wards) {
+                    console.log('Wards loaded:', wards);
+                    var wardSelect = $('#Ward');
+                    wardSelect.empty();
+                    wardSelect.append('<option value="">-- Select Ward --</option>');
+
+                    if (wards && wards.length > 0) {
+                        $.each(wards, function(index, ward) {
+                            wardSelect.append('<option value="' + ward.value + '">' + ward.text + '</option>');
+                        });
+                    } else {
+                        wardSelect.append('<option value="">No wards available</option>');
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading wards:', error);
+                    showToast('error', 'Error loading wards');
+                }
+            });
+        }
+
+        // Event handlers for cascading dropdowns
+        $('#County').on('change', function() {
+            var countyId = $(this).val();
+            console.log('County changed to:', countyId);
+            loadSubCounties(countyId);
+        });
+
+        $('#SubCounty').on('change', function() {
+            var subCountyId = $(this).val();
+            console.log('SubCounty changed to:', subCountyId);
+            loadWards(subCountyId);
+        });
+
+        function resetForm() {
+            $('#companyForm')[0].reset();
+            $('#companyId').val('');
+            $('#formTitle').html('<i class="bi bi-plus-circle me-2"></i>Add New Company');
+            $('#submitBtn').html('<i class="bi bi-save me-2"></i>Save Company');
+
+            // Reset dropdowns
+            loadCounties();
+            $('#SubCounty').empty().append('<option value="">-- Select Sub County --</option>');
+            $('#Ward').empty().append('<option value="">-- Select Ward --</option>');
+
+            // Generate new company code
+            $.ajax({
+                url: '/Company/GenerateCompanyCode',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        $('#CompanyCode').val(response.companyCode);
+                    }
+                },
+                error: function() {
+                    console.error('Error generating company code');
+                }
+            });
+        }
+
+        function editCompany(id) {
+            console.log('Editing company:', id);
+            $.ajax({
+                url: '/Company/GetCompanyDetails',
+                type: 'GET',
+                data: { id: id },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        var company = response.company;
+                        $('#companyId').val(company.id);
+                        $('#CompanyCode').val(company.companyCode);
+                        $('#CompanyName').val(company.companyName);
+                        $('#Contactperson').val(company.contactperson);
+                        $('#Telephone').val(company.telephone);
+                        $('#Email').val(company.email);
+                        $('#Address').val(company.address);
+                        $('#Village').val(company.village);
+                        $('#NoEmployees').val(company.noEmployees);
+                        $('#BusinessStatus').val('Active');
+
+                        // Set county and load sub counties
+                        if (company.countyId) {
+                            $('#County').val(company.countyId);
+                            loadSubCounties(company.countyId);
+
+                            setTimeout(function() {
+                                if (company.subCountyId) {
+                                    $('#SubCounty').val(company.subCountyId);
+                                    loadWards(company.subCountyId);
+
+                                    setTimeout(function() {
+                                        if (company.wardId) {
+                                            $('#Ward').val(company.wardId);
+                                        }
+                                    }, 100);
+                                }
+                            }, 200);
+                        }
+
+                        $('#formTitle').html('<i class="bi bi-pencil-square me-2"></i>Edit Company');
+                        $('#submitBtn').html('<i class="bi bi-save me-2"></i>Update Company');
+
+                        $('#companyFormCard')[0].scrollIntoView({ behavior: 'smooth' });
+                    } else {
+                        showToast('error', response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading company details:', error);
+                    showToast('error', 'Error loading company details');
+                }
+            });
+        }
+
+        function viewDetails(id) {
+            console.log('Viewing company:', id);
+            $.ajax({
+                url: '/Company/GetCompanyDetails',
+                type: 'GET',
+                data: { id: id },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.success) {
+                        var company = response.company;
+                        $('#view_CompanyCode').text(company.companyCode);
+                        $('#view_CompanyName').text(company.companyName);
+                        $('#view_Contactperson').text(company.contactperson);
+                        $('#view_Telephone').text(company.telephone);
+                        $('#view_Email').text(company.email || '-');
+                        $('#view_Address').text(company.address);
+                        $('#view_County').text(company.county || '-');
+                        $('#view_SubCounty').text(company.subCounty || '-');
+                        $('#view_Ward').text(company.ward || '-');
+                        $('#view_Village').text(company.village || '-');
+                        $('#view_NoEmployees').text(company.noEmployees || '-');
+                        $('#view_BusinessStatus').text('Active');
+
+                        $('#viewCompanyModal').modal('show');
+                    } else {
+                        showToast('error', response.message);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error loading company details:', error);
+                    showToast('error', 'Error loading company details');
+                }
+            });
+        }
+
+        function showToast(type, message) {
+            var toastHtml = `
+                <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0 position-fixed bottom-0 end-0 m-3" role="alert" aria-live="assertive" aria-atomic="true" style="z-index: 1100;">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+
+            $('body').append(toastHtml);
+            var toast = $('.toast').last();
+            var bsToast = new bootstrap.Toast(toast[0], { autohide: true, delay: 5000 });
+            bsToast.show();
+
+            toast.on('hidden.bs.toast', function() {
+                $(this).remove();
+            });
+        }
+    </script>
+}
+
+@section Styles {
+    <style>
+        .form-control:focus, .form-select:focus {
+            border-color: #00AEEF;
+            box-shadow: 0 0 0 0.2rem rgba(0, 174, 239, 0.15);
+        }
+
+        .btn-primary {
+            background: linear-gradient(145deg, #00AEEF, #164799);
+            border: none;
+        }
+
+            .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(0, 174, 239, 0.2);
+            }
+
+        .card {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 174, 239, 0.05);
+        }
+
+        .badge {
+            padding: 5px 10px;
+            font-weight: 500;
+        }
+
+        .btn-group .btn {
+            margin: 0 2px;
+        }
+
+        .toast {
+            z-index: 1050;
+        }
+
+        .is-invalid {
+            border-color: #dc3545;
+        }
+    </style>
+}

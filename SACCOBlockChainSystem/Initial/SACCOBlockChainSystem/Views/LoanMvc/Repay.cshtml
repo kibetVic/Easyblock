@@ -1,0 +1,949 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.LoanRepaymentDTO
+@{
+    ViewData["Title"] = "Loan Repayment";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var companyCode = ViewBag.CompanyCode as string ?? Context.Request.Query["companyCode"].ToString();
+    if (string.IsNullOrEmpty(companyCode))
+    {
+        companyCode = User?.FindFirst("CompanyCode")?.Value ?? "DEFAULT";
+    }
+    var glAccounts = ViewBag.GlAccounts as IEnumerable<dynamic> ?? new List<dynamic>();
+}
+
+<style>
+    #loansTable tbody tr {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+        #loansTable tbody tr:hover {
+            background-color: rgba(13, 110, 253, 0.05);
+        }
+
+        #loansTable tbody tr.table-primary {
+            background-color: rgba(13, 110, 253, 0.1);
+        }
+
+    .loan-selected {
+        border-left: 4px solid #0d6efd;
+    }
+
+    .allocation-card {
+        transition: all 0.3s ease;
+    }
+
+        .allocation-card .progress {
+            height: 8px;
+            border-radius: 4px;
+        }
+
+    .amount-display {
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+
+    .badge-overdue {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .badge-on-time {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .total-due-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .search-type-btn {
+        margin-right: 5px;
+    }
+
+        .search-type-btn.active {
+            background-color: #0d6efd;
+            color: white;
+            border-color: #0d6efd;
+        }
+</style>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex align-items-center">
+            <a asp-action="AllLoans" class="btn btn-outline-secondary me-3">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+            <h2 class="page-title mb-0">
+                <i class="bi bi-cash-stack me-2"></i>Loan Repayment
+            </h2>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Find and Repay Loan</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Repay" method="post" id="repaymentForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="CompanyCode" />
+                    <input type="hidden" asp-for="ReceivedBy" />
+                    <input type="hidden" asp-for="LoanNo" id="LoanNo" />
+                    <input type="hidden" asp-for="MemberNo" id="MemberNo" />
+                    <input type="hidden" asp-for="GlAccountNo" id="GlAccountNoHidden" />
+
+                    <!-- Enhanced Search Section -->
+                    <div class="row mb-4">
+                        <div class="col-md-12">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6 class="card-title mb-3">Search for Loan</h6>
+
+                                    <!-- Search Type Buttons -->
+                                    <div class="row mb-3">
+                                        <div class="col-md-12">
+                                            <label class="fw-bold me-3">Search By:</label>
+                                            <div class="btn-group" role="group">
+                                                <button type="button" class="btn btn-outline-secondary search-type-btn active" data-search-type="memberNo">
+                                                    <i class="bi bi-person-badge me-1"></i>Member No
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary search-type-btn" data-search-type="loanNo">
+                                                    <i class="bi bi-card-list me-1"></i>Loan No
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary search-type-btn" data-search-type="idNo">
+                                                    <i class="bi bi-credit-card me-1"></i>ID No
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary search-type-btn" data-search-type="fullName">
+                                                    <i class="bi bi-person me-1"></i>Full Name
+                                                </button>
+                                                <button type="button" class="btn btn-outline-secondary search-type-btn" data-search-type="phoneNo">
+                                                    <i class="bi bi-telephone me-1"></i>Phone No
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Search Input -->
+                                    <div class="row align-items-end">
+                                        <div class="col-md-8">
+                                            <div class="form-group">
+                                                <label class="fw-bold" id="searchLabel">Member Number</label>
+                                                <div class="input-group">
+                                                    <input type="text" id="searchValue" class="form-control"
+                                                           placeholder="Enter member number..." />
+                                                    <button type="button" class="btn btn-primary" onclick="performSearch()">
+                                                        <i class="bi bi-search"></i> Search
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label>&nbsp;</label>
+                                                <button type="button" class="btn btn-outline-secondary w-100" onclick="resetForm()">
+                                                    <i class="bi bi-eraser"></i> Clear Search
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Results Section -->
+                    <div id="resultsSection" class="d-none">
+                        <div id="memberInfo" class="alert alert-info mb-3">
+                            <i class="bi bi-person-check-fill me-2"></i>
+                            <strong id="memberName"></strong>
+                            <div id="memberDetails" class="mt-2"></div>
+                        </div>
+
+                        <!-- Active Loans Table -->
+                        <div class="row mb-4">
+                            <div class="col-md-12">
+                                <h6 class="fw-bold mb-3">Active Loans Found</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="loansTable">
+                                        <thead class="table-light">
+                                            <tr>
+                                                <th>Loan Number</th>
+                                                <th>Loan Type</th>
+                                                <th class="text-end">Outstanding Principal</th>
+                                                <th class="text-end">Outstanding Interest</th>
+                                                <th class="text-end">Outstanding Penalty</th>
+                                                <th class="text-end">Total Outstanding</th>
+                                                <th class="text-end">Days Since Last Payment</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="loansTableBody">
+                                            <tr>
+                                                <td colspan="8" class="text-center text-muted py-4">
+                                                    <i class="bi bi-search me-2"></i>Search for a loan to see results
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Loan Summary Card -->
+                        <div id="loanSummaryCard" class="card mb-4 d-none">
+                            <div class="card-header bg-primary text-white">
+                                <h6 class="card-title mb-0">Selected Loan Details</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <table class="table table-sm table-borderless">
+                                            <tr>
+                                                <td><strong>Loan Number:</strong></td>
+                                                <td id="displayLoanNo">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Loan Type:</strong></td>
+                                                <td id="displayLoanType">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Repayment Method:</strong></td>
+                                                <td id="displayRepayMethod">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Disbursement Date:</strong></td>
+                                                <td id="displayDisbursementDate">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Days Overdue:</strong></td>
+                                                <td id="displayDaysSince">-</td>
+                                            </tr>
+                                            <tr id="displayInstallmentInfoRow">
+                                                <td colspan="2" id="displayInstallmentInfo">-</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <table class="table table-sm table-borderless">
+                                            <tr>
+                                                <td><strong>Current Installment Principal:</strong></td>
+                                                <td class="text-primary" id="displayPrincipal">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Current Installment Interest:</strong></td>
+                                                <td class="text-warning" id="displayInterest">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td><strong>Current Installment Penalty:</strong></td>
+                                                <td class="text-danger" id="displayPenalty">-</td>
+                                            </tr>
+                                            <tr class="border-top">
+                                                <td><strong>Total Due Now:</strong></td>
+                                                <td class="text-success fw-bold" id="displayTotal">-</td>
+                                            </tr>
+                                            <tr id="displayOverallInfoRow">
+                                                <td colspan="2" id="displayOverallInfo">-</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="paymentSection" class="d-none">
+                        <hr />
+                        <h6 class="mb-3">Payment Details</h6>
+
+                        <!-- Total Due -->
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <div class="card total-due-card">
+                                    <div class="card-body py-3">
+                                        <div id="totalDueDisplay" class="d-flex flex-column gap-1">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span>Current Installment Due:</span>
+                                                <strong class="fs-5">KES 0.00</strong>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <span class="text-light-emphasis">Full Balance (Payoff Amount):</span>
+                                                <strong class="fs-4">KES 0.00</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 1 -->
+                        <div class="row mb-3">
+                            <!-- GL Account -->
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">GL Account *</label>
+                                <select id="glAccountSelect" class="form-select" required>
+                                    <option value="">-- Select GL Account --</option>
+                                    @if (glAccounts != null && glAccounts.Any())
+                                    {
+                                        foreach (var account in glAccounts)
+                                        {
+                                            <option value="@account.AccNo" data-account-name="@account.Glaccname">
+                                                @account.DisplayText
+                                            </option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+
+                            <!-- Payment Date -->
+                            <div class="col-md-4">
+                                <label asp-for="PaymentDate" class="form-label fw-bold"></label>
+                                <input asp-for="PaymentDate" class="form-control" type="date"
+                                       value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                            </div>
+
+                            <!-- Amount -->
+                            <div class="col-md-4">
+                                <label asp-for="AmountPaid" class="form-label fw-bold"></label>
+                                <div class="input-group">
+                                    <span class="input-group-text">KES</span>
+                                    <input asp-for="AmountPaid" class="form-control" type="number" step="1" min="0.01" required id="amountPaid" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Row 2 -->
+                        <div class="row mb-3">
+                            <!-- Payment Method -->
+                            <div class="col-md-4">
+                                <label asp-for="PaymentMethod" class="form-label fw-bold"></label>
+                                <select asp-for="PaymentMethod" class="form-select" required>
+                                    <option value="">-- Select Method --</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="Cheque">Cheque</option>
+                                    <option value="Mobile Money">Mobile Money</option>
+                                    <option value="Payroll Deduction">Payroll Deduction</option>
+                                </select>
+                            </div>
+
+                            <!-- Reference -->
+                            <div class="col-md-4">
+                                <label asp-for="ReferenceNo" class="form-label"></label>
+                                <input asp-for="ReferenceNo" class="form-control" placeholder="Transaction ID, Cheque No, etc." />
+                            </div>
+
+                            <!-- Remarks -->
+                            <div class="col-md-4">
+                                <label asp-for="Remarks" class="form-label"></label>
+                                <textarea asp-for="Remarks" class="form-control" rows="2"></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Quick Buttons -->
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <div class="btn-group flex-wrap">
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="fullBalanceBtn" disabled>
+                                        <i class="bi bi-cash-stack me-1"></i> Pay Full Balance
+                                    </button>
+                                    <button type="button" class="btn btn-outline-primary btn-sm" id="roundedAmountBtn" disabled>
+                                        <i class="bi bi-arrow-up-circle me-1"></i>Current Due
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                            Clear
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                            <i class="bi bi-check-circle me-2"></i>Process Payment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const companyCode = '@companyCode';
+        let selectedLoan = null;
+        let currentMemberNo = null;
+        let loansData = null;
+        let totalDue = 0;
+        let roundedTotalDue = 0;
+        let currentSearchType = 'memberNo';
+
+        $(document).ready(function() {
+            $('#glAccountSelect').on('change', function() {
+                var selectedValue = $(this).val();
+                $('#GlAccountNoHidden').val(selectedValue);
+            });
+
+            // Search type button click handler
+            $('.search-type-btn').on('click', function() {
+                $('.search-type-btn').removeClass('active');
+                $(this).addClass('active');
+                currentSearchType = $(this).data('search-type');
+
+                const searchLabel = $('#searchLabel');
+                const searchInput = $('#searchValue');
+
+                switch(currentSearchType) {
+                    case 'memberNo':
+                        searchLabel.text('Member Number');
+                        searchInput.attr('placeholder', 'Enter member number...');
+                        break;
+                    case 'loanNo':
+                        searchLabel.text('Loan Number');
+                        searchInput.attr('placeholder', 'Enter loan number...');
+                        break;
+                    case 'idNo':
+                        searchLabel.text('ID Number');
+                        searchInput.attr('placeholder', 'Enter ID number...');
+                        break;
+                    case 'fullName':
+                        searchLabel.text('Full Name');
+                        searchInput.attr('placeholder', 'Enter full name...');
+                        break;
+                    case 'phoneNo':
+                        searchLabel.text('Phone Number');
+                        searchInput.attr('placeholder', 'Enter phone number...');
+                        break;
+                }
+
+                searchInput.val('');
+                resetForm();
+            });
+
+            $('#searchValue').on('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+
+            $('#amountPaid').on('input', function() {
+                if (selectedLoan) {
+                    calculateAllocation();
+                }
+            });
+
+            $('#paymentDate').on('change', function() {
+                if (selectedLoan && $('#amountPaid').val() > 0) {
+                    calculateAllocation();
+                }
+            });
+        });
+
+        async function performSearch() {
+            const searchValue = $('#searchValue').val().trim();
+
+            if (!searchValue) {
+                alert('Please enter a search value');
+                return;
+            }
+
+            if (currentSearchType === 'memberNo') {
+                await searchByMember(searchValue);
+            } else if (currentSearchType === 'loanNo') {
+                await searchByLoan(searchValue);
+            } else if (currentSearchType === 'idNo') {
+                await searchByIdNo(searchValue);
+            } else if (currentSearchType === 'fullName') {
+                await searchByFullName(searchValue);
+            } else if (currentSearchType === 'phoneNo') {
+                await searchByPhoneNo(searchValue);
+            }
+        }
+
+        async function searchByMember(memberNo) {
+            let url = '/LoanMvc/GetActiveLoans?companyCode=' + encodeURIComponent(companyCode);
+            url += '&memberNo=' + encodeURIComponent(memberNo);
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success && data.loans && data.loans.length > 0) {
+                    currentMemberNo = data.memberNo;
+                    loansData = data.loans;
+                    displaySearchResults(data);
+                } else if (data.success && (!data.loans || data.loans.length === 0)) {
+                    alert('No active loans found for member: ' + memberNo);
+                    resetForm();
+                } else {
+                    alert(data.message || 'No loans found');
+                    resetForm();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error searching for loans. Please try again.');
+                resetForm();
+            }
+        }
+
+        async function searchByLoan(loanNo) {
+            let url = '/LoanMvc/GetActiveLoans?companyCode=' + encodeURIComponent(companyCode);
+            url += '&loanNo=' + encodeURIComponent(loanNo);
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success && data.loans && data.loans.length > 0) {
+                    currentMemberNo = data.memberNo;
+                    loansData = data.loans;
+                    displaySearchResults(data);
+                } else if (data.success && (!data.loans || data.loans.length === 0)) {
+                    alert('No active loans found for loan number: ' + loanNo);
+                    resetForm();
+                } else {
+                    alert(data.message || 'No loans found');
+                    resetForm();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error searching for loans. Please try again.');
+                resetForm();
+            }
+        }
+
+        async function searchByIdNo(idNo) {
+            // First find member by ID number
+            let url = '/MemberMvc/SearchMember?idNo=' + encodeURIComponent(idNo);
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success && data.member) {
+                    // Found member, now get their loans
+                    await searchByMember(data.member.memberNo);
+                } else {
+                    alert('No member found with ID number: ' + idNo);
+                    resetForm();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error searching for member. Please try again.');
+                resetForm();
+            }
+        }
+
+        async function searchByFullName(fullName) {
+            let url = '/MemberMvc/SearchMember?fullName=' + encodeURIComponent(fullName);
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success && data.member) {
+                    await searchByMember(data.member.memberNo);
+                } else {
+                    alert('No member found with name: ' + fullName);
+                    resetForm();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error searching for member. Please try again.');
+                resetForm();
+            }
+        }
+
+        async function searchByPhoneNo(phoneNo) {
+            let url = '/MemberMvc/SearchMember?phoneNo=' + encodeURIComponent(phoneNo);
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success && data.member) {
+                    await searchByMember(data.member.memberNo);
+                } else {
+                    alert('No member found with phone number: ' + phoneNo);
+                    resetForm();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error searching for member. Please try again.');
+                resetForm();
+            }
+        }
+
+        function displaySearchResults(data) {
+            document.getElementById('resultsSection').classList.remove('d-none');
+
+            const memberInfo = document.getElementById('memberInfo');
+            memberInfo.className = 'alert alert-success mb-3';
+            document.getElementById('memberName').innerHTML = `<strong>Member:</strong> ${data.memberName || 'N/A'}`;
+            document.getElementById('memberDetails').innerHTML = `
+                <div class="row">
+                    <div class="col-md-3">
+                        <small><strong>Member No:</strong> ${data.memberNo || 'N/A'}</small>
+                    </div>
+                    <div class="col-md-3">
+                        <small><strong>ID No:</strong> ${data.idNo || 'N/A'}</small>
+                    </div>
+                    <div class="col-md-3">
+                        <small><strong>Phone:</strong> ${data.phone || 'N/A'}</small>
+                    </div>
+                    <div class="col-md-3">
+                        <small><strong>Email:</strong> ${data.email || 'N/A'}</small>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <small><strong>Active Loans Found:</strong> ${data.loans.length}</small>
+                </div>
+            `;
+
+            const tableBody = document.getElementById('loansTableBody');
+            tableBody.innerHTML = '';
+
+            if (data.loans && data.loans.length > 0) {
+                data.loans.forEach((loan, index) => {
+                    const isOverdue = loan.daysSinceLastPayment > 30;
+                    const row = `
+                        <tr id="loanRow_${loan.loanNo}">
+                            <td><strong>${loan.loanNo}</strong></td>
+                            <td>${loan.loanType || 'N/A'}</td>
+                            <td class="text-end text-primary">
+                                KES ${(loan.outstandingPrincipal || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                            </td>
+                            <td class="text-end text-warning">
+                                KES ${(loan.outstandingInterest || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                            </td>
+                            <td class="text-end text-danger">
+                                KES ${(loan.outstandingPenalty || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                            </td>
+                            <td class="text-end fw-bold text-success">
+                                KES ${(loan.totalOutstanding || 0).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                            </td>
+                            <td class="text-end">
+                                <span class="badge ${isOverdue ? 'bg-danger' : 'bg-info'}">
+                                    ${loan.daysSinceLastPayment || 0} days
+                                </span>
+                            </td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-primary" onclick="selectLoan('${loan.loanNo}', ${index})">
+                                    <i class="bi bi-cash-stack me-1"></i> Select & Repay
+                                </button>
+                            </td>
+                        </tr>
+                    `;
+                    tableBody.innerHTML += row;
+                });
+            } else {
+                tableBody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No active loans found</td></tr>';
+            }
+        }
+
+        function selectLoan(loanNo, index) {
+            const loan = loansData[index];
+
+            if (!loan) {
+                alert('Loan data not found');
+                return;
+            }
+
+            selectedLoan = {
+                loanNo: loan.loanNo,
+                loanType: loan.loanType,
+                currentInstallmentPrincipal: parseFloat(loan.outstandingPrincipal) || 0,
+                currentInstallmentInterest: parseFloat(loan.outstandingInterest) || 0,
+                currentInstallmentPenalty: parseFloat(loan.outstandingPenalty) || 0,
+                currentInstallmentTotal: parseFloat(loan.totalOutstanding) || 0,
+                nextInstallmentAmount: parseFloat(loan.nextInstallmentAmount) || 0,
+                dueDate: loan.dueDate,
+                daysSinceLastPayment: parseInt(loan.daysSinceLastPayment) || 0,
+                disbursementDate: loan.disbursementDate,
+                repayMethod: loan.repayMethod || 'AMT',
+                installmentNo: loan.installmentNo || 1,
+                totalPrincipalBalance: parseFloat(loan.totalPrincipalBalance) || 0,
+                totalInterestBalance: parseFloat(loan.totalInterestBalance) || 0
+            };
+
+            const totalRemainingPrincipal = selectedLoan.totalPrincipalBalance;
+            const totalRemainingInterest = selectedLoan.totalInterestBalance;
+            const totalRemainingPenalty = selectedLoan.currentInstallmentPenalty;
+            const fullBalanceAmount = totalRemainingPrincipal + totalRemainingInterest + totalRemainingPenalty;
+            const currentInstallmentDue = selectedLoan.currentInstallmentTotal;
+
+            document.getElementById('LoanNo').value = selectedLoan.loanNo;
+            document.getElementById('MemberNo').value = currentMemberNo;
+
+            document.querySelectorAll('#loansTableBody tr').forEach(row => {
+                row.classList.remove('table-primary');
+            });
+            const selectedRow = document.getElementById(`loanRow_${loanNo}`);
+            if (selectedRow) {
+                selectedRow.classList.add('table-primary');
+            }
+
+            updateLoanSummaryCard(selectedLoan);
+            document.getElementById('loanSummaryCard').classList.remove('d-none');
+
+            selectedLoan.currentInstallmentDue = currentInstallmentDue;
+            selectedLoan.fullBalanceAmount = fullBalanceAmount;
+
+            document.getElementById('totalDueDisplay').innerHTML = `
+                <div class="d-flex justify-content-between align-items-center w-100">
+                    <span>Current Installment Due:</span>
+                    <strong class="fs-5">KES ${currentInstallmentDue.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
+                </div>
+                <div class="d-flex justify-content-between align-items-center w-100 mt-1">
+                    <span class="text-light-emphasis">Full Balance (Payoff Amount):</span>
+                    <strong class="fs-4">KES ${fullBalanceAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong>
+                </div>
+            `;
+
+            document.getElementById('fullBalanceBtn').disabled = false;
+            document.getElementById('roundedAmountBtn').disabled = false;
+
+            document.getElementById('fullBalanceBtn').onclick = function() {
+                setAmount(fullBalanceAmount);
+            };
+            document.getElementById('roundedAmountBtn').onclick = function() {
+                const roundedCurrentDue = Math.ceil(currentInstallmentDue);
+                setAmount(roundedCurrentDue);
+            };
+
+            document.getElementById('paymentSection').classList.remove('d-none');
+            document.getElementById('submitBtn').disabled = false;
+
+            document.getElementById('paymentSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            if ($('#amountPaid').val() > 0) {
+                calculateAllocation();
+            }
+        }
+
+        function updateLoanSummaryCard(loan) {
+            let dueDateText = loan.dueDate ? new Date(loan.dueDate).toLocaleDateString() : 'N/A';
+            let isOverdue = loan.dueDate ? new Date(loan.dueDate) < new Date() : false;
+            let daysOverdue = loan.daysSinceLastPayment || 0;
+            const fullBalance = loan.totalPrincipalBalance + loan.totalInterestBalance + loan.currentInstallmentPenalty;
+
+            document.getElementById('displayLoanNo').innerHTML = `<strong>${loan.loanNo}</strong>`;
+            document.getElementById('displayLoanType').innerHTML = loan.loanType || 'N/A';
+            document.getElementById('displayRepayMethod').innerHTML = loan.repayMethod || 'AMT';
+            document.getElementById('displayDisbursementDate').innerHTML = loan.disbursementDate ? new Date(loan.disbursementDate).toLocaleDateString() : 'N/A';
+
+            document.getElementById('displayInstallmentInfo').innerHTML = `
+                <div class="mt-2">
+                    <small><strong>Current Installment:</strong> ${loan.installmentNo || 1}</small><br>
+                    <small><strong>Due Date:</strong> ${dueDateText} ${isOverdue ? '<span class="badge bg-danger ms-1">Overdue</span>' : ''}</small><br>
+                    <small><strong>Monthly Payment:</strong> KES ${(loan.nextInstallmentAmount || 0).toLocaleString(undefined, {minimumFractionDigits: 2})}</small>
+                </div>
+            `;
+
+            document.getElementById('displayPrincipal').innerHTML = `KES ${loan.currentInstallmentPrincipal.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('displayInterest').innerHTML = `KES ${loan.currentInstallmentInterest.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('displayPenalty').innerHTML = `KES ${loan.currentInstallmentPenalty.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+            document.getElementById('displayTotal').innerHTML = `KES ${loan.currentInstallmentTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}`;
+
+            document.getElementById('displayOverallInfo').innerHTML = `
+                <div class="mt-2 pt-2 border-top">
+                    <small><strong>Remaining Principal:</strong> KES ${loan.totalPrincipalBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}</small><br>
+                    <small><strong>Remaining Interest:</strong> KES ${loan.totalInterestBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}</small><br>
+                    <hr class="my-1">
+                    <small class="fw-bold text-success"><strong>Total Payoff Amount:</strong> KES ${fullBalance.toLocaleString(undefined, {minimumFractionDigits: 2})}</small>
+                    <small class="text-muted d-block mt-1">Pay this amount to close the loan entirely</small>
+                </div>
+            `;
+
+            document.getElementById('displayDaysSince').innerHTML = `${daysOverdue} days ${isOverdue ? '<span class="badge bg-danger ms-2">Overdue</span>' : ''}`;
+        }
+
+        async function calculateAllocation() {
+            if (!selectedLoan) return;
+
+            const amount = parseFloat(document.getElementById('amountPaid').value) || 0;
+            const paymentDate = document.getElementById('paymentDate').value;
+
+            if (amount <= 0) {
+                resetAllocationDisplay();
+                document.getElementById('balanceAfter').textContent = selectedLoan.totalOutstanding.toFixed(2);
+                return;
+            }
+
+            try {
+                const response = await fetch(`/LoanMvc/CalculateRepayment?loanNo=${selectedLoan.loanNo}&amount=${amount}&paymentDate=${paymentDate}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const data = result.data;
+                    const totalAllocated = data.penaltyAllocated + data.interestAllocated + data.principalAllocated;
+
+                    document.getElementById('allocatedPenalty').textContent = data.penaltyAllocated.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    document.getElementById('allocatedInterest').textContent = data.interestAllocated.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    document.getElementById('allocatedPrincipal').textContent = data.principalAllocated.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    document.getElementById('totalAllocated').textContent = totalAllocated.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    document.getElementById('overpayment').textContent = data.overpayment.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                    document.getElementById('balanceAfter').textContent = data.balanceAfter.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+                    const totalOutstanding = selectedLoan.totalOutstanding;
+                    if (totalOutstanding > 0) {
+                        document.getElementById('penaltyPercent').textContent = `(${((data.penaltyAllocated / totalOutstanding) * 100).toFixed(1)}%)`;
+                        document.getElementById('interestPercent').textContent = `(${((data.interestAllocated / totalOutstanding) * 100).toFixed(1)}%)`;
+                        document.getElementById('principalPercent').textContent = `(${((data.principalAllocated / totalOutstanding) * 100).toFixed(1)}%)`;
+                    }
+
+                    if (amount > 0) {
+                        const penaltyWidth = (data.penaltyAllocated / amount) * 100;
+                        const interestWidth = (data.interestAllocated / amount) * 100;
+                        const principalWidth = (data.principalAllocated / amount) * 100;
+
+                        document.getElementById('penaltyProgress').style.width = `${penaltyWidth}%`;
+                        document.getElementById('penaltyProgress').textContent = `${penaltyWidth.toFixed(0)}%`;
+                        document.getElementById('interestProgress').style.width = `${interestWidth}%`;
+                        document.getElementById('interestProgress').textContent = `${interestWidth.toFixed(0)}%`;
+                        document.getElementById('principalProgress').style.width = `${principalWidth}%`;
+                        document.getElementById('principalProgress').textContent = `${principalWidth.toFixed(0)}%`;
+                    }
+
+                    const fullPaymentMsg = document.getElementById('fullPaymentMessage');
+                    if (data.balanceAfter <= 0.01) {
+                        fullPaymentMsg.classList.remove('d-none');
+                    } else {
+                        fullPaymentMsg.classList.add('d-none');
+                    }
+
+                    const overpaymentMsg = document.getElementById('overpaymentMessage');
+                    if (data.overpayment > 0) {
+                        overpaymentMsg.classList.remove('d-none');
+                    } else {
+                        overpaymentMsg.classList.add('d-none');
+                    }
+                }
+            } catch (error) {
+                console.error('Error calculating allocation:', error);
+            }
+        }
+
+        function resetAllocationDisplay() {
+            document.getElementById('allocatedPenalty').textContent = '0.00';
+            document.getElementById('allocatedInterest').textContent = '0.00';
+            document.getElementById('allocatedPrincipal').textContent = '0.00';
+            document.getElementById('totalAllocated').textContent = '0.00';
+            document.getElementById('overpayment').textContent = '0.00';
+            document.getElementById('penaltyPercent').textContent = '(0%)';
+            document.getElementById('interestPercent').textContent = '(0%)';
+            document.getElementById('principalPercent').textContent = '(0%)';
+
+            document.getElementById('penaltyProgress').style.width = '0%';
+            document.getElementById('penaltyProgress').textContent = '0%';
+            document.getElementById('interestProgress').style.width = '0%';
+            document.getElementById('interestProgress').textContent = '0%';
+            document.getElementById('principalProgress').style.width = '0%';
+            document.getElementById('principalProgress').textContent = '0%';
+
+            document.getElementById('fullPaymentMessage').classList.add('d-none');
+            document.getElementById('overpaymentMessage').classList.add('d-none');
+        }
+
+        function setAmount(amount) {
+            document.getElementById('amountPaid').value = amount.toFixed(2);
+            calculateAllocation();
+        }
+
+        function resetForm() {
+            document.getElementById('searchValue').value = '';
+            document.getElementById('resultsSection').classList.add('d-none');
+            document.getElementById('paymentSection').classList.add('d-none');
+            document.getElementById('loanSummaryCard').classList.add('d-none');
+            document.getElementById('loansTableBody').innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4"><i class="bi bi-search me-2"></i>Search for a loan to see results</td><th';
+            document.getElementById('submitBtn').disabled = true;
+            document.getElementById('fullBalanceBtn').disabled = true;
+            document.getElementById('roundedAmountBtn').disabled = true;
+            document.getElementById('amountPaid').value = '';
+            document.getElementById('LoanNo').value = '';
+            document.getElementById('MemberNo').value = '';
+            document.getElementById('GlAccountNoHidden').value = '';
+            $('#glAccountSelect').val('');
+            selectedLoan = null;
+            loansData = null;
+            currentMemberNo = null;
+            totalDue = 0;
+            roundedTotalDue = 0;
+            resetAllocationDisplay();
+        }
+
+        $('#repaymentForm').on('submit', function(e) {
+            var amount = parseFloat($('#amountPaid').val()) || 0;
+            var loanNo = $('#LoanNo').val();
+            var glAccount = $('#GlAccountNoHidden').val();
+            var glAccountText = $('#glAccountSelect option:selected').text();
+            var paymentMethod = $('#PaymentMethod').val();
+            var paymentMethodText = $('#PaymentMethod option:selected').text();
+            var overpayment = parseFloat(document.getElementById('overpayment').textContent.replace(/[^0-9.-]/g, '')) || 0;
+
+            if (!loanNo) {
+                e.preventDefault();
+                alert('Please select a loan to repay');
+                return false;
+            }
+
+            if (!glAccount) {
+                e.preventDefault();
+                alert('Please select a GL Account');
+                return false;
+            }
+
+            if (!paymentMethod) {
+                e.preventDefault();
+                alert('Please select a payment method');
+                return false;
+            }
+
+            if (amount <= 0) {
+                e.preventDefault();
+                alert('Please enter a valid payment amount');
+                return false;
+            }
+
+            var balanceAfter = parseFloat(document.getElementById('balanceAfter').textContent.replace(/[^0-9.-]/g, '')) || 0;
+            var message = `Confirm payment details:\n\n`;
+            message += `Loan Number: ${loanNo}\n`;
+            message += `Payment Amount: KES ${amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}\n`;
+            message += `GL Account: ${glAccountText}\n`;
+            message += `Payment Method: ${paymentMethodText}\n`;
+
+            if (overpayment > 0) {
+                message += `\n⚠️ Overpayment: KES ${overpayment.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}\n`;
+                message += `This excess amount will be recorded as overpayment.\n`;
+            }
+
+            message += `\nAfter payment, balance will be: KES ${balanceAfter.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}\n\n`;
+            message += `This action cannot be undone.`;
+
+            return confirm(message);
+        });
+    </script>
+}

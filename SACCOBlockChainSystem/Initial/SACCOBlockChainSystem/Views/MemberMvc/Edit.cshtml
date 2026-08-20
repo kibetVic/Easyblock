@@ -1,0 +1,463 @@
+﻿@* //@model SACCOBlockChainSystem.Models.DTOs.MemberRegistrationDTO *@
+@model SACCOBlockChainSystem.Models.DTOs.MemberUpdateDTO
+@{
+    ViewData["Title"] = "Edit Member";
+    var memberNo = ViewBag.MemberNo as string;
+    var fullName = ViewBag.FullName as string;
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h4>
+                        <i class="fas fa-user-edit"></i>
+                        <span>Update Member: @fullName (Member No: @memberNo)</span>
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <!-- Display validation summary -->
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <h5 class="alert-heading">
+                                <i class="fas fa-exclamation-triangle"></i> Please fix the following errors:
+                            </h5>
+                            <ul class="mb-0">
+                                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                {
+                                    <li>@error.ErrorMessage</li>
+                                }
+                            </ul>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <!-- Success message -->
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <!-- Error message -->
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle"></i> @TempData["ErrorMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <form asp-action="Edit" asp-controller="MemberMvc" asp-route-memberNo="@memberNo" method="post" id="memberEditForm">
+                        @Html.AntiForgeryToken()
+
+                        <!-- Read-only Member Information -->
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label>Member Number</label>
+                                    <input type="text" class="form-control" value="@memberNo" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label asp-for="IdNo" class="required">ID Number *</label>
+                                    <input asp-for="IdNo" class="form-control" />
+                                    <span asp-validation-for="IdNo" class="text-danger" id="idNoError"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label asp-for="CompanyCode">Company Code</label>
+                                    <input asp-for="CompanyCode" class="form-control" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label asp-for="RegistrationDate">Registration Date</label>
+                                    <input asp-for="RegistrationDate" type="date" class="form-control" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Editable Fields -->
+                        <div class="row">
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Surname" class="required">Surname *</label>
+                                    <input asp-for="Surname" class="form-control" required />
+                                    <span asp-validation-for="Surname" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label asp-for="OtherNames" class="required">Other Names *</label>
+                                    <input asp-for="OtherNames" class="form-control" required />
+                                    <span asp-validation-for="OtherNames" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label asp-for="PhoneNo" class="required">Phone Number *</label>
+                                    <input asp-for="PhoneNo" class="form-control" required placeholder="0712345678" />
+                                    <span asp-validation-for="PhoneNo" class="text-danger" id="phoneNoError"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label asp-for="LandLine">Landline</label>
+                                    <input asp-for="LandLine" class="form-control" placeholder="0201234567" />
+                                    <span asp-validation-for="LandLine" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Email">Email</label>
+                                    <input asp-for="Email" type="email" class="form-control" placeholder="member@example.com" />
+                                    <span asp-validation-for="Email" class="text-danger" id="emailError"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Gender">Gender</label>
+                                    <select asp-for="Gender" class="form-control">
+                                        <option value="">Select</option>
+                                        <option value="Male">Male</option>
+                                        <option value="Female">Female</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                    <span asp-validation-for="Gender" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label asp-for="DateOfBirth">Date of Birth</label>
+                                    <input asp-for="DateOfBirth" type="date" class="form-control" id="dateOfBirth" onchange="calculateAge()" />
+                                    <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Age">Age</label>
+                                    <input asp-for="Age" class="form-control" id="age" readonly />
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label asp-for="MaritalStatus">Marital Status</label>
+                                    <select asp-for="MaritalStatus" class="form-control">
+                                        <option value="">Select</option>
+                                        <option value="Single">Single</option>
+                                        <option value="Married">Married</option>
+                                        <option value="Divorced">Divorced</option>
+                                        <option value="Widowed">Widowed</option>
+                                    </select>
+                                    <span asp-validation-for="MaritalStatus" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Department">Department</label>
+                                    <input asp-for="Department" class="form-control" />
+                                </div>
+                            </div>
+                            <!-- Station/County - DROPDOWN -->
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Station">Station/County</label>
+                                    <select asp-for="Station" class="form-control" id="stationSelect">
+                                        <option value="">-- Select County --</option>
+                                        @if (ViewBag.Counties != null)
+                                        {
+                                            foreach (var county in ViewBag.Counties)
+                                            {
+                                                <option value="@county.CountyName">@county.CountyName</option>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <option value="">No counties available</option>
+                                        }
+                                    </select>
+                                    <span asp-validation-for="Station" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label asp-for="PresentAddress">Present Address</label>
+                                    <textarea asp-for="PresentAddress" class="form-control" rows="1"></textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Status">Member Status</label>
+                                    <select asp-for="Status" class="form-control">
+                                        <option value="Active">Active</option>
+                                        <option value="Withdrawn">Withdrawn</option>
+                                        <option value="Deceased">Deceased</option>
+                                        <option value="Dormant">Dormant</option>
+                                        <option value="Suspended">Suspended</option>
+                                    </select>
+                                    <span asp-validation-for="Status" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label>Membership Type</label><br>
+                                    <div class="form-check form-check-inline">
+                                        @Html.RadioButtonFor(m => m.MembershipType, "Individual", new { @class = "form-check-input", id = "membershipIndividual" })
+                                        <label class="form-check-label" for="membershipIndividual">Individual</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        @Html.RadioButtonFor(m => m.MembershipType, "Corporate", new { @class = "form-check-input", id = "membershipCorporate" })
+                                        <label class="form-check-label" for="membershipCorporate">Corporate</label>
+                                    </div>
+                                    <span asp-validation-for="MembershipType" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label>Registration Type</label><br>
+                                    <div class="form-check form-check-inline">
+                                        @Html.RadioButtonFor(m => m.RegistrationType, "Ordinary Member", new { @class = "form-check-input", id = "registrationOrdinary" })
+                                        <label class="form-check-label" for="registrationOrdinary">Ordinary Member</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        @Html.RadioButtonFor(m => m.RegistrationType, "Board Member", new { @class = "form-check-input", id = "registrationBoard" })
+                                        <label class="form-check-label" for="registrationBoard">Board Member</label>
+                                    </div>
+                                    <span asp-validation-for="RegistrationType" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Cigcode">Group CIG</label>
+                                    <select asp-for="Cigcode" class="form-control" id="cigSelect">
+                                        <option value="">-- Select CIG Group --</option>
+                                        @if (ViewBag.CIGs != null)
+                                        {
+                                            foreach (var cig in ViewBag.CIGs)
+                                            {
+                                                <option value="@cig.GigCode"
+                                                        data-chairperson="@cig.Chairperson"
+                                                        data-members="@cig.TotalMembers">
+                                                    @cig.GigName (@cig.GigCode)
+                                                </option>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <option value="">No CIGs available</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Hidden Fields -->
+                        <input type="hidden" asp-for="CreatedBy" />
+
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-warning btn-lg" id="submitBtn">
+                                <i class="fas fa-save"></i> Update Member
+                            </button>
+                            <a asp-action="Details" asp-route-memberNo="@memberNo" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-times"></i> Details
+                            </a>
+                            <a asp-action="Index" class="btn btn-outline-secondary btn-lg">
+                                <i class="fas fa-list"></i> Back to List
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Result Panel -->
+            <div class="card mt-4" id="resultPanel" style="display: none;">
+                <div class="card-header bg-success text-white">
+                    <h5><i class="fas fa-check-circle"></i> Update Successful</h5>
+                </div>
+                <div class="card-body">
+                    <div id="updateResult"></div>
+                    <div class="mt-3">
+                        <button class="btn btn-outline-primary" onclick="printMemberDetails()">
+                            <i class="fas fa-print"></i> Print Details
+                        </button>
+                        <a href="/MemberMvc/Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-list"></i> Back to Members
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .required:after {
+            content: " *";
+            color: red
+        }
+
+        .form-group {
+            margin-bottom: 1rem
+        }
+
+        .form-check-inline {
+            margin-right: 1rem
+        }
+
+        input[readonly], select[readonly], textarea[readonly] {
+            background-color: #f8f9fa;
+            cursor: not-allowed;
+        }
+
+        .field-validation-error {
+            color: #dc3545;
+            font-size: 0.875rem;
+            display: block;
+            margin-top: 0.25rem;
+        }
+
+        .input-validation-error {
+            border-color: #dc3545;
+        }
+    </style>
+}
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        $(document).ready(function(){
+            $('#dateOfBirth').on('change', calculateAge);
+
+            // CIG dropdown change handler
+            $('#cigSelect').on('change', function() {
+                var selectedOption = $(this).find('option:selected');
+                var chairperson = selectedOption.data('chairperson');
+                var members = selectedOption.data('members');
+
+                if (selectedOption.val()) {
+                    console.log('Selected CIG: ' + selectedOption.val());
+                }
+            });
+
+            // Trigger on page load if value exists
+            if ($('#cigSelect').val()) {
+                $('#cigSelect').trigger('change');
+            }
+
+            // Form validation and duplicate checking
+            $('#memberEditForm').on('submit', function(e) {
+                // Clear previous validation errors
+                $('.field-validation-error').remove();
+                $('.input-validation-error').removeClass('input-validation-error');
+
+                var hasError = false;
+                var errorMessages = [];
+
+                // Validate ID Number (if changed)
+                var idNo = $('#IdNo').val();
+                if (idNo && idNo.length > 0) {
+                    // You can add AJAX validation here if needed
+                }
+
+                // Validate Phone Number (if changed)
+                var phoneNo = $('#PhoneNo').val();
+                if (!phoneNo) {
+                    hasError = true;
+                    errorMessages.push('Phone Number is required');
+                    $('#PhoneNo').addClass('input-validation-error');
+                    $('#phoneNoError').text('Phone Number is required');
+                }
+
+                // Validate Email format (if provided)
+                var email = $('#Email').val();
+                if (email && !/^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/.test(email)) {
+                    hasError = true;
+                    errorMessages.push('Please enter a valid email address');
+                    $('#Email').addClass('input-validation-error');
+                    $('#emailError').text('Please enter a valid email address');
+                }
+
+                if (hasError) {
+                    e.preventDefault();
+                    var errorHtml = '<div class="alert alert-danger alert-dismissible fade show" role="alert">' +
+                        '<h5 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Please fix the following errors:</h5>' +
+                        '<ul class="mb-0">';
+                    $.each(errorMessages, function(i, msg) {
+                        errorHtml += '<li>' + msg + '</li>';
+                    });
+                    errorHtml += '</ul><button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>';
+
+                    // Remove existing alerts
+                    $('.alert-danger').remove();
+                    // Add new alert at the top
+                    $('.card-body').prepend(errorHtml);
+
+                    return false;
+                }
+
+                return true;
+            });
+        });
+
+        function calculateAge() {
+            const dob = $('#dateOfBirth').val();
+            if (dob) {
+                const birthDate = new Date(dob);
+                const today = new Date();
+                let age = today.getFullYear() - birthDate.getFullYear();
+                const monthDiff = today.getMonth() - birthDate.getMonth();
+                if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+                    age--
+                }
+                $('#age').val(age)
+            } else {
+                $('#age').val('')
+            }
+        }
+
+        function showUpdateResult(data) {
+            var html = `<div class="row"><div class="col-md-12"><table class="table table-bordered table-striped">
+                <tr><th width="30%">Member Number:</th><td><strong>${data.memberNo}</strong></td></tr>
+                <tr><th>Full Name:</th><td>${data.fullName}</td></tr>
+                <tr><th>Status:</th><td><span class="badge bg-success">${data.status}</span></td></tr>
+                <tr><th>Email:</th><td>${data.email || 'Not provided'}</td></tr>
+                <tr><th>Phone:</th><td>${data.phone || 'Not provided'}</td></tr>
+                <tr><th>Company Code:</th><td>${data.companyCode}</td></tr>
+                <tr><th>Membership Type:</th><td>${data.membershipType || 'Not specified'}</td></tr>
+                <tr><th>Registration Type:</th><td>${data.registrationType || 'Not specified'}</td></tr>
+                <tr><th>Blockchain TX ID:</th><td><code>${data.blockchainTxId || 'Pending'}</code></td></tr>
+                </table></div></div>`;
+
+            if (data.blockchainTxId) {
+                html += `<div class="alert alert-info"><i class="fas fa-info-circle"></i> Member updated successfully and transaction recorded on blockchain.<a href="/Blockchain/Verify?txId=${data.blockchainTxId}" target="_blank" class="alert-link"><i class="fas fa-external-link-alt"></i> Verify on Blockchain Explorer</a></div>`;
+            } else {
+                html += `<div class="alert alert-warning"><i class="fas fa-exclamation-triangle"></i> Member updated successfully but blockchain transaction is pending.</div>`;
+            }
+
+            $('#updateResult').html(html);
+            $('#resultPanel').show();
+            $('html, body').animate({
+                scrollTop: $('#resultPanel').offset().top - 100
+            }, 500)
+        }
+
+        function printMemberDetails() {
+            var printContent = document.getElementById('updateResult').innerHTML;
+            var originalContent = document.body.innerHTML;
+            document.body.innerHTML = `<div style="padding:20px;"><h2>Member Details</h2><hr>${printContent}</div>`;
+            window.print();
+            document.body.innerHTML = originalContent;
+            location.reload()
+        }
+    </script>
+}

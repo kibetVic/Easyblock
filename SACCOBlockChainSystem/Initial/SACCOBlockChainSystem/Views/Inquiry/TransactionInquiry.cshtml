@@ -1,0 +1,39 @@
+﻿@{
+    ViewData["Title"] = "Transaction Inquiry";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="bi bi-receipt"></i> Transaction History Inquiry
+        </h3>
+        <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="bi bi-dash"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <form asp-action="TransactionInquiry" method="post">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="memberNo" class="control-label">Member Number</label>
+                        <input type="text" id="memberNo" name="memberNo" class="form-control"
+                               placeholder="Enter Member Number" required />
+                        <span class="text-muted">Enter the member number to view transaction history</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button type="submit" class="btn btn-primary form-control">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

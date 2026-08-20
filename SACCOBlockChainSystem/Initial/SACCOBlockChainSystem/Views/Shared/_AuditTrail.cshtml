@@ -1,0 +1,209 @@
+﻿@model List<SACCOBlockChainSystem.Models.AuditTrail>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Audit Trail</h5>
+    </div>
+    <div class="card-body p-0">
+        @if (Model != null && Model.Any())
+        {
+            <div class="timeline p-4">
+                @foreach (var audit in Model.OrderByDescending(a => a.AuditTime))
+                {
+                    <div class="timeline-item">
+                        <div class="timeline-badge bg-@(GetAuditColor(audit.ActionType))">
+                            <i class="bi bi-@(GetAuditIcon(audit.ActionType))"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <div class="d-flex justify-content-between">
+                                <h6 class="mb-1">@audit.ActionType</h6>
+                                <small class="text-muted">@(audit.AuditTime?.ToString("dd MMM yyyy HH:mm") ?? "N/A")</small>
+                            </div>
+                            <p class="mb-1">@audit.ActionDescription</p>
+                            <small class="text-muted">
+                                By: @(!string.IsNullOrEmpty(audit.UserName) ? audit.UserName : audit.UserId)
+                                @if (!string.IsNullOrEmpty(audit.Module))
+                                {
+                                    <span> | Module: @audit.Module</span>
+                                }
+                                @if (!string.IsNullOrEmpty(audit.IpAddress))
+                                {
+                                    <span> | IP: @audit.IpAddress</span>
+                                }
+                                @if (!string.IsNullOrEmpty(audit.OldValue) || !string.IsNullOrEmpty(audit.NewValue))
+                                {
+                                    <span>
+                                        <br>Status: @audit.OldValue → @audit.NewValue
+                                    </span>
+                                }
+                            </small>
+                            @if (!string.IsNullOrEmpty(audit.ExtraData))
+                            {
+                                <div class="mt-2 small text-muted">
+                                    <details>
+                                        <summary>View Details</summary>
+                                        <pre class="mt-2 p-2 bg-light rounded" style="font-size: 0.75rem;">@audit.ExtraData</pre>
+                                    </details>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(audit.BlockchainTxId))
+                            {
+                                <div class="mt-2">
+                                    <span class="badge bg-light text-dark">
+                                        <i class="bi bi-link me-1"></i> TX: @(audit.BlockchainTxId.Length > 20 ? audit.BlockchainTxId.Substring(0, 20) + "..." : audit.BlockchainTxId)
+                                    </span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-clock-history fs-1 text-muted"></i>
+                <p class="text-muted mt-3">No audit records found</p>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .timeline {
+        position: relative;
+        max-height: 600px;
+        overflow-y: auto;
+    }
+
+    .timeline-item {
+        display: flex;
+        margin-bottom: 1.5rem;
+        position: relative;
+    }
+
+    .timeline-badge {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-right: 1rem;
+        color: white;
+        font-size: 1.2rem;
+    }
+
+    .timeline-content {
+        flex: 1;
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        position: relative;
+    }
+
+        .timeline-content::before {
+            content: '';
+            position: absolute;
+            left: -8px;
+            top: 12px;
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-right: 8px solid #f8f9fa;
+        }
+
+    .bg-success {
+        background-color: #28a745 !important;
+    }
+
+    .bg-info {
+        background-color: #17a2b8 !important;
+    }
+
+    .bg-primary {
+        background-color: #007bff !important;
+    }
+
+    .bg-warning {
+        background-color: #ffc107 !important;
+        color: #212529 !important;
+    }
+
+    .bg-danger {
+        background-color: #dc3545 !important;
+    }
+
+    .bg-secondary {
+        background-color: #6c757d !important;
+    }
+
+    pre {
+        white-space: pre-wrap;
+        word-wrap: break-word;
+    }
+</style>
+
+@functions {
+    string GetAuditColor(string action)
+    {
+        if (string.IsNullOrEmpty(action)) return "secondary";
+
+        return action.ToUpper() switch
+        {
+            "CREATE" => "success",
+            "STATUS_CHANGE" => "info",
+            "GUARANTOR_ASSIGNED" => "primary",
+            "GUARANTOR_APPROVED" => "success",
+            "GUARANTOR_REJECTED" => "danger",
+            "APPRAISAL_COMPLETED" => "warning",
+            "APPROVAL_PROCESSED" => "success",
+            "DISBURSEMENT_COMPLETED" => "success",
+            "LOAN_APPLICATION" => "info",
+            "LOAN_APPRAISAL" => "warning",
+            "LOAN_APPROVAL" => "success",
+            "LOAN_ENDORSEMENT" => "info",
+            "LOAN_DISBURSEMENT" => "success",
+            "LOAN_REPAYMENT" => "primary",
+            "LOAN_REPAYMENT_REVERSED" => "danger",
+            "LOAN_OFFSET" => "info",
+            "LOAN_GUARANTOR_ASSIGNED" => "primary",
+            "LOAN_GUARANTOR_RELEASED" => "warning",
+            "LOAN_GUARANTOR_REJECTED" => "danger",
+            "LOAN_STATUS_CHANGE" => "info",
+            _ => "secondary"
+        };
+    }
+
+    string GetAuditIcon(string action)
+    {
+        if (string.IsNullOrEmpty(action)) return "info-circle";
+
+        return action.ToUpper() switch
+        {
+            "CREATE" => "file-plus",
+            "STATUS_CHANGE" => "arrow-repeat",
+            "GUARANTOR_ASSIGNED" => "person-plus",
+            "GUARANTOR_APPROVED" => "person-check",
+            "GUARANTOR_REJECTED" => "person-x",
+            "APPRAISAL_COMPLETED" => "clipboard-check",
+            "APPROVAL_PROCESSED" => "check2-circle",
+            "DISBURSEMENT_COMPLETED" => "cash-stack",
+            "LOAN_APPLICATION" => "file-earmark-text",
+            "LOAN_APPRAISAL" => "clipboard-data",
+            "LOAN_APPROVAL" => "check2-circle",
+            "LOAN_ENDORSEMENT" => "signature",
+            "LOAN_DISBURSEMENT" => "cash-stack",
+            "LOAN_REPAYMENT" => "arrow-left-right",
+            "LOAN_REPAYMENT_REVERSED" => "arrow-return-left",
+            "LOAN_OFFSET" => "piggy-bank",
+            "LOAN_GUARANTOR_ASSIGNED" => "person-plus",
+            "LOAN_GUARANTOR_RELEASED" => "person-dash",
+            "LOAN_GUARANTOR_REJECTED" => "person-x",
+            "LOAN_STATUS_CHANGE" => "arrow-repeat",
+            _ => "info-circle"
+        };
+    }
+}

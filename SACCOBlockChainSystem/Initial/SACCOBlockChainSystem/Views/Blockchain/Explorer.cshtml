@@ -1,0 +1,227 @@
+﻿@model SACCOBlockChainSystem.ViewModels.BlockchainExplorerViewModel
+
+@{
+    ViewData["Title"] = "Blockchain Explorer";
+}
+
+<div class="container-fluid">
+    <!-- Blockchain Status Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Total Blocks</h6>
+                            <h2 class="mb-0">@Model.Status.TotalBlocks</h2>
+                        </div>
+                        <i class="fas fa-cubes fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Total Transactions</h6>
+                            <h2 class="mb-0">@Model.Status.TotalTransactions</h2>
+                        </div>
+                        <i class="fas fa-exchange-alt fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Pending</h6>
+                            <h2 class="mb-0">@Model.Status.PendingTransactions</h2>
+                        </div>
+                        <i class="fas fa-clock fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card @(Model.Status.IsValid ? "bg-success" : "bg-danger") text-white">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="card-title">Chain Status</h6>
+                            <h5 class="mb-0">
+                                @if (Model.Status.IsValid)
+                                {
+                                    <span><i class="fas fa-check-circle"></i> Valid</span>
+                                }
+                                else
+                                {
+                                    <span><i class="fas fa-exclamation-triangle"></i> Invalid</span>
+                                }
+                            </h5>
+                        </div>
+                        <i class="fas fa-shield-alt fa-3x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Latest Block Info -->
+    @if (Model.Status.LatestBlockHash != null)
+    {
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-cube"></i> Latest Block</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-8">
+                                <div class="d-flex align-items-center">
+                                    <code class="bg-light p-2 rounded flex-grow-1">@Model.Status.LatestBlockHash</code>
+                                    <a href="@Url.Action("BlockDetails", new { blockHash = Model.Status.LatestBlockHash })"
+                                       class="btn btn-sm btn-info ms-2">
+                                        <i class="fas fa-search"></i> View
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="col-md-4 text-end">
+                                <small class="text-muted">
+                                    <i class="fas fa-clock"></i>
+                                    @Model.Status.LatestBlockTimestamp?.ToString("dd MMM yyyy HH:mm:ss")
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Blocks List -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-cubes"></i> Blocks</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        @foreach (var block in Model.Blocks)
+                        {
+                            <div class="list-group-item">
+                                <div class="row align-items-center">
+                                    <div class="col-md-1 text-center">
+                                        <span class="badge bg-secondary">#@block.BlockId</span>
+                                    </div>
+                                    <div class="col-md-5">
+                                        <code class="text-primary">@block.BlockHash</code>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <span class="badge bg-info">@(block.Transactions?.Count ?? 0) txns</span>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <small>@block.Timestamp.ToString("HH:mm:ss")</small>
+                                    </div>
+                                    <div class="col-md-2 text-end">
+                                        <a href="@Url.Action("BlockDetails", new { blockHash = block.BlockHash })"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-search"></i> View
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-md-12">
+                                        <small class="text-muted">
+                                            <i class="fas fa-link"></i> Previous:
+                                            <code class="text-muted">@block.PreviousHash</code>
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination justify-content-center mb-0">
+                            <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("Explorer", new { page = Model.CurrentPage - 1 })">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                            @for (int i = 1; i <= Model.TotalPages; i++)
+                            {
+                                <li class="page-item @(i == Model.CurrentPage ? "active" : "")">
+                                    <a class="page-link" href="@Url.Action("Explorer", new { page = i })">@i</a>
+                                </li>
+                            }
+                            <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                                <a class="page-link" href="@Url.Action("Explorer", new { page = Model.CurrentPage + 1 })">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Recent Transactions</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="list-group list-group-flush">
+                        @foreach (var tx in Model.RecentTransactions)
+                        {
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <span class="badge @(tx.Status == "CONFIRMED" ? "bg-success" : "bg-warning")">
+                                            @tx.TransactionType
+                                        </span>
+                                    </div>
+                                    <small class="text-muted">@tx.Timestamp.ToString("HH:mm:ss")</small>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted d-block">
+                                        <i class="fas fa-user"></i> Member: @tx.MemberNo
+                                    </small>
+                                    <small class="text-muted d-block">
+                                        <i class="fas fa-money-bill"></i> Amount: KES @tx.Amount.ToString("N2")
+                                    </small>
+                                    <div class="mt-1">
+                                        <code class="small">@tx.TransactionId.Substring(0, 16)...</code>
+                                        <a href="@Url.Action("TransactionDetails", new { transactionId = tx.TransactionId })"
+                                           class="btn btn-sm btn-link p-0 ms-2">
+                                            View
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Auto-refresh every 30 seconds
+            setTimeout(function() {
+                location.reload();
+            }, 30000);
+        });
+    </script>
+}

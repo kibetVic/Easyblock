@@ -1,0 +1,259 @@
+@model SACCOBlockChainSystem.Models.ViewModels.InterestListingIndexViewModel
+@{
+    ViewData["Title"] = "Interest Control Listings";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="fas fa-percentage me-2"></i>Interest Control Listings</h4>
+        </div>
+        <div class="card-body">
+            <!-- Filter Form -->
+            <form method="post" class="mb-4" asp-action="InterestListingReport">
+                <div class="row g-3 align-items-end">
+                    <div class="col-auto">
+                        <label class="form-label fw-bold mb-1">Start Date</label>
+                        <input type="date" name="startDate" class="form-control" value="@Model.StartDate.ToString("yyyy-MM-dd")" required style="width: 180px;" />
+                    </div>
+                    <div class="col-auto">
+                        <label class="form-label fw-bold mb-1">End Date</label>
+                        <input type="date" name="endDate" class="form-control" value="@Model.EndDate.ToString("yyyy-MM-dd")" required style="width: 180px;" />
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-1"></i>Generate Report
+                        </button>
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" id="exportExcelBtn" class="btn btn-success">
+                            <i class="fas fa-file-excel me-1"></i>Export to Excel
+                        </button>
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" id="exportPdfBtn" class="btn btn-danger">
+                            <i class="fas fa-file-pdf me-1"></i>Export to PDF
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            @if (Model.HasData)
+            {
+                <!-- Report Header -->
+                <div class="text-center mb-4">
+                    <h4>@Model.CompanyName.ToUpper()</h4>
+                    <h5>INTEREST CONTROL LISTINGS</h5>
+                    <p>Period: @Model.StartDate.ToString("dd/MM/yyyy") - @Model.EndDate.ToString("dd/MM/yyyy")</p>
+                    <p>Printed By: @Model.PrintedBy On: @Model.GeneratedOn.ToString("dd-MMM-yyyy HH:mm")</p>
+                </div>
+
+                <!-- Statistics Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-exchange-alt"></i> Total Transactions</h5>
+                                <h3>@Model.TotalTransactions.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-users"></i> Unique Members</h5>
+                                <h3>@Model.UniqueMembers.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-coins"></i> Total Interest</h5>
+                                <h3>@Model.TotalInterest.ToString("N2")</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="table-responsive">
+                    <table id="interestTable" class="table table-bordered table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Member No</th>
+                                <th>Member Names</th>
+                                <th class="text-end">Interest Amount (KES)</th>
+                                <th>Description</th>
+                                <th class="text-center">Transaction Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.Interests)
+                            {
+                                <tr>
+                                    <td>
+                                        @if (item.MemberNo == "Unknown")
+                                        {
+                                            <span class="text-muted">@item.MemberNo</span>
+                                        }
+                                        else
+                                        {
+                                            @item.MemberNo
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (item.Names == "Unknown Member" || item.Names == "System Transaction")
+                                        {
+                                            <span class="text-muted">@item.Names</span>
+                                        }
+                                        else
+                                        {
+                                            @item.Names
+                                        }
+                                    </td>
+                                    <td class="text-end fw-bold text-success">@item.Interest.ToString("N2")</td>
+                                    <td>@item.Description</td>
+                                    <td class="text-center">@(item.TransactionDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-secondary fw-bold">
+                            <tr>
+                                <td colspan="2" class="text-end">GRAND TOTAL:</td>
+                                <td class="text-end bg-light">@Model.TotalInterest.ToString("N2")</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <!-- Summary Note -->
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Summary:</strong> Total of @Model.TotalTransactions interest transaction(s) processed for @Model.UniqueMembers unique member(s) during the period.
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    @(ViewBag.Message ?? "No interest transactions found for the selected date range. Please select a date range and click 'Generate Report'.")
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
+
+    <style>
+        .dataTables_wrapper .dataTables_filter input {
+            margin-left: 0.5em;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 123, 255, 0.05);
+        }
+    </style>
+
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTable
+            var table = $('#interestTable').DataTable({
+                pageLength: 25,
+                order: [[4, 'desc'], [0, 'asc']], // Sort by Transaction Date desc, then MemberNo
+                language: {
+                    search: "Search:",
+                    lengthMenu: "Show _MENU_ entries per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ transactions",
+                    infoEmpty: "Showing 0 to 0 of 0 transactions",
+                    zeroRecords: "No matching transactions found"
+                },
+                columnDefs: [
+                    { type: 'string', targets: 0 },
+                    { type: 'string', targets: 1 },
+                    { type: 'num', targets: 2 },
+                    { type: 'string', targets: 3 },
+                    { type: 'date', targets: 4 }
+                ]
+            });
+
+            // Export to Excel
+            $('#exportExcelBtn').click(function() {
+                var startDate = $('input[name="startDate"]').val();
+                var endDate = $('input[name="endDate"]').val();
+                if (!startDate || !endDate) {
+                    alert('Please select both start and end dates first');
+                    return;
+                }
+
+                // Show loading indicator
+                var btn = $(this);
+                var originalText = btn.html();
+                btn.html('<i class="fas fa-spinner fa-spin me-1"></i>Exporting...').prop('disabled', true);
+
+                var form = $('<form>', {
+                    'method': 'post',
+                    'action': '@Url.Action("ExportInterestListingToExcel", "LoanReport")'
+                });
+                form.append($('<input>', {
+                    'type': 'hidden',
+                    'name': 'startDate',
+                    'value': startDate
+                }));
+                form.append($('<input>', {
+                    'type': 'hidden',
+                    'name': 'endDate',
+                    'value': endDate
+                }));
+                form.appendTo('body').submit();
+
+                // Reset button after form submission
+                setTimeout(function() {
+                    btn.html(originalText).prop('disabled', false);
+                }, 2000);
+            });
+
+            // Export to PDF
+            $('#exportPdfBtn').click(function() {
+                var startDate = $('input[name="startDate"]').val();
+                var endDate = $('input[name="endDate"]').val();
+                if (!startDate || !endDate) {
+                    alert('Please select both start and end dates first');
+                    return;
+                }
+
+                // Show loading indicator
+                var btn = $(this);
+                var originalText = btn.html();
+                btn.html('<i class="fas fa-spinner fa-spin me-1"></i>Exporting...').prop('disabled', true);
+
+                var form = $('<form>', {
+                    'method': 'post',
+                    'action': '@Url.Action("ExportInterestListingToPdf", "LoanReport")'
+                });
+                form.append($('<input>', {
+                    'type': 'hidden',
+                    'name': 'startDate',
+                    'value': startDate
+                }));
+                form.append($('<input>', {
+                    'type': 'hidden',
+                    'name': 'endDate',
+                    'value': endDate
+                }));
+                form.appendTo('body').submit();
+
+                // Reset button after form submission
+                setTimeout(function() {
+                    btn.html(originalText).prop('disabled', false);
+                }, 2000);
+            });
+        });
+    </script>
+}

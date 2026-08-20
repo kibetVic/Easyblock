@@ -1,0 +1,410 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.SmsResponseDTO
+@{
+    ViewData["Title"] = "SMS Details";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center">
+                <a asp-action="Index" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Back to Messages
+                </a>
+                <h2 class="page-title mb-0">
+                    <i class="bi bi-envelope-paper me-2"></i>SMS Details
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <!-- Message Details Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-envelope-paper me-2"></i>Message Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="text-muted">Message ID:</label>
+                                <p class="fw-bold mb-0"><code>@Model.MessageId</code></p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-muted">Phone Number:</label>
+                                <p class="fw-bold mb-0">@Model.PhoneNumber</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-muted">Recipient Name:</label>
+                                <p class="mb-0">@(Model.RecipientName ?? "N/A")</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-muted">Message Type:</label>
+                                <p class="mb-0">
+                                    <span class="badge bg-secondary">@(Model.MessageType ?? "General")</span>
+                                </p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-muted">Reference:</label>
+                                <p class="mb-0">@(Model.Reference ?? "N/A")</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="text-muted">Status:</label>
+                                <p class="mb-0">
+                                    @if (Model.Status == "Sent")
+                                    {
+                                        <span class="badge bg-info">Sent</span>
+                                    }
+                                    else if (Model.Status == "Delivered")
+                                    {
+                                        <span class="badge bg-success">Delivered</span>
+                                    }
+                                    else if (Model.Status == "Pending")
+                                    {
+                                        <span class="badge bg-warning">Pending</span>
+                                    }
+                                    else if (Model.Status == "Failed")
+                                    {
+                                        <span class="badge bg-danger">Failed</span>
+                                    }
+                                </p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-muted">Sent At:</label>
+                                <p class="mb-0">@(Model.SentAt?.ToString("dd/MM/yyyy HH:mm:ss") ?? "Not sent yet")</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-muted">Delivered At:</label>
+                                <p class="mb-0">@(Model.DeliveredAt?.ToString("dd/MM/yyyy HH:mm:ss") ?? "Not delivered")</p>
+                            </div>
+                            <div class="mb-3">
+                                <label class="text-muted">Created At:</label>
+                                <p class="mb-0">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")</p>
+                            </div>
+                            @if (Model.RetryCount.HasValue && Model.RetryCount > 0)
+                            {
+                                <div class="mb-3">
+                                    <label class="text-muted">Retry Count:</label>
+                                    <p class="mb-0">@Model.RetryCount</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Message Content Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-chat-text me-2"></i>Message Content
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-light border">
+                        <pre class="mb-0" style="white-space: pre-wrap; font-family: monospace; font-size: 14px;">@Model.MessageContent</pre>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <i class="bi bi-info-circle me-1"></i>
+                            Character count: @Model.MessageContent.Length
+                            @if (Model.MessageContent.Length > 160)
+                            {
+                                <span class="text-warning">(Will be split into @Math.Ceiling(Model.MessageContent.Length / 153.0) SMS messages)</span>
+                            }
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Provider Details Card -->
+            @if (!string.IsNullOrEmpty(Model.Provider) || !string.IsNullOrEmpty(Model.ProviderMessageId))
+            {
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-cloud me-2"></i>Provider Details
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            @if (!string.IsNullOrEmpty(Model.Provider))
+                            {
+                                <div class="col-md-6">
+                                    <label class="text-muted">Provider:</label>
+                                    <p class="mb-0">@Model.Provider</p>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(Model.ProviderMessageId))
+                            {
+                                <div class="col-md-6">
+                                    <label class="text-muted">Provider Message ID:</label>
+                                    <p class="mb-0"><code>@Model.ProviderMessageId</code></p>
+                                </div>
+                            }
+                            @if (Model.Cost.HasValue)
+                            {
+                                <div class="col-md-6">
+                                    <label class="text-muted">Cost:</label>
+                                    <p class="mb-0">KES @Model.Cost.Value.ToString("N2")</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Error Details Card -->
+            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+            {
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-danger text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-exclamation-triangle me-2"></i>Error Details
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="alert alert-danger mb-0">
+                            <i class="bi bi-x-circle-fill me-2"></i>
+                            @Model.ErrorMessage
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Blockchain Details Card -->
+            @if (!string.IsNullOrEmpty(Model.BlockchainTxId))
+            {
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-link-45deg me-2"></i>Blockchain Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-2">
+                            <label class="text-muted">Transaction ID:</label>
+                            <p class="mb-0"><code>@Model.BlockchainTxId</code></p>
+                        </div>
+                        <div class="mb-2">
+                            <label class="text-muted">Recorded At:</label>
+                            <p class="mb-0">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")</p>
+                        </div>
+                        <div class="mt-2">
+                            <button type="button" class="btn btn-sm btn-outline-success" onclick="verifyBlockchain()">
+                                <i class="bi bi-check-circle"></i> Verify on Blockchain
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="col-md-4">
+            <!-- Actions Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-gear me-2"></i>Actions
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        @if (Model.Status == "Failed")
+                        {
+                            <button type="button" class="btn btn-warning" onclick="resendSms(@Model.Id)">
+                                <i class="bi bi-arrow-repeat me-1"></i> Resend SMS
+                            </button>
+                        }
+                        <button type="button" class="btn btn-info" onclick="copyMessage()">
+                            <i class="bi bi-copy me-1"></i> Copy Message
+                        </button>
+                        <a asp-action="Send" class="btn btn-primary">
+                            <i class="bi bi-send me-1"></i> Send New SMS
+                        </a>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="bi bi-list me-1"></i> View All Messages
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Timeline Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-clock-history me-2"></i>Timeline
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <i class="bi bi-plus-circle text-primary me-2"></i>
+                            <strong>Created:</strong> @Model.CreatedAt.ToString("dd/MM/yyyy HH:mm:ss")
+                        </li>
+                        @if (Model.SentAt.HasValue)
+                        {
+                            <li class="list-group-item">
+                                <i class="bi bi-send text-info me-2"></i>
+                                <strong>Sent:</strong> @Model.SentAt.Value.ToString("dd/MM/yyyy HH:mm:ss")
+                            </li>
+                        }
+                        @if (Model.DeliveredAt.HasValue)
+                        {
+                            <li class="list-group-item">
+                                <i class="bi bi-check-circle text-success me-2"></i>
+                                <strong>Delivered:</strong> @Model.DeliveredAt.Value.ToString("dd/MM/yyyy HH:mm:ss")
+                            </li>
+                        }
+                        @if (Model.RetryCount.HasValue && Model.RetryCount > 0)
+                        {
+                            <li class="list-group-item">
+                                <i class="bi bi-arrow-repeat text-warning me-2"></i>
+                                <strong>Retry Count:</strong> @Model.RetryCount
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Help Card -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-question-circle me-2"></i>Help
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info small">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <strong>SMS Status Meanings:</strong>
+                        <ul class="mt-2 mb-0">
+                            <li><strong>Pending</strong> - Message queued for sending</li>
+                            <li><strong>Sent</strong> - Message sent to provider</li>
+                            <li><strong>Delivered</strong> - Message delivered to recipient</li>
+                            <li><strong>Failed</strong> - Message failed to send</li>
+                        </ul>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">
+                            <i class="bi bi-shield-check me-1"></i>
+                            All SMS messages are recorded on the blockchain for audit purposes.
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        async function resendSms(id) {
+            if (!confirm('Are you sure you want to resend this SMS?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/Sms/Resend/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showToast('success', data.message);
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast('error', data.message);
+                }
+            } catch (error) {
+                console.error('Error resending SMS:', error);
+                showToast('error', 'Error resending SMS');
+            }
+        }
+
+        function copyMessage() {
+            const message = `@Html.Raw(Model.MessageContent.Replace("\n", "\\n"))`;
+            navigator.clipboard.writeText(message).then(() => {
+                showToast('success', 'Message copied to clipboard');
+            }).catch(() => {
+                showToast('error', 'Failed to copy message');
+            });
+        }
+
+        async function verifyBlockchain() {
+            const txId = '@Model.BlockchainTxId';
+            if (!txId) {
+                showToast('warning', 'No blockchain transaction ID found');
+                return;
+            }
+
+            showToast('info', 'Verifying blockchain transaction...');
+
+            try {
+                const response = await fetch(`/Sms/GetBlockchainStatus?transactionId=${txId}`);
+                const data = await response.json();
+
+                if (data.success && data.transaction) {
+                    const isVerified = data.transaction.isVerified;
+                    if (isVerified) {
+                        showToast('success', 'Transaction verified on blockchain');
+                    } else {
+                        showToast('warning', 'Transaction found but not yet confirmed');
+                    }
+                } else {
+                    showToast('error', 'Transaction not found on blockchain');
+                }
+            } catch (error) {
+                console.error('Error verifying blockchain:', error);
+                showToast('error', 'Error verifying blockchain transaction');
+            }
+        }
+
+        function showToast(type, message) {
+            const toastHtml = `
+                <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'danger'} border-0 position-fixed bottom-0 end-0 m-3" role="alert" style="z-index: 9999;">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'x-circle'} me-2"></i>
+                            ${escapeHtml(message)}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            $('body').append(toastHtml);
+            const toast = $('.toast').last();
+            const bsToast = new bootstrap.Toast(toast[0]);
+            bsToast.show();
+            toast.on('hidden.bs.toast', function() { $(this).remove(); });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+    </script>
+}

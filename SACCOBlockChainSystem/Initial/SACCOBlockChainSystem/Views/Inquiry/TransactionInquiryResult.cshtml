@@ -1,0 +1,139 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.TransactionInquiryResponseDTO
+
+@{
+    ViewData["Title"] = $"Transaction History - {Model.MemberNo}";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="bi bi-receipt"></i> Transaction History - @Model.MemberName (@Model.MemberNo)
+        </h3>
+        <div class="card-tools">
+            <a href="@Url.Action("TransactionInquiry")" class="btn btn-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> New Inquiry
+            </a>
+            <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
+                <i class="bi bi-printer"></i> Print
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Summary Cards -->
+        <div class="row">
+            <div class="col-md-3">
+                <div class="info-box bg-info">
+                    <div class="info-box-content">
+                        <span class="info-box-text">Total Transactions</span>
+                        <span class="info-box-number">@Model.TotalTransactions</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="info-box bg-success">
+                    <div class="info-box-content">
+                        <span class="info-box-text">Total Deposits</span>
+                        <span class="info-box-number">@Model.TotalDeposits.ToString("N2")</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="info-box bg-danger">
+                    <div class="info-box-content">
+                        <span class="info-box-text">Total Withdrawals</span>
+                        <span class="info-box-number">@Model.TotalWithdrawals.ToString("N2")</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="info-box bg-warning">
+                    <div class="info-box-content">
+                        <span class="info-box-text">Net Position</span>
+                        <span class="info-box-number">@Model.NetPosition.ToString("N2")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="table-responsive mt-3">
+            <table class="table table-bordered table-hover" id="transactionsTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Transaction Type</th>
+                        <th>Description</th>
+                        <th class="text-end">Debit (Deposits)</th>
+                        <th class="text-end">Credit (Withdrawals)</th>
+                        <th class="text-end">Balance</th>
+                        <th>Reference</th>
+                        <th>Blockchain Tx</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var trans in Model.Transactions)
+                    {
+                        <tr>
+                            <td>@trans.TransactionDate.ToString("dd-MMM-yyyy HH:mm")</td>
+                            <td>
+                                @if (trans.TransactionType == "Share Purchase" || trans.TransactionType == "Share Contribution")
+                                {
+                                    <span class="badge bg-success">@trans.TransactionType</span>
+                                }
+                                else if (trans.TransactionType == "Loan Repayment")
+                                {
+                                    <span class="badge bg-warning">@trans.TransactionType</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">@trans.TransactionType</span>
+                                }
+                            </td>
+                            <td>@trans.Description</td>
+                            <td class="text-end text-success">@(trans.Debit > 0 ? trans.Debit.ToString("N2") : "-")</td>
+                            <td class="text-end text-danger">@(trans.Credit > 0 ? trans.Credit.ToString("N2") : "-")</td>
+                            <td class="text-end">@trans.Balance.ToString("N2")</td>
+                            <td>@trans.Reference</td>
+                            <td><code>@(trans.BlockchainTxId?.Substring(0, Math.Min(8, trans.BlockchainTxId.Length)) ?? "N/A")...</code></td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="bg-light">
+                        <th colspan="3" class="text-end">Totals:</th>
+                        <th class="text-end">@Model.TotalDeposits.ToString("N2")</th>
+                        <th class="text-end">@Model.TotalWithdrawals.ToString("N2")</th>
+                        <th class="text-end">@Model.NetPosition.ToString("N2")</th>
+                        <th colspan="2"></th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+
+        @if (!Model.Transactions.Any())
+        {
+            <div class="alert alert-info">
+                No transactions found for this member.
+            </div>
+        }
+
+        <div class="row mt-3">
+            <div class="col-md-12 text-muted">
+                <small>Inquiry performed on @Model.InquiryTimestamp.ToString("dd-MMM-yyyy HH:mm:ss") by @Model.InquiredBy</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#transactionsTable').DataTable({
+                "order": [[0, "desc"]],
+                "pageLength": 25,
+                "responsive": true
+            });
+        });
+    </script>
+}

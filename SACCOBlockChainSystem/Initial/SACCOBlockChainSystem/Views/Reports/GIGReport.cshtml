@@ -1,0 +1,616 @@
+@using System.Security.Claims
+@model SACCOBlockChainSystem.Models.ViewModels.GIGReportIndexViewModel
+@{
+    ViewData["Title"] = "CIG Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var hasData = Model != null && Model.GIGs != null && Model.GIGs.Any();
+    var startDate = Model?.StartDate ?? (ViewBag.StartDate as DateTime? ?? DateTime.Now.AddMonths(-1));
+    var endDate = Model?.EndDate ?? (ViewBag.EndDate as DateTime? ?? DateTime.Now);
+    var companyName = Model?.CompanyName ?? ViewBag.CompanyName ?? "";
+    var printedBy = User.Identity?.Name ?? ViewBag.PrintedBy ?? "System";
+    var message = ViewBag.Message as string;
+}
+
+<style media="print">
+    .app-sidebar, .app-header, .main-footer, .sidebar-wrapper, .navbar,
+    .breadcrumb, .footer, [data-lte-toggle="sidebar"], .brand-link,
+    .sidebar-footer, .no-print {
+        display: none !important;
+    }
+
+    .app-main, .app-content, .content-wrapper, .main-content {
+        margin-left: 0 !important;
+        padding: 20px !important;
+        width: 100% !important;
+    }
+
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .card-header {
+        background-color: #007bff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+    .table th {
+        background-color: #f2f2f2 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .btn, .export-buttons, #exportExcelBtn, #exportPdfBtn {
+        display: none !important;
+    }
+
+    body {
+        background: white !important;
+        font-size: 10pt;
+    }
+
+    .bg-primary {
+        background-color: #007bff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    .page-break {
+        page-break-before: always;
+    }
+</style>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h3 class="card-title">
+            <i class="fas fa-users me-2"></i>GIG Report
+        </h3>
+    </div>
+
+    <div class="card-body">
+        <!-- Filter Section - Hidden when printing -->
+        <div class="row mb-4 no-print">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Select Date Range</h5>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="GenerateReport" method="post" id="reportForm">
+                            <div class="row">
+                                <div class="col-md-5">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">Start Date</label>
+                                        <input type="date" name="startDate" id="startDate"
+                                               class="form-control"
+                                               value="@startDate.ToString("yyyy-MM-dd")"
+                                               required />
+                                    </div>
+                                </div>
+                                <div class="col-md-5">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">End Date</label>
+                                        <input type="date" name="endDate" id="endDate"
+                                               class="form-control"
+                                               value="@endDate.ToString("yyyy-MM-dd")"
+                                               required />
+                                    </div>
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">&nbsp;</label>
+                                        <div>
+                                            <button type="submit" class="btn btn-primary w-100">
+                                                <i class="fas fa-search me-1"></i>Generate
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+
+                        @if (hasData)
+                        {
+                            <div class="row mt-3">
+                                <div class="col-12">
+                                    <form asp-action="ExportToExcel" method="post" id="excelForm" style="display:inline;">
+                                        <input type="hidden" name="startDate" id="excelStartDate" />
+                                        <input type="hidden" name="endDate" id="excelEndDate" />
+                                        <button type="submit" class="btn btn-success" id="exportExcelBtn">
+                                            <i class="fas fa-file-excel me-1"></i>Export to Excel
+                                        </button>
+                                    </form>
+                                    <form asp-action="ExportToPdf" method="post" id="pdfForm" style="display:inline;">
+                                        <input type="hidden" name="startDate" id="pdfStartDate" />
+                                        <input type="hidden" name="endDate" id="pdfEndDate" />
+                                        <button type="submit" class="btn btn-danger ms-2" id="exportPdfBtn">
+                                            <i class="fas fa-file-pdf me-1"></i>Export to PDF
+                                        </button>
+                                    </form>
+                                 
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div class="alert alert-warning text-center">
+                <i class="fas fa-exclamation-triangle me-2"></i>@message
+            </div>
+        }
+
+        @if (hasData)
+        {
+            <!-- Report Header -->
+            <div class="text-center mb-4">
+                <h2 class="display-6 fw-bold">@companyName.ToUpper()</h2>
+                <p class="text-muted">Printed By: @printedBy On: @DateTime.Now.ToString("dd-MMM-yyyy HH:mm")</p>
+                <h4 class="text-muted">GIGs REPORT - @startDate.ToString("dd/MM/yyyy") to @endDate.ToString("dd/MM/yyyy")</h4>
+                <hr class="my-3" />
+            </div>
+
+            <!-- Overall Statistics Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="small-box bg-info">
+                        <div class="inner">
+                            <h3>@Model.TotalGIGs</h3>
+                            <p>TOTAL GIGs</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-success">
+                        <div class="inner">
+                            <h3>@Model.TotalGIGMembers.ToString("N0")</h3>
+                            <p>TOTAL MEMBERS</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-primary">
+                        <div class="inner">
+                            <h3>@Model.TotalMaleMembers.ToString("N0")</h3>
+                            <p>MALE</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-male"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-danger">
+                        <div class="inner">
+                            <h3>@Model.TotalFemaleMembers.ToString("N0")</h3>
+                            <p>FEMALE</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-female"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="small-box bg-warning">
+                        <div class="inner">
+                            <h3>@Model.TotalYouthMembers.ToString("N0")</h3>
+                            <p>YOUTH (18-35)</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-child"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-secondary">
+                        <div class="inner">
+                            <h3>@Model.TotalShareCapitalAllGIGs.ToString("N2")</h3>
+                            <p>TOTAL SHARE CAPITAL</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-dark">
+                        <div class="inner">
+                            <h3>@Model.TotalShareDepositsAllGIGs.ToString("N2")</h3>
+                            <p>TOTAL SAVINGS/DEPOSITS</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-piggy-bank"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-danger">
+                        <div class="inner">
+                            <h3>@Model.TotalLoansAllGIGs.ToString("N2")</h3>
+                            <p>TOTAL LOANS</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-hand-holding-usd"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Individual GIG Sections -->
+            @foreach (var gig in Model.GIGs)
+            {
+                <div class="card mb-4 gig-card">
+                    <div class="card-header bg-light">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h4 class="mb-0">
+                                <i class="fas fa-layer-group me-2"></i>@gig.CIGName
+                                <small class="text-muted ms-2">(@gig.CIGCode)</small>
+                            </h4>
+                            <span class="badge bg-primary">Total Members: @gig.TotalMembers</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <!-- GIG Statistics -->
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <div class="d-flex gap-3 flex-wrap">
+                                    <span class="badge bg-primary p-2">
+                                        <i class="fas fa-male me-1"></i> MALE: @gig.MaleCount
+                                    </span>
+                                    <span class="badge bg-danger p-2">
+                                        <i class="fas fa-female me-1"></i> FEMALE: @gig.FemaleCount
+                                    </span>
+                                    @if (gig.OtherCount > 0)
+                                    {
+                                        <span class="badge bg-secondary p-2">
+                                            <i class="fas fa-genderless me-1"></i> OTHER: @gig.OtherCount
+                                        </span>
+                                    }
+                                    <span class="badge bg-warning p-2">
+                                        <i class="fas fa-child me-1"></i> YOUTH: @gig.YouthCount
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Financial Summary -->
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-bordered">
+                                        <thead class="bg-light">
+                                            <tr>
+                                                <th>Share Capital</th>
+                                                <th>Savings/Deposits</th>
+                                                <th>Registration Fee</th>
+                                                <th>Loans</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td class="text-end fw-bold text-primary">@gig.TotalShareCapital.ToString("N2")</td>
+                                                <td class="text-end fw-bold text-success">@gig.TotalShareDeposits.ToString("N2")</td>
+                                                <td class="text-end fw-bold text-info">@gig.TotalRegFee.ToString("N2")</td>
+                                                <td class="text-end fw-bold text-danger">@gig.TotalLoans.ToString("N2")</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Members Table -->
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-striped table-hover">
+                                <thead class="bg-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>MemberNo</th>
+                                        <th>Names</th>
+                                        <th>Sex</th>
+                                        <th>PhoneNo</th>
+                                        <th>IDNo</th>
+                                        <th>Age</th>
+                                        <th class="text-end">Share Capital</th>
+                                        <th class="text-end">Savings/Deposits</th>
+                                        <th class="text-end">Reg Fee</th>
+                                        <th class="text-end">Loans</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{
+                                        int counter = 1;
+                                    }
+                                    @foreach (var member in gig.Members)
+                                    {
+                                        <tr>
+                                            <td class="text-center">@counter</td>
+                                            <td>@member.MemberNo</td>
+                                            <td>@member.Names</td>
+                                            <td>
+                                                @if (member.Sex?.ToUpper() == "MALE" || member.Sex?.ToUpper() == "M")
+                                                {
+                                                    <span class="badge bg-primary">MALE</span>
+                                                }
+                                                else if (member.Sex?.ToUpper() == "FEMALE" || member.Sex?.ToUpper() == "F")
+                                                {
+                                                    <span class="badge bg-danger">FEMALE</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">@member.Sex</span>
+                                                }
+                                            </td>
+                                            <td>@member.PhoneNo</td>
+                                            <td>@member.IDNo</td>
+                                            <td>
+                                                @if (member.Age.HasValue)
+                                                {
+                                                    @member.Age
+                                                    if (member.Age >= 18 && member.Age <= 35)
+                                                    {
+                                                        <span class="badge bg-warning ms-1">Youth</span>
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    <span>-</span>
+                                                }
+                                            </td>
+                                            <td class="text-end">@member.ShareCapital.ToString("N2")</td>
+                                            <td class="text-end">@member.ShareDeposits.ToString("N2")</td>
+                                            <td class="text-end">@member.RegFee.ToString("N2")</td>
+                                            <td class="text-end text-primary fw-bold">@member.LoanAmt.ToString("N2")</td>
+                                            @* <td class="text-end">@member.RecommendedLoanAmt.ToString("N2")</td> *@
+                                        </tr>
+                                        counter++;
+                                    }
+                                </tbody>
+                                <tfoot class="bg-light fw-bold">
+                                    <tr>
+                                        <td colspan="7" class="text-end">GRAND TOTAL</td>
+                                        <td class="text-end">@gig.TotalShareCapital.ToString("N2")</td>
+                                        <td class="text-end">@gig.TotalShareDeposits.ToString("N2")</td>
+                                        <td class="text-end">@gig.TotalRegFee.ToString("N2")</td>
+                                        <td class="text-end">@gig.TotalLoans.ToString("N2")</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <!-- Report Footer -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="small text-muted text-center">
+                        <i class="fas fa-info-circle"></i>
+                        Report Generated By: @printedBy on @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")<br />
+                        Period: @startDate.ToString("dd/MM/yyyy") - @endDate.ToString("dd/MM/yyyy")<br />
+                        Company: @companyName
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info text-center py-5">
+                <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                <h5>No Data Available</h5>
+                <p>Select a date range and click "Generate" to view GIG report data.</p>
+                <hr />
+                <small class="text-muted">
+                    <i class="fas fa-info-circle"></i> The report shows members who are assigned to GIGs with their contribution details for the selected period.
+                </small>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTables for each GIG table
+            @if (hasData)
+            {
+                <text>
+                $('.gig-card').each(function() {
+                    var table = $(this).find('table.table-bordered');
+                    if (table.length && typeof $.fn.DataTable !== 'undefined') {
+                        try {
+                            table.DataTable({
+                                pageLength: 25,
+                                ordering: true,
+                                responsive: true,
+                                language: {
+                                    search: "Search:",
+                                    lengthMenu: "Show _MENU_ entries",
+                                    info: "Showing _START_ to _END_ of _TOTAL_ entries"
+                                }
+                            });
+                        } catch (error) {
+                            console.error('DataTable initialization error:', error);
+                        }
+                    }
+                });
+                </text>
+            }
+
+            // Handle Excel export
+            $('#excelForm').on('submit', function(e) {
+                e.preventDefault();
+                var startDate = $('#startDate').val();
+                var endDate = $('#endDate').val();
+                
+                if (!startDate || !endDate) {
+                    alert('Please select a date range first');
+                    return false;
+                }
+                
+                $('#excelStartDate').val(startDate);
+                $('#excelEndDate').val(endDate);
+                this.submit();
+            });
+            
+            // Handle PDF export
+            $('#pdfForm').on('submit', function(e) {
+                e.preventDefault();
+                var startDate = $('#startDate').val();
+                var endDate = $('#endDate').val();
+                
+                if (!startDate || !endDate) {
+                    alert('Please select a date range first');
+                    return false;
+                }
+                
+                $('#pdfStartDate').val(startDate);
+                $('#pdfEndDate').val(endDate);
+                this.submit();
+            });
+            
+            // Handle report form submission
+            $('#reportForm').on('submit', function(e) {
+                var startDate = $('#startDate').val();
+                var endDate = $('#endDate').val();
+                
+                if (!startDate || !endDate) {
+                    e.preventDefault();
+                    alert('Please select both start and end dates');
+                    return false;
+                }
+                
+                if (startDate > endDate) {
+                    e.preventDefault();
+                    alert('Start date cannot be after end date');
+                    return false;
+                }
+            });
+        });
+    </script>
+}
+
+<style>
+    /* Custom styles for better appearance */
+    .gig-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+    
+    .small-box {
+        border-radius: 0.25rem;
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+        display: block;
+        margin-bottom: 20px;
+        position: relative;
+    }
+    
+    .small-box .inner {
+        padding: 10px;
+    }
+    
+    .small-box .icon {
+        position: absolute;
+        right: 10px;
+        top: 10px;
+        color: rgba(0,0,0,0.15);
+        font-size: 70px;
+    }
+    
+    .small-box h3 {
+        font-size: 2rem;
+        font-weight: bold;
+        margin: 0 0 10px 0;
+        white-space: nowrap;
+        padding: 0;
+        color: white;
+    }
+    
+    .small-box p {
+        font-size: 1rem;
+        margin-bottom: 0;
+        color: white;
+    }
+    
+    .bg-info {
+        background-color: #17a2b8 !important;
+        color: white;
+    }
+    
+    .bg-success {
+        background-color: #28a745 !important;
+        color: white;
+    }
+    
+    .bg-primary {
+        background-color: #007bff !important;
+        color: white;
+    }
+    
+    .bg-danger {
+        background-color: #dc3545 !important;
+        color: white;
+    }
+    
+    .bg-warning {
+        background-color: #ffc107 !important;
+        color: #212529;
+    }
+    
+    .bg-secondary {
+        background-color: #6c757d !important;
+        color: white;
+    }
+    
+    .bg-dark {
+        background-color: #343a40 !important;
+        color: white;
+    }
+    
+    .badge {
+        font-size: 0.875rem;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+    }
+    
+    @@media print {
+        .small-box {
+            box-shadow: none;
+            border: 1px solid #ddd;
+        }
+        
+        .badge {
+            border: 1px solid #ddd;
+        }
+        
+        .gig-card {
+            margin-bottom: 20px;
+        }
+        
+        .table th {
+            background-color: #f2f2f2 !important;
+        }
+    }
+</style>

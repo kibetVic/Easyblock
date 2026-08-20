@@ -1,0 +1,296 @@
+﻿@model List<SACCOBlockChainSystem.Models.DTOs.LoanSummaryDTO>
+@{
+    ViewData["Title"] = "Loans Awaiting Final Approval";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var loanCount = ViewBag.LoanCount ?? Model.Count;
+    var totalAmount = ViewBag.TotalAmount ?? Model.Sum(l => l.PrincipalAmount);
+}
+
+@section Styles {
+    <style>
+        .summary-card {
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+        }
+
+            .summary-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            }
+
+            .summary-card.warning {
+                border-left-color: #ffc107;
+            }
+
+            .summary-card.info {
+                border-left-color: #17a2b8;
+            }
+
+            .summary-card.success {
+                border-left-color: #28a745;
+            }
+
+        .badge-level {
+            font-size: 0.8rem;
+            padding: 0.3rem 0.6rem;
+        }
+    </style>
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex align-items-center">
+            <a asp-action="AllLoans" class="btn btn-outline-secondary me-3">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+            <h2 class="page-title mb-0">
+                <i class="bi bi-check2-all me-2"></i>Loans Awaiting Final Approval
+            </h2>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Messages -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <div class="col-md-4">
+        <div class="card summary-card warning">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Total Pending</h6>
+                        <h3 class="mb-0">@loanCount</h3>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 p-3 rounded-circle">
+                        <i class="bi bi-clock-history fs-2 text-warning"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card summary-card info">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Total Amount</h6>
+                        <h3 class="mb-0 text-primary">KES @totalAmount.ToString("N2")</h3>
+                    </div>
+                    <div class="bg-info bg-opacity-10 p-3 rounded-circle">
+                        <i class="bi bi-cash-stack fs-2 text-info"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card summary-card success">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-muted mb-2">Average Amount</h6>
+                        <h3 class="mb-0 text-success">
+                            KES @(loanCount > 0 ? (totalAmount / loanCount).ToString("N2") : "0.00")
+                        </h3>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded-circle">
+                        <i class="bi bi-bar-chart fs-2 text-success"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="card-title mb-0">
+            <i class="bi bi-funnel me-2"></i>Filter Loans
+        </h5>
+    </div>
+    <div class="card-body">
+        <form asp-action="SearchResults" method="get" class="row g-3">
+            <input type="hidden" name="LoanStatus" value="PendingFinalApproval" />
+            <div class="col-md-3">
+                <label class="form-label">Member Name</label>
+                <input type="text" name="MemberName" class="form-control" placeholder="Search by member name" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Loan Number</label>
+                <input type="text" name="LoanNo" class="form-control" placeholder="Search by loan number" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Min Amount</label>
+                <input type="number" name="MinAmount" class="form-control" placeholder="Min" step="0.01" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Max Amount</label>
+                <input type="number" name="MaxAmount" class="form-control" placeholder="Max" step="0.01" />
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-2"></i>Filter
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Loans Table -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Loans Awaiting Final Approval</h5>
+        <span class="badge bg-primary">@loanCount Loans</span>
+    </div>
+    <div class="card-body p-0">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Loan No</th>
+                            <th>Member</th>
+                            <th>Loan Type</th>
+                            <th class="text-end">Principal</th>
+                            <th class="text-end">Approved Amount</th>
+                            <th>Application Date</th>
+                            <th>Approval Level</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var loan in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@loan.LoanNo</strong>
+                                </td>
+                                <td>
+                                    <div>@loan.MemberName</div>
+                                    <small class="text-muted">@loan.MemberNo</small>
+                                </td>
+                                <td>@loan.LoanType</td>
+                                <td class="text-end">KES @loan.PrincipalAmount.ToString("N2")</td>
+                                <td class="text-end fw-bold text-primary">
+                                    KES @(loan.ApprovedAmount > 0 ? loan.ApprovedAmount.ToString("N2") : "0.00")
+                                </td>
+                                <td>@loan.ApplicationDate.ToString("dd/MM/yyyy")</td>
+                                <td>
+                                    @{
+                                        // You might want to fetch actual approval level from service
+                                        var approvalLevel = "Level 2";
+                                    }
+                                    <span class="badge bg-info badge-level">@approvalLevel</span>
+                                </td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a asp-action="Details" asp-route-loanNo="@loan.LoanNo"
+                                           class="btn btn-sm btn-outline-primary" title="View Details">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        <a asp-action="Approve" asp-route-loanNo="@loan.LoanNo"
+                                           class="btn btn-sm btn-success" title="Process Final Approval">
+                                            <i class="bi bi-check2-all"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-check2-all fs-1 text-muted"></i>
+                <p class="text-muted mt-3">No loans awaiting final approval</p>
+                <a asp-action="Index" class="btn btn-primary">
+                    <i class="bi bi-speedometer2 me-2"></i>Return to Dashboard
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Pagination (if needed) -->
+@if (ViewBag.TotalPages > 1)
+{
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action("FinalApprovals", new { page = ViewBag.CurrentPage - 1 })">Previous</a>
+            </li>
+            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+            {
+                <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                    <a class="page-link" href="@Url.Action("FinalApprovals", new { page = i })">@i</a>
+                </li>
+            }
+            <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action("FinalApprovals", new { page = ViewBag.CurrentPage + 1 })">Next</a>
+            </li>
+        </ul>
+    </nav>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Auto-refresh every 60 seconds
+            setInterval(function() {
+                location.reload();
+            }, 60000);
+
+            // Tooltip initialization
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+        });
+
+        // Function to process bulk approval (optional)
+        function approveSelected() {
+            var selectedIds = [];
+            $('.loan-checkbox:checked').each(function() {
+                selectedIds.push($(this).val());
+            });
+
+            if (selectedIds.length === 0) {
+                alert('Please select at least one loan to approve');
+                return;
+            }
+
+            if (confirm('Are you sure you want to approve ' + selectedIds.length + ' selected loans?')) {
+                // Implement bulk approval logic here
+                console.log('Approving loans:', selectedIds);
+            }
+        }
+
+        // Function to export to Excel
+        function exportToExcel() {
+            window.location.href = '@Url.Action("ExportFinalApprovals")';
+        }
+    </script>
+}

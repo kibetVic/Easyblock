@@ -1,0 +1,121 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.MemberSearchResponseDTO
+
+@{
+    ViewData["Title"] = "Member Search Results";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="bi bi-search"></i> Search Results
+        </h3>
+        <div class="card-tools">
+            <a href="@Url.Action("MemberInquiry")" class="btn btn-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> New Search
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="alert alert-info">
+                    <strong>Search Criteria:</strong> @Model.SearchCriteria.GetSearchDescription()
+                    <br />
+                    <strong>Total Found:</strong> @Model.TotalCount members
+                </div>
+            </div>
+        </div>
+
+        @if (!Model.Members.Any())
+        {
+            <div class="alert alert-warning">
+                No members found matching your search criteria.
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover">
+                    <thead>
+                        <tr>
+                            <th>Member No</th>
+                            <th>Full Name</th>
+                            <th>ID Number</th>
+                            <th>Phone</th>
+                            <th>Email</th>
+                            <th>Department</th>
+                            <th>Station</th>
+                            <th>Status</th>
+                            <th>Share Balance</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var member in Model.Members)
+                        {
+                            <tr>
+                                <td>@member.MemberNo</td>
+                                <td>@member.FullName</td>
+                                <td>@member.IdNo</td>
+                                <td>@member.PhoneNo</td>
+                                <td>@member.Email</td>
+                                <td>@member.Department</td>
+                                <td>@member.Station</td>
+                                <td>
+                                    @if (member.Status == "Active")
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">Inactive</span>
+                                    }
+                                </td>
+                                <td>@member.ShareBalance.ToString("N2")</td>
+                                <td>
+                                    <a href="@Url.Action("MemberDetails", new { memberNo = member.MemberNo })" class="btn btn-info btn-sm">
+                                        <i class="bi bi-eye"></i> View Details
+                                    </a>
+                                    <a href="@Url.Action("ShareInquiry", new { memberNo = member.MemberNo })" class="btn btn-success btn-sm">
+                                        <i class="bi bi-pie-chart"></i> Shares
+                                    </a>
+                                    <a href="@Url.Action("LoanInquiry", new { memberNo = member.MemberNo })" class="btn btn-warning btn-sm">
+                                        <i class="bi bi-cash-stack"></i> Loans
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            @if (Model.TotalPages > 1)
+            {
+                <nav aria-label="Page navigation">
+                    <ul class="pagination justify-content-center">
+                        @for (int i = 1; i <= Model.TotalPages; i++)
+                        {
+                            <li class="page-item @(i == Model.Page ? "active" : "")">
+                                <a class="page-link" href="@Url.Action("MemberSearchResults", new { 
+                                    page = i, 
+                                    memberNo = Model.SearchCriteria.MemberNo,
+                                    fullName = Model.SearchCriteria.FullName,
+                                    idNo = Model.SearchCriteria.IdNo,
+                                    phoneNo = Model.SearchCriteria.PhoneNo,
+                                    email = Model.SearchCriteria.Email,
+                                    department = Model.SearchCriteria.Department,
+                                    station = Model.SearchCriteria.Station,
+                                    status = Model.SearchCriteria.Status,
+                                    fromDate = Model.SearchCriteria.FromDate,
+                                    toDate = Model.SearchCriteria.ToDate
+                                })">@i</a>
+                            </li>
+                        }
+                    </ul>
+                </nav>
+            }
+        }
+    </div>
+</div>

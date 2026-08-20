@@ -1,0 +1,148 @@
+﻿@{
+    ViewData["Title"] = "Quick Verify";
+}
+
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-bolt"></i> Quick Transaction Verification</h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">Enter a transaction ID to quickly verify its status.</p>
+
+                    <div class="input-group mb-3">
+                        <input type="text" id="transactionId" class="form-control"
+                               placeholder="Enter Transaction ID" />
+                        <button class="btn btn-primary" onclick="quickVerify()">
+                            <i class="fas fa-search"></i> Verify
+                        </button>
+                    </div>
+
+                    <div id="result" style="display: none;">
+                        <hr />
+                        <div id="resultContent"></div>
+                    </div>
+
+                    <div id="loading" style="display: none;" class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2">Verifying transaction...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        async function quickVerify() {
+            const txId = document.getElementById('transactionId').value.trim();
+
+            if (!txId) {
+                alert('Please enter a transaction ID');
+                return;
+            }
+
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+
+            try {
+                const response = await fetch(`/Blockchain/Verify/Quick/${txId}`);
+                const data = await response.json();
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('result').style.display = 'block';
+
+                if (data.success) {
+                    const statusClass = data.verified ? 'success' : 'warning';
+                    const statusIcon = data.verified ? 'check-circle' : 'exclamation-triangle';
+
+                    let html = `
+                        <div class="alert alert-${statusClass}">
+                            <h5 class="alert-heading">
+                                <i class="fas fa-${statusIcon}"></i>
+                                Transaction ${data.verified ? 'Verified' : 'Not Verified'}
+                            </h5>
+                            <hr>
+                            <table class="table table-sm">
+                                <tr>
+                                    <th>Transaction ID:</th>
+                                    <td><code>${data.transactionId}</code></td>
+                                </tr>
+                                <tr>
+                                    <th>Type:</th>
+                                    <td><span class="badge bg-info">${data.type}</span></td>
+                                </tr>
+                                <tr>
+                                    <th>Member No:</th>
+                                    <td>${data.memberNo}</td>
+                                </tr>
+                                <tr>
+                                    <th>Amount:</th>
+                                    <td>KES ${data.amount?.toLocaleString() || '0.00'}</td>
+                                </tr>
+                                <tr>
+                                    <th>Timestamp:</th>
+                                    <td>${new Date(data.timestamp).toLocaleString()}</td>
+                                </tr>
+                                <tr>
+                                    <th>Status:</th>
+                                    <td>
+                                        <span class="badge bg-${data.status === 'CONFIRMED' ? 'success' : 'warning'}">
+                                            ${data.status}
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>Block Hash:</th>
+                                    <td><code>${data.blockHash || 'Pending'}</code></td>
+                                </tr>
+                            </table>
+                    `;
+
+                    if (data.verified) {
+                        html += `
+                            <div class="mt-3">
+                                <a href="/Blockchain/TransactionDetails?transactionId=${data.transactionId}"
+                                   class="btn btn-sm btn-info">
+                                    <i class="fas fa-info-circle"></i> View Details
+                                </a>
+                                <a href="/Blockchain/Verify?transactionId=${data.transactionId}"
+                                   class="btn btn-sm btn-success">
+                                    <i class="fas fa-shield-alt"></i> Full Verify
+                                </a>
+                            </div>
+                        `;
+                    }
+
+                    html += '</div>';
+                    document.getElementById('resultContent').innerHTML = html;
+                } else {
+                    document.getElementById('resultContent').innerHTML = `
+                        <div class="alert alert-danger">
+                            <h5 class="alert-heading">
+                                <i class="fas fa-times-circle"></i> Error
+                            </h5>
+                            <p>${data.message || 'Transaction not found'}</p>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('resultContent').innerHTML = `
+                    <div class="alert alert-danger">
+                        <h5 class="alert-heading">
+                            <i class="fas fa-exclamation-triangle"></i> Error
+                        </h5>
+                        <p>An error occurred during verification.</p>
+                    </div>
+                `;
+            }
+        }
+    </script>
+}

@@ -1,0 +1,182 @@
+﻿@model SACCOBlockChainSystem.Models.Loanbal
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Loan Balance & Disbursement Details</h5>
+    </div>
+    <div class="card-body">
+        @if (Model != null)
+        {
+            <div class="row">
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3">Loan Information</h6>
+                    <div class="info-row">
+                        <span class="text-muted">Loan No:</span>
+                        <span class="fw-bold">@Model.LoanNo</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Member No:</span>
+                        <span>@Model.MemberNo</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Loan Code:</span>
+                        <span>@Model.LoanCode</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">First Date:</span>
+                        <span>@Model.FirstDate.ToString("dd MMM yyyy")</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Last Date:</span>
+                        <span>@Model.LastDate.ToString("dd MMM yyyy")</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Due Date:</span>
+                        <span>@Model.Duedate.ToString("dd MMM yyyy")</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Next Due Date:</span>
+                        <span>@(Model.Nextduedate?.ToString("dd MMM yyyy") ?? "N/A")</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3">Balance Details</h6>
+                    <div class="info-row">
+                        <span class="text-muted">Principal Balance:</span>
+                        <span class="fw-bold">KES @Model.Balance.ToString("N2")</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Interest Owed:</span>
+                        <span>KES @Model.IntrOwed.ToString("N2")</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Penalty:</span>
+                        <span class="text-danger">KES @Model.Penalty.ToString("N2")</span>
+                    </div>
+                    <div class="info-row border-top pt-2 mt-2">
+                        <span class="text-muted fw-bold">Total Outstanding:</span>
+                        <span class="fw-bold text-danger">KES @((Model.Balance + Model.IntrOwed + Model.Penalty).ToString("N2"))</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Interest Rate:</span>
+                        <span>@Model.Interest.ToString("N2")%</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Repayment Period:</span>
+                        <span>@Model.RepayPeriod months</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Repayment Method:</span>
+                        <span>@Model.RepayMethod</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Status:</span>
+                        <span class="badge @(Model.Cleared ? "bg-success" : "bg-warning")">
+                            @(Model.Cleared ? "Cleared" : "Active")
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <hr>
+
+            <div class="row mt-3">
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3">Installment Information</h6>
+                    <div class="info-row">
+                        <span class="text-muted">Installments:</span>
+                        <span>@Model.Installments</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Repay Rate:</span>
+                        <span>KES @Model.RepayRate.ToString("N2")</span>
+                    </div>
+                    @if (Model.RepayRate2.HasValue)
+                    {
+                        <div class="info-row">
+                            <span class="text-muted">Repay Rate 2:</span>
+                            <span>KES @Model.RepayRate2.Value.ToString("N2")</span>
+                        </div>
+                    }
+                    <div class="info-row">
+                        <span class="text-muted">Repay Mode:</span>
+                        <span>@Model.RepayMode</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Auto Calculate:</span>
+                        <span>@(Model.AutoCalc ? "Yes" : "No")</span>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <h6 class="text-muted mb-3">Audit Information</h6>
+                    <div class="info-row">
+                        <span class="text-muted">Audit ID:</span>
+                        <span>@Model.AuditId</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Audit Time:</span>
+                        <span>@(Model.AuditTime?.ToString("dd MMM yyyy HH:mm") ?? "N/A")</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Process Date:</span>
+                        <span>@(Model.Processdate?.ToString("dd MMM yyyy") ?? "N/A")</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Transaction No:</span>
+                        <span>@Model.TransactionNo</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="text-muted">Period:</span>
+                        <span>@Model.Month/@Model.Year</span>
+                    </div>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(Model.Remarks))
+            {
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <h6 class="text-muted mb-3">Remarks</h6>
+                        <div class="bg-light p-3 rounded">
+                            @Model.Remarks
+                        </div>
+                    </div>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.BlockchainTxId))
+            {
+                <div class="mt-3 p-3 bg-success bg-opacity-10 rounded">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-shield-check fs-4 text-success me-3"></i>
+                        <div>
+                            <strong class="text-success">Blockchain Verified</strong>
+                            <p class="text-muted small mb-0">Transaction ID: @Model.BlockchainTxId</p>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-cash-stack fs-1 text-muted"></i>
+                <p class="text-muted mt-3">Loan balance information not available</p>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .info-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+</style>

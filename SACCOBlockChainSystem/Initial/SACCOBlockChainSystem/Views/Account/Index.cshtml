@@ -1,0 +1,433 @@
+﻿@using System.Security.Claims
+@model SACCOBlockChainSystem.Models.ViewModels.UserManagementViewModel
+
+@{
+    ViewData["Title"] = "User Management";
+    Layout = "_Layout";
+    var userRole = User.FindFirstValue(ClaimTypes.Role);
+    var isSuperAdmin = userRole == "Super Admin";
+}
+
+<div class="container-fluid py-4">
+    <!-- Success/Error Messages -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>User Management</h2>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createUserModal">
+            <i class="fas fa-plus"></i> Create New User
+        </button>
+    </div>
+
+    <!-- Search Bar -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="get" asp-action="Index" class="row g-3">
+                <div class="col-md-10">
+                    <input type="text" name="searchTerm" class="form-control"
+                           placeholder="Search by username, email, or login ID..."
+                           value="@Model.SearchTerm" />
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="card shadow">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Action</th>
+                            <th>Username</th>
+                            <th>Login ID</th>
+                            <th>Role</th>
+                            @if (isSuperAdmin)
+                            {
+                                <th>Company Code</th>
+                            }
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.Users.Any())
+                        {
+                            foreach (var user in Model.Users)
+                            {
+                                <tr>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-warning"
+                                                onclick="editUser(@user.UserId)">
+                                            <i class="fas fa-edit">Select</i>
+                                        </button>
+                                    </td>
+                                    <td>@user.UserName</td>
+                                    <td>@user.UserLoginId</td>
+                                    <td>@user.UserGroup</td>
+                                    @if (isSuperAdmin)
+                                    {
+                                        <td>@user.CompanyCode</td>
+                                    }
+                                    <td>@user.Email</td>
+                                    <td>@user.Phone</td>
+                                    <td>
+                                        @if (user.Status == "Active" && !user.IsLocked)
+                                        {
+                                            <span class="badge bg-success">Active</span>
+                                        }
+                                        else if (user.IsLocked)
+                                        {
+                                            <span class="badge bg-danger">Locked</span>
+                                        }
+                                        else if (user.Status == "Pending")
+                                        {
+                                            <span class="badge bg-warning text-dark">Pending</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-info"
+                                                    onclick="viewUser(@user.UserId)">
+                                                <i class="fas fa-eye">View</i>
+                                            </button>
+                                            @if (User.IsInRole("SuperAdmin") || User.HasClaim("UserGroup", "SuperAdmin"))
+                                            {
+                                                if (user.IsLocked)
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-success"
+                                                            onclick="unlockUser(@user.UserId)">
+                                                        <i class="fas fa-unlock"></i> Unlock
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="button" class="btn btn-sm btn-danger"
+                                                            onclick="lockUser(@user.UserId)">
+                                                        <i class="fas fa-lock"></i> Lock User
+                                                    </button>
+                                                }
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="9" class="text-center">No users found</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create User Modal -->
+<div class="modal fade" id="createUserModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-user-plus me-2"></i> New User
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form asp-action="Create" method="post" id="createUserForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+                    <!-- Account Information -->
+                    <div class="form-section-title mb-3">
+                        <i class="fas fa-user-circle me-2"></i>Account Information
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Company Code *</label>
+                            <select name="CompanyCode" id="CompanyCodeSelect" class="form-control" required style="width: 100%;">
+                                <option value="">-- Select Company --</option>
+                                @if (ViewBag.Companies != null)
+                                {
+                                    foreach (var company in ViewBag.Companies)
+                                    {
+                                        <option value="@company.CompanyCode">@company.DisplayText</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">User Group/Role *</label>
+                            <select name="UserGroup" class="form-control" required>
+                                <option value="">-- Select Role --</option>
+                                @if (ViewBag.UserGroups != null)
+                                {
+                                    foreach (var group in ViewBag.UserGroups)
+                                    {
+                                        <option value="@group">@group</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Username *</label>
+                            <input type="text" name="UserName" class="form-control" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Email *</label>
+                            <input type="email" name="Email" class="form-control" required />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Password *</label>
+                            <input type="password" name="Password" id="createPassword" class="form-control" required />
+                            <div class="password-strength" id="createPasswordStrength"></div>
+                            <small class="text-muted">Minimum 6 characters</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Confirm Password *</label>
+                            <input type="password" name="ConfirmPassword" class="form-control" required />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Phone Number</label>
+                            <input type="text" name="Phone" class="form-control" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Department</label>
+                            <input type="text" name="Department" class="form-control" />
+                        </div>
+                    </div>
+
+                    <!-- Location Information -->
+                    <div class="form-section-title mb-3 mt-2">
+                        <i class="fas fa-map-marker-alt me-2"></i>Location Information
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Sub-County</label>
+                            <select name="SubCountyId" class="form-control" id="modalSubCountyId">
+                                <option value="">-- Select Sub-County --</option>
+                                @if (ViewBag.SubCounties != null)
+                                {
+                                    foreach (var subCounty in ViewBag.SubCounties)
+                                    {
+                                        <option value="@subCounty.Id">@subCounty.SubCountyName</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ward</label>
+                            <select name="WardId" class="form-control" id="modalWardId">
+                                <option value="">-- Select Ward --</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times me-1"></i>Back
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Save User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+    <style>
+        .password-strength {
+            height: 4px;
+            margin-top: 5px;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+
+        .strength-weak {
+            width: 33%;
+            background-color: #dc3545;
+        }
+
+        .strength-medium {
+            width: 66%;
+            background-color: #ffc107;
+        }
+
+        .strength-strong {
+            width: 100%;
+            background-color: #28a745;
+        }
+
+        /* Select2 Custom Styling */
+        .select2-container--bootstrap-5 .select2-selection {
+            min-height: 38px;
+            border-radius: 0.375rem;
+        }
+
+        .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+            line-height: 36px;
+        }
+
+        .select2-container--bootstrap-5 .select2-dropdown {
+            border-color: #dee2e6;
+        }
+
+        .select2-container--bootstrap-5 .select2-results__option--highlighted {
+            background-color: #0d6efd;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Initialize Select2 for Company dropdown with search functionality
+            $('#CompanyCodeSelect').select2({
+                theme: 'bootstrap-5',
+                placeholder: '-- Select Company --',
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('#createUserModal'),
+                matcher: function(params, data) {
+                    // Custom matcher to search by both company code and name
+                    if ($.trim(params.term) === '') {
+                        return data;
+                    }
+
+                    var term = params.term.toLowerCase();
+                    var text = data.text.toLowerCase();
+                    var companyCode = data.element?.value?.toLowerCase() || '';
+
+                    // Check if term matches company code or company name
+                    if (companyCode.indexOf(term) > -1 || text.indexOf(term) > -1) {
+                        return data;
+                    }
+
+                    return null;
+                }
+            });
+
+            // Password strength indicator for create modal
+            $('#createPassword').on('input', function() {
+                var password = $(this).val();
+                var strengthBar = $('#createPasswordStrength');
+
+                if (password.length === 0) {
+                    strengthBar.removeClass().addClass('password-strength');
+                    return;
+                }
+
+                var strength = 0;
+                if (password.length >= 6) strength++;
+                if (password.length >= 10) strength++;
+                if (/[a-z]/.test(password)) strength++;
+                if (/[A-Z]/.test(password)) strength++;
+                if (/[0-9]/.test(password)) strength++;
+                if (/[^a-zA-Z0-9]/.test(password)) strength++;
+
+                strengthBar.removeClass().addClass('password-strength');
+                if (strength <= 2) strengthBar.addClass('strength-weak');
+                else if (strength <= 4) strengthBar.addClass('strength-medium');
+                else strengthBar.addClass('strength-strong');
+            });
+
+            // Modal subcounty change - load wards
+            $('#modalSubCountyId').change(function() {
+                var subCountyId = $(this).val();
+                if (subCountyId) {
+                    $.getJSON('/Account/GetWardsBySubCounty', { subCountyId: subCountyId }, function(data) {
+                        var wardSelect = $('#modalWardId');
+                        wardSelect.empty();
+                        wardSelect.append('<option value="">-- Select Ward --</option>');
+                        $.each(data, function(index, ward) {
+                            wardSelect.append('<option value="' + ward.id + '">' + ward.wardName + '</option>');
+                        });
+                    });
+                } else {
+                    $('#modalWardId').empty().append('<option value="">-- Select Ward --</option>');
+                }
+            });
+
+            // Reset Select2 when modal is closed
+            $('#createUserModal').on('hidden.bs.modal', function() {
+                $('#CompanyCodeSelect').val(null).trigger('change');
+            });
+        });
+
+        function viewUser(userId) {
+            window.location.href = '/Account/Details/' + userId;
+        }
+
+        function editUser(userId) {
+            window.location.href = '/Account/Edit/' + userId;
+        }
+
+        function lockUser(userId) {
+            if (confirm('Are you sure you want to lock this user?')) {
+                $.post('/Account/LockUser', { userId: userId }, function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert('Error locking user');
+                    }
+                });
+            }
+        }
+
+        function unlockUser(userId) {
+            if (confirm('Are you sure you want to unlock this user?')) {
+                $.post('/Account/UnlockUser', { userId: userId }, function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert('Error unlocking user');
+                    }
+                });
+            }
+        }
+    </script>
+}

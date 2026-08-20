@@ -1,0 +1,706 @@
+﻿@using SACCOBlockChainSystem.Models.DTOs
+@model ContributionDTO
+@{
+    ViewData["Title"] = "Add Contribution";
+    var shareTypes = ViewBag.ShareTypes as List<ShareTypeDTO>;
+    var companyCode = ViewBag.CompanyCode as string;
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4>
+                        <i class="fas fa-hand-holding-usd"></i> New Contribution
+                    </h4>
+                </div>
+
+                <div class="card-body">
+                    <!-- Display validation summary -->
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <h5 class="alert-heading">
+                                <i class="fas fa-exclamation-triangle"></i> Please fix the following errors:
+                            </h5>
+                            <ul class="mb-0">
+                                @foreach (var modelState in ViewData.ModelState.Values)
+                                {
+                                    foreach (var error in modelState.Errors)
+                                    {
+                                        <li>@error.ErrorMessage</li>
+                                    }
+                                }
+                            </ul>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <!-- Success Message -->
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <!-- Error Message -->
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle"></i> @TempData["ErrorMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <form asp-action="Add" method="post" id="contributionForm">
+                        @Html.AntiForgeryToken()
+
+                        <input type="hidden" asp-for="CompanyCode" value="@companyCode" />
+                        <input type="hidden" asp-for="CreatedBy" />
+                        <input type="hidden" id="selectedMemberNo" asp-for="MemberNo" />
+
+                        <!-- Member Search Section -->
+                        <div class="card mb-4 border-primary">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-search"></i> Step 1: Search & Select Member
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="form-group mb-3">
+                                            <label>Search Member By:</label>
+                                            <div class="input-group">
+                                                <input type="text" id="searchInput" class="form-control"
+                                                       placeholder="Search by Member Number, Name, ID Number, or Phone Number..." />
+                                                <button type="button" class="btn btn-primary" onclick="searchMembers()">
+                                                    <i class="fas fa-search"></i> Search
+                                                </button>
+                                                <button type="button" class="btn btn-secondary" onclick="clearSearch()">
+                                                    <i class="fas fa-times"></i> Clear
+                                                </button>
+                                            </div>
+                                            <small class="text-muted">Enter at least 3 characters to search</small>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Search Results Table -->
+                                <div id="searchResults" style="display: none;">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-hover">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Select</th>
+                                                    <th>Member No</th>
+                                                    <th>Full Name</th>
+                                                    <th>ID Number</th>
+                                                    <th>Phone Number</th>
+                                                    <th>Email</th>
+                                                    <th>Status</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="searchResultsBody">
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                <!-- Loading Indicator -->
+                                <div id="searchLoading" style="display: none;" class="text-center p-3">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Loading...</span>
+                                    </div>
+                                    <p>Searching for members...</p>
+                                </div>
+
+                                <!-- Selected Member Display -->
+                                <div id="selectedMemberCard" style="display: none;" class="mt-3">
+                                    <div class="alert alert-success">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <i class="fas fa-check-circle"></i>
+                                                <strong>Selected Member:</strong>
+                                                <span id="selectedMemberName"></span>
+                                                <br />
+                                                <small>
+                                                    <span id="selectedMemberNoDisplay"></span> |
+                                                    ID: <span id="selectedMemberIdNo"></span> |
+                                                    Phone: <span id="selectedMemberPhone"></span>
+                                                </small>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearSelectedMember()">
+                                                <i class="fas fa-trash"></i> Change
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contribution Details Section -->
+                        <div class="card mb-4 border-success">
+                            <div class="card-header bg-success text-white">
+                                <h5 class="mb-0">
+                                    <i class="fas fa-hand-holding-usd"></i> Step 2: Contribution Details
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-3">
+                                            <label asp-for="TransactionDate">Transaction Date *</label>
+                                            <input asp-for="TransactionDate" type="date" class="form-control" required
+                                                   value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+                                            <span asp-validation-for="TransactionDate" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-3">
+                                            <label asp-for="SharesCode">Share Type *</label>
+                                            <select asp-for="SharesCode" class="form-control" required id="SharesCode">
+                                                <option value="">Select Share Type</option>
+                                                @foreach (var shareType in shareTypes)
+                                                {
+                                                    <option value="@shareType.SharesCode"
+                                                            data-min="@shareType.MinAmount"
+                                                            data-max="@shareType.MaxAmount"
+                                                            data-name="@shareType.SharesType">
+                                                        @shareType.SharesType (@shareType.SharesCode)
+                                                        @if (shareType.IsMainShares)
+                                                        {
+                                                            <text> - Main Shares</text>
+                                                        }
+                                                    </option>
+                                                }
+                                            </select>
+                                            <div id="shareTypeInfo" class="small text-muted mt-1"></div>
+                                            <span asp-validation-for="SharesCode" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-3">
+                                            <label asp-for="Amount">Amount (KES) *</label>
+                                            <input asp-for="Amount" type="number" step="0.01" class="form-control"
+                                                   required placeholder="Enter amount" id="Amount" />
+                                            <div id="amountValidation" class="text-danger mt-1"></div>
+                                            <span asp-validation-for="Amount" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-3">
+                                            <label asp-for="PaymentMethod">Payment Method</label>
+                                            <select asp-for="PaymentMethod" class="form-control" id="PaymentMethod">
+                                                <option value="CASH">Cash</option>
+                                                <option value="CHEQUE">Cheque</option>
+                                                <option value="BANK_TRANSFER">Bank Transfer</option>
+                                                <option value="MPESA">M-Pesa</option>
+                                                <option value="OTHER">Other</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-3">
+                                            <label asp-for="ReferenceNo">Reference Number</label>
+                                            <input asp-for="ReferenceNo" class="form-control" id="ReferenceNo"
+                                                   placeholder="Cheque No, M-Pesa Code, etc." />
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group mb-3">
+                                            <label asp-for="Remarks">Remarks * (Important for contribution type)</label>
+                                            <textarea asp-for="Remarks" class="form-control" rows="2" required id="Remarks"
+                                                      placeholder="Enter the contribution type (e.g., 'Savings', 'Deposits', 'Share Capital', 'Registration fees', 'Donation')..."></textarea>
+                                            <span asp-validation-for="Remarks" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Warning when limit is reached -->
+                                <div id="limitReachedWarning" style="display: none;" class="mt-3">
+                                    <div class="alert alert-danger">
+                                        <i class="fas fa-ban"></i>
+                                        <strong>LIMIT REACHED!</strong>
+                                        <div id="limitReachedContent"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-success btn-lg" id="submitBtn" disabled>
+                                <i class="fas fa-check-circle"></i> Save Contribution
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-times"></i> Back to List
+                            </a>
+                            <button type="button" class="btn btn-outline-secondary btn-lg" onclick="resetForm()">
+                                <i class="fas fa-redo"></i> Reset
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentMemberNo = null;
+        let currentMemberTotal = 0;
+        let currentShareTypeMax = 0;
+        let currentShareTypeMin = 0;
+        let currentShareTypeName = '';
+        let selectedMemberData = null;
+        let isAmountValid = false;
+        let isMemberSelected = false;
+
+        // Search members function
+        async function searchMembers() {
+            const searchTerm = document.getElementById('searchInput').value.trim();
+
+            if (searchTerm.length < 3) {
+                Swal.fire('Warning', 'Please enter at least 3 characters to search', 'warning');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('searchLoading').style.display = 'block';
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('searchResultsBody').innerHTML = '';
+
+            try {
+                const response = await fetch(`/api/Member/search?searchTerm=${encodeURIComponent(searchTerm)}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    if (data.success && data.data && data.data.length > 0) {
+                        displaySearchResults(data.data);
+                    } else {
+                        document.getElementById('searchResultsBody').innerHTML =
+                            '<tr><td colspan="7" class="text-center text-danger">No members found matching your search</td></tr>';
+                        document.getElementById('searchResults').style.display = 'block';
+                        Swal.fire('Info', 'No members found matching your search', 'info');
+                    }
+                } else {
+                    throw new Error('Search failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('searchResultsBody').innerHTML =
+                    '<tr><td colspan="7" class="text-center text-danger">Error searching members. Please try again.</td></tr>';
+                document.getElementById('searchResults').style.display = 'block';
+                Swal.fire('Error', 'Error searching members', 'error');
+            } finally {
+                document.getElementById('searchLoading').style.display = 'none';
+            }
+        }
+
+        // Display search results
+        function displaySearchResults(members) {
+            const tbody = document.getElementById('searchResultsBody');
+            tbody.innerHTML = '';
+
+            members.forEach(member => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-success" onclick="selectMember('${member.memberNo}')">
+                            <i class="fas fa-check"></i> Select
+                        </button>
+                    </td>
+                    <td><strong>${escapeHtml(member.memberNo)}</strong></td>
+                    <td>${escapeHtml(member.surname)} ${escapeHtml(member.otherNames)}</td>
+                    <td>${escapeHtml(member.idno || 'N/A')}</td>
+                    <td>${escapeHtml(member.phoneNo || member.phone || 'N/A')}</td>
+                    <td>${escapeHtml(member.email || 'N/A')}</td>
+                    <td>
+                        <span class="badge ${member.status == 1 ? 'bg-success' : 'bg-danger'}">
+                            ${member.status == 1 ? 'Active' : (member.withdrawn == true ? 'Withdrawn' : 'Inactive')}
+                        </span>
+                    </td>
+                `;
+            });
+
+            document.getElementById('searchResults').style.display = 'block';
+        }
+
+        // Select a member
+        async function selectMember(memberNo) {
+            try {
+                // Fetch full member details
+                const response = await fetch(`/api/Member/${memberNo}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        selectedMemberData = data.data;
+                        currentMemberNo = memberNo;
+                        isMemberSelected = true;
+
+                        // Update form with selected member
+                        document.getElementById('selectedMemberNo').value = memberNo;
+                        document.getElementById('selectedMemberName').innerHTML =
+                            `<strong>${selectedMemberData.surname} ${selectedMemberData.otherNames}</strong>`;
+                        document.getElementById('selectedMemberNoDisplay').innerHTML = memberNo;
+                        document.getElementById('selectedMemberIdNo').innerHTML = selectedMemberData.idno || 'N/A';
+                        document.getElementById('selectedMemberPhone').innerHTML = selectedMemberData.phoneNo || selectedMemberData.phone || 'N/A';
+
+                        // Show selected member card
+                        document.getElementById('selectedMemberCard').style.display = 'block';
+
+                        // Hide search results
+                        document.getElementById('searchResults').style.display = 'none';
+                        document.getElementById('searchInput').value = '';
+
+                        // Get current contribution totals for this member
+                        await getMemberCurrentTotal(memberNo);
+
+                        // Update submit button state
+                        updateSubmitButtonState();
+
+                        Swal.fire('Success', `Member ${selectedMemberData.surname} ${selectedMemberData.otherNames} selected successfully!`, 'success');
+                    }
+                }
+            } catch (error) {
+                console.error('Error selecting member:', error);
+                Swal.fire('Error', 'Error selecting member', 'error');
+            }
+        }
+
+        // Get member's current total for selected share type
+        async function getMemberCurrentTotal(memberNo) {
+            const shareTypeCode = document.getElementById('SharesCode').value;
+            if (!shareTypeCode || !memberNo) return;
+
+            try {
+                const response = await fetch(`/api/Contribution/member/${memberNo}/sharetype/${shareTypeCode}/total`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success) {
+                        currentMemberTotal = data.currentTotal || 0;
+                        updateContributionStatus();
+                        validateAmount(); // Re-validate amount after getting total
+                    }
+                }
+            } catch (error) {
+                console.error('Error getting member total:', error);
+                currentMemberTotal = 0;
+            }
+        }
+
+        // Update contribution status display
+        function updateContributionStatus() {
+            const statusDiv = document.getElementById('contributionStatus');
+            const statusContent = document.getElementById('contributionStatusContent');
+            const warningDiv = document.getElementById('limitReachedWarning');
+            const limitReachedContent = document.getElementById('limitReachedContent');
+
+            if (currentShareTypeMax > 0) {
+                const remaining = currentShareTypeMax - currentMemberTotal;
+
+                if (remaining <= 0) {
+                    // Limit reached - show warning and disable everything
+                    limitReachedContent.innerHTML = `
+                        Maximum ${currentShareTypeName} limit of ${formatCurrency(currentShareTypeMax)} has been reached.<br>
+                        Current total: ${formatCurrency(currentMemberTotal)}<br>
+                        <strong>No further contributions allowed for this share type.</strong>
+                    `;
+                    warningDiv.style.display = 'block';
+                    statusDiv.style.display = 'none';
+
+                    // Disable amount field and submit button
+                    document.getElementById('Amount').disabled = true;
+                    document.getElementById('Amount').value = '';
+                    isAmountValid = false;
+                } else {
+                    // Show remaining limit
+                    warningDiv.style.display = 'none';
+                    statusDiv.style.display = 'block';
+                    statusContent.innerHTML = `
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Current Total:</strong> ${formatCurrency(currentMemberTotal)}
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Maximum Limit:</strong> ${formatCurrency(currentShareTypeMax)}
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Remaining:</strong> ${formatCurrency(remaining)}
+                                ${remaining < 1000 ? '<br><span class="text-warning">⚠️ Low limit warning!</span>' : ''}
+                            </div>
+                        </div>
+                    `;
+                    document.getElementById('Amount').disabled = false;
+                }
+            } else {
+                // No maximum limit
+                warningDiv.style.display = 'none';
+                statusDiv.style.display = 'block';
+                statusContent.innerHTML = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>Current Total:</strong> ${formatCurrency(currentMemberTotal)}
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Maximum Limit:</strong> Unlimited
+                        </div>
+                    </div>
+                `;
+                document.getElementById('Amount').disabled = false;
+            }
+        }
+
+        // Clear selected member
+        function clearSelectedMember() {
+            currentMemberNo = null;
+            selectedMemberData = null;
+            isMemberSelected = false;
+            isAmountValid = false;
+            currentMemberTotal = 0;
+
+            document.getElementById('selectedMemberNo').value = '';
+            document.getElementById('selectedMemberCard').style.display = 'none';
+            document.getElementById('contributionStatus').style.display = 'none';
+            document.getElementById('limitReachedWarning').style.display = 'none';
+            document.getElementById('Amount').value = '';
+            document.getElementById('Amount').disabled = false;
+            document.getElementById('amountValidation').innerHTML = '';
+
+            updateSubmitButtonState();
+        }
+
+        // Clear search
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('searchResults').style.display = 'none';
+            document.getElementById('searchResultsBody').innerHTML = '';
+        }
+
+        // Share type change handler
+        document.getElementById('SharesCode').addEventListener('change', async function() {
+            const selectedOption = this.options[this.selectedIndex];
+            currentShareTypeMin = parseFloat(selectedOption.getAttribute('data-min')) || 0;
+            currentShareTypeMax = parseFloat(selectedOption.getAttribute('data-max')) || 0;
+            currentShareTypeName = selectedOption.getAttribute('data-name') || '';
+
+            let infoText = `<i class="fas fa-chart-line"></i> Minimum amount: ${formatCurrency(currentShareTypeMin)}`;
+            if (currentShareTypeMax > 0) {
+                infoText += `, Maximum total limit: ${formatCurrency(currentShareTypeMax)}`;
+            } else {
+                infoText += `, Maximum total limit: Unlimited`;
+            }
+
+            document.getElementById('shareTypeInfo').innerHTML = infoText;
+
+            // Get current member total for this share type
+            if (currentMemberNo) {
+                await getMemberCurrentTotal(currentMemberNo);
+            }
+
+            // Trigger amount validation
+            validateAmount();
+        });
+
+        // Amount validation with max limit check
+        function validateAmount() {
+            const amountInput = document.getElementById('Amount');
+            const amount = parseFloat(amountInput.value);
+            const validationDiv = document.getElementById('amountValidation');
+
+            // Reset validation state
+            isAmountValid = false;
+
+            if (!currentMemberNo) {
+                validationDiv.innerHTML = '<i class="fas fa-info-circle"></i> Please select a member first';
+                updateSubmitButtonState();
+                return false;
+            }
+
+            if (isNaN(amount) || amount <= 0) {
+                validationDiv.innerHTML = '';
+                updateSubmitButtonState();
+                return false;
+            }
+
+            // Check minimum amount
+            if (amount < currentShareTypeMin) {
+                validationDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Amount cannot be less than ${formatCurrency(currentShareTypeMin)}`;
+                updateSubmitButtonState();
+                return false;
+            }
+
+            // Check if limit is already reached
+            if (currentShareTypeMax > 0 && currentMemberTotal >= currentShareTypeMax) {
+                validationDiv.innerHTML = `<i class="fas fa-ban"></i> Maximum limit already reached. No further contributions allowed.`;
+                updateSubmitButtonState();
+                return false;
+            }
+
+            // Check against maximum limit (considering existing total)
+            if (currentShareTypeMax > 0) {
+                const potentialNewTotal = currentMemberTotal + amount;
+                const remainingLimit = currentShareTypeMax - currentMemberTotal;
+
+                if (potentialNewTotal > currentShareTypeMax) {
+                    validationDiv.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Amount exceeds remaining limit! You can only add up to ${formatCurrency(remainingLimit)} (Current: ${formatCurrency(currentMemberTotal)}, Max: ${formatCurrency(currentShareTypeMax)})`;
+                    updateSubmitButtonState();
+                    return false;
+                }
+            }
+
+            // All validations passed
+            validationDiv.innerHTML = '<i class="fas fa-check-circle text-success"></i> Amount must be less than than?';
+            isAmountValid = true;
+            updateSubmitButtonState();
+
+            // Clear success message after 3 seconds
+            setTimeout(() => {
+                if (validationDiv.innerHTML.includes('valid')) {
+                    validationDiv.innerHTML = '';
+                }
+            }, 3000);
+
+            return true;
+        }
+
+        // Update submit button state based on validations
+        function updateSubmitButtonState() {
+            const submitBtn = document.getElementById('submitBtn');
+            const remarks = document.getElementById('Remarks').value.trim();
+            const hasRemarks = remarks.length > 0;
+
+            const canSubmit = isMemberSelected && isAmountValid && hasRemarks;
+
+            submitBtn.disabled = !canSubmit;
+
+            // Update button tooltip
+            if (!canSubmit) {
+                let reason = '';
+                if (!isMemberSelected) reason = 'Please select a member first';
+                else if (!isAmountValid) reason = 'Please enter a valid amount';
+                else if (!hasRemarks) reason = 'Please enter remarks';
+
+                submitBtn.title = reason;
+                submitBtn.setAttribute('data-bs-toggle', 'tooltip');
+            } else {
+                submitBtn.title = '';
+            }
+        }
+
+        // Real-time amount validation
+        document.getElementById('Amount').addEventListener('input', function() {
+            validateAmount();
+        });
+
+        // Remarks validation
+        document.getElementById('Remarks').addEventListener('input', function() {
+            updateSubmitButtonState();
+        });
+
+        document.getElementById('Remarks').addEventListener('blur', function() {
+            updateSubmitButtonState();
+        });
+
+        // Form submission validation
+        document.getElementById('contributionForm').addEventListener('submit', function(e) {
+            if (!isMemberSelected) {
+                e.preventDefault();
+                Swal.fire('Validation Error', 'Please select a member first', 'error');
+                return false;
+            }
+
+            if (!isAmountValid) {
+                e.preventDefault();
+                Swal.fire('Validation Error', document.getElementById('amountValidation').textContent || 'Please check the amount and try again', 'error');
+                return false;
+            }
+
+            const remarks = document.getElementById('Remarks').value.trim();
+            if (!remarks) {
+                e.preventDefault();
+                Swal.fire('Validation Error', 'Remarks is required. Please specify the contribution type (e.g., Share Capital, Savings, etc.)', 'error');
+                return false;
+            }
+
+            // Show loading on submit
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        });
+
+        // Reset form
+        function resetForm() {
+            clearSelectedMember();
+            clearSearch();
+            document.getElementById('SharesCode').value = '';
+            document.getElementById('shareTypeInfo').innerHTML = '';
+            document.getElementById('amountValidation').innerHTML = '';
+            document.getElementById('contributionStatus').style.display = 'none';
+            document.getElementById('limitReachedWarning').style.display = 'none';
+            document.getElementById('Amount').value = '';
+            document.getElementById('Remarks').value = '';
+            document.getElementById('ReferenceNo').value = '';
+            document.getElementById('ReceiptNo').value = '';
+            document.getElementById('PaymentMethod').value = 'CASH';
+            currentMemberTotal = 0;
+            currentShareTypeMax = 0;
+            currentShareTypeMin = 0;
+            isAmountValid = false;
+            isMemberSelected = false;
+            updateSubmitButtonState();
+        }
+
+        // Helper function to format currency
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-KE', { style: 'currency', currency: 'KES' }).format(amount);
+        }
+
+        // Helper function to escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Enter key to search
+        document.getElementById('searchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchMembers();
+            }
+        });
+
+        // Auto-focus on search field
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('searchInput').focus();
+
+            // Initialize share type info if already selected
+            const sharesCode = document.getElementById('SharesCode');
+            if (sharesCode.value) {
+                sharesCode.dispatchEvent(new Event('change'));
+            }
+
+            // Initialize tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+    </script>
+}
+
+<!-- Add SweetAlert2 CSS and JS if not already in layout -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>

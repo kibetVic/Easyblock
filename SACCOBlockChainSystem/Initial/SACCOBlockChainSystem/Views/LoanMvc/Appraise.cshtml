@@ -1,0 +1,269 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.LoanAppraisalDTO
+@{
+    ViewData["Title"] = "Loan Appraisal";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var loan = ViewBag.Loan as SACCOBlockChainSystem.Models.Loan;
+    var member = ViewBag.Member as SACCOBlockChainSystem.Models.Member;
+    var loanType = ViewBag.LoanType as SACCOBlockChainSystem.Models.DTOs.LoanTypeResponseDTO;
+    var requiresGuarantor = ViewBag.RequiresGuarantor as bool? ?? false;
+    var totalGuarantee = ViewBag.TotalGuarantee as decimal? ?? 0;
+    var amountToAppraise = ViewBag.AmountToAppraise as decimal? ?? 0;
+    var amountSource = ViewBag.AmountSource as string ?? "";
+    var approvedGuarantors = ViewBag.ApprovedGuarantors as List<SACCOBlockChainSystem.Models.DTOs.GuarantorResponseDTO> ?? new List<SACCOBlockChainSystem.Models.DTOs.GuarantorResponseDTO>();
+
+    // Parse the interest rate to remove the % sign
+    string interestRateValue = loanType?.Interest?.ToString() ?? "0";
+    decimal parsedInterestRate = 0;
+
+    if (!string.IsNullOrEmpty(interestRateValue))
+    {
+        // Remove % sign and any spaces
+        interestRateValue = interestRateValue.Replace("%", "").Trim();
+        decimal.TryParse(interestRateValue, out parsedInterestRate);
+    }
+
+    // Format the display interest rate
+    string displayInterestRate = loanType?.Interest?.ToString() ?? "0";
+    if (!displayInterestRate.Contains("%"))
+    {
+        displayInterestRate = displayInterestRate + "%";
+    }
+}
+
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center">
+                <a asp-action="PendingAppraisal" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+                <h2 class="page-title mb-0">
+                    <i class="bi bi-clipboard-check me-2"></i>Loan Appraisal
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Loan Appraisal</h5>
+                </div>
+                <div class="card-body">
+                    <!-- Loan Information Summary -->
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <div class="bg-light p-3 rounded text-center">
+                                <small class="text-muted">Loan Number</small>
+                                <h5 class="mb-0">@loan?.LoanNo</h5>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="bg-light p-3 rounded text-center">
+                                <small class="text-muted">Member</small>
+                                <h5 class="mb-0">@member?.Surname @member?.OtherNames</h5>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="bg-light p-3 rounded text-center">
+                                <small class="text-muted">Loan Type</small>
+                                <h5 class="mb-0">@loanType?.LoanType</h5>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="bg-light p-3 rounded text-center">
+                                <small class="text-muted">Interest Rate</small>
+                                <h5 class="mb-0">@displayInterestRate p.a.</h5>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Amount to Appraise -->
+                    <div class="alert @(requiresGuarantor ? "alert-info" : "alert-success")">
+                        <i class="bi @(requiresGuarantor ? "bi-people" : "bi-cash") me-2"></i>
+                        <strong>Amount to Appraise:</strong> KES @amountToAppraise.ToString("N0")
+                        <br />
+                        <small>Source: @amountSource</small>
+                    </div>
+
+                    @if (requiresGuarantor && approvedGuarantors.Any())
+                    {
+                        <div class="card mb-4">
+                            <div class="card-header bg-light">
+                                <h6 class="mb-0">Approved Guarantors</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>#</th>
+                                                <th>Full Name</th>
+                                                <th>ID No</th>
+                                                <th>Phone No</th>
+                                                <th>Member No</th>
+                                                <th class="text-end">Guarantee Amount</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @{
+                                                int counter = 1;
+                                            }
+                                            @foreach (var guarantor in approvedGuarantors)
+                                            {
+                                                <tr>
+                                                    <td>@counter</td>
+                                                    <td>@guarantor.GuarantorName</td>
+                                                    <td>@guarantor.IdNo</td>
+                                                    <td>@guarantor.PhoneNo</td>
+                                                    <td>@guarantor.GuarantorMemberNo</td>
+                                                    <td class="text-end fw-bold">KES @guarantor.GuaranteeAmount.ToString("N0")</td>
+                                                </tr>
+                                                counter++;
+                                            }
+                                            <tr class="table-light fw-bold">
+                                                <td colspan="5" class="text-end">Total Guarantee:</td>
+                                                <td class="text-end">KES @totalGuarantee.ToString("N0")</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    }
+
+
+                    <form asp-action="Appraise" method="post" id="appraisalForm">
+                        @Html.AntiForgeryToken()
+
+                        <!-- Hidden fields with proper binding -->
+                        <input type="hidden" asp-for="LoanNo" />
+                        <input type="hidden" asp-for="CompanyCode" />
+                        <input type="hidden" asp-for="AppraisedBy" />
+                        <input type="hidden" asp-for="AppliedAmount" value="@loan?.LoanAmt" />
+
+                        <!-- Fixed: Use the parsed interest rate without % sign -->
+                        <input type="hidden" asp-for="RecommendedAmount" value="@amountToAppraise" />
+                        <input type="hidden" asp-for="RecommendedInterestRate" value="@parsedInterestRate" />
+                        <input type="hidden" asp-for="RecommendedPeriod" value="@(loan?.RepayPeriod ?? 12)" />
+
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <div class="row mb-4 align-items-end">
+
+                            <!-- Appraisal Decision -->
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold">Appraisal Decision *</label>
+                                <select asp-for="AppraisalDecision" class="form-select" required id="decisionSelect">
+                                    <option value="">-- Select Decision --</option>
+                                    <option value="Recommend">Approve</option>
+                                    <option value="NotRecommend">Reject</option>
+                                </select>
+                            </div>
+
+                            <!-- Summary -->
+                            <div class="col-md-4" id="amountSummary">
+                                <div class="bg-light p-3 rounded h-100">
+                                    <strong>Amount:</strong>
+                                    <h5 class="text-primary mb-1">KES @amountToAppraise.ToString("N0")</h5>
+                                    <small class="text-muted">Based on @amountSource.ToLower()</small>
+
+                                    @if (parsedInterestRate > 0)
+                                    {
+                                        <div class="mt-1">
+                                            <small><strong>Interest:</strong> @parsedInterestRate% p.a.</small>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Appraisal Notes -->
+                            <div class="col-md-5">
+                                <label asp-for="AppraisalNotes" class="form-label fw-bold">Notes *</label>
+                                <textarea asp-for="AppraisalNotes"
+                                          class="form-control"
+                                          rows="2"
+                                          required
+                                          placeholder="Enter notes..."></textarea>
+                            </div>
+
+                        </div>
+
+                        <hr />
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a asp-action="PendingAppraisal" class="btn btn-secondary">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <i class="bi bi-check-circle me-2"></i>Submit Appraisal
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function() {
+            var amountToAppraise = @amountToAppraise;
+
+            // Log the values for debugging
+            console.log('Amount to Appraise:', amountToAppraise);
+            console.log('Loan No:', '@loan?.LoanNo');
+            console.log('Interest Rate:', @parsedInterestRate);
+
+            // Form validation
+            $('#appraisalForm').on('submit', function(e) {
+                var decision = $('#decisionSelect').val();
+                var appraisalNotes = $('#AppraisalNotes').val().trim();
+
+                console.log('Decision selected:', decision);
+                console.log('Notes length:', appraisalNotes.length);
+
+                if (!decision) {
+                    e.preventDefault();
+                    alert('Please select an appraisal decision');
+                    return false;
+                }
+
+                if (!appraisalNotes) {
+                    e.preventDefault();
+                    alert('Please enter appraisal notes/reason');
+                    return false;
+                }
+
+                if (decision === 'Recommend') {
+                    if (!confirm(`Are you sure you want to APPROVE this loan for KES ${amountToAppraise.toLocaleString()} with interest rate ${@parsedInterestRate}%?`)) {
+                        e.preventDefault();
+                        return false;
+                    }
+                } else if (decision === 'NotRecommend') {
+                    if (!confirm('Are you sure you want to REJECT this loan?')) {
+                        e.preventDefault();
+                        return false;
+                    }
+                }
+
+                var $btn = $('#submitBtn');
+                $btn.prop('disabled', true);
+                $btn.html('<i class="bi bi-spinner spin me-2"></i>Processing...');
+                return true;
+            });
+        });
+    </script>
+}

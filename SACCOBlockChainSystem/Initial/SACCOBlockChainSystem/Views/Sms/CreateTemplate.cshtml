@@ -1,0 +1,407 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.SmsTemplateDTO
+@{
+    ViewData["Title"] = "Create SMS Template";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center">
+                <a asp-action="Templates" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Back to Templates
+                </a>
+                <h2 class="page-title mb-0">
+                    <i class="bi bi-file-plus me-2"></i>SMS Template
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-pencil-square me-2"></i>Template Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="CreateTemplate" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" style="display: none;"></div>
+
+                        <div class="mb-3">
+                            <label asp-for="TemplateCode" class="form-label fw-bold">Template Code *</label>
+                            <input asp-for="TemplateCode" class="form-control" placeholder="e.g., WELCOME_SMS, LOAN_APPROVED" />
+                            <span asp-validation-for="TemplateCode" class="text-danger"></span>
+                            <small class="text-muted">Unique identifier for this template (use uppercase with underscores)</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="TemplateName" class="form-label fw-bold">Template Name *</label>
+                            <input asp-for="TemplateName" class="form-control" placeholder="e.g., Welcome Message, Loan Approval" />
+                            <span asp-validation-for="TemplateName" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Description" class="form-label">Description</label>
+                            <textarea asp-for="Description" class="form-control" rows="2" placeholder="Brief description of when this template is used"></textarea>
+                            <span asp-validation-for="Description" class="text-danger"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="TemplateContent" class="form-label fw-bold">Template Content *</label>
+                            <textarea asp-for="TemplateContent" class="form-control" rows="4"
+                                      placeholder="Enter your SMS template with placeholders like {{FullName}}, {{MemberNo}}, etc."></textarea>
+                            <span asp-validation-for="TemplateContent" class="text-danger"></span>
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Use <code>{{PlaceholderName}}</code> for dynamic content. Character count: <span id="charCount">0</span> / 160
+                                <span id="smsCount" class="ms-2"></span>
+                            </small>
+                        </div>
+
+                        <div class="mb-3">
+                            <div class="form-check">
+                                <input asp-for="IsActive" class="form-check-input" type="checkbox" checked />
+                                <label asp-for="IsActive" class="form-check-label fw-bold">Active</label>
+                                <br />
+                                <small class="text-muted">Inactive templates won't be available for use</small>
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a asp-action="Templates" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-1"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-2"></i>Create Template
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            @* <!-- Placeholders Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-code-square me-2"></i>Available Placeholders
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+
+                        <!-- LEFT COLUMN -->
+                        <div class="col-md-6">
+                            <h6 class="fw-bold">Member Information:</h6>
+                            <ul class="list-unstyled mb-3">
+                                <li><code>{{FullName}}</code> - Member's full name</li>
+                                <li><code>{{Surname}}</code> - Member's surname</li>
+                                <li><code>{{OtherNames}}</code> - Member's other names</li>
+                                <li><code>{{MemberNo}}</code> - Member number</li>
+                                <li><code>{{IdNo}}</code> - ID number</li>
+                                <li><code>{{PhoneNo}}</code> - Phone number</li>
+                                <li><code>{{Email}}</code> - Email address</li>
+                                <li><code>{{Gender}}</code> - Gender</li>
+                                <li><code>{{DateOfBirth}}</code> - Date of birth</li>
+                                <li><code>{{Age}}</code> - Age</li>
+                            </ul>
+
+                            <h6 class="fw-bold">System Information:</h6>
+                            <ul class="list-unstyled mb-3">
+                                <li><code>{{CompanyName}}</code> - SACCO name</li>
+                                <li><code>{{Date}}</code> - Current date</li>
+                                <li><code>{{Time}}</code> - Current time</li>
+                                <li><code>{{DateTime}}</code> - Date and time</li>
+                                <li><code>{{Year}}</code> - Current year</li>
+                            </ul>
+
+                            <h6 class="fw-bold">Transaction Information:</h6>
+                            <ul class="list-unstyled mb-3">
+                                <li><code>{{Amount}}</code> - Transaction amount</li>
+                                <li><code>{{Reference}}</code> - Transaction reference</li>
+                                <li><code>{{ReceiptNo}}</code> - Receipt number</li>
+                                <li><code>{{TransactionDate}}</code> - Transaction date</li>
+                            </ul>
+                        </div>
+
+                        <!-- RIGHT COLUMN -->
+                        <div class="col-md-6">
+                            <h6 class="fw-bold">Loan Information:</h6>
+                            <ul class="list-unstyled mb-3">
+                                <li><code>{{LoanNo}}</code> - Loan number</li>
+                                <li><code>{{LoanAmount}}</code> - Loan amount</li>
+                                <li><code>{{LoanBalance}}</code> - Outstanding balance</li>
+                                <li><code>{{InstallmentAmount}}</code> - Monthly installment</li>
+                                <li><code>{{DueDate}}</code> - Due date</li>
+                                <li><code>{{InterestRate}}</code> - Interest rate</li>
+                                <li><code>{{RepaymentPeriod}}</code> - Repayment period</li>
+                            </ul>
+
+                            <h6 class="fw-bold">Withdrawal Information:</h6>
+                            <ul class="list-unstyled mb-3">
+                                <li><code>{{WithdrawalNo}}</code> - Withdrawal number</li>
+                                <li><code>{{WithdrawalAmount}}</code> - Withdrawal amount</li>
+                                <li><code>{{NetPayable}}</code> - Net payable</li>
+                                <li><code>{{WithdrawalDate}}</code> - Withdrawal date</li>
+                                <li><code>{{PaymentMethod}}</code> - Payment method</li>
+                            </ul>
+
+                            <h6 class="fw-bold">Share Information:</h6>
+                            <ul class="list-unstyled mb-3">
+                                <li><code>{{SharesCode}}</code> - Share code</li>
+                                <li><code>{{SharesType}}</code> - Share type</li>
+                                <li><code>{{NumberOfShares}}</code> - Number of shares</li>
+                                <li><code>{{ShareBalance}}</code> - Share balance</li>
+                                <li><code>{{PricePerShare}}</code> - Price per share</li>
+                            </ul>
+
+                            <h6 class="fw-bold">Contribution Information:</h6>
+                            <ul class="list-unstyled mb-3">
+                                <li><code>{{ContributionAmount}}</code> - Contribution</li>
+                                <li><code>{{TotalContributions}}</code> - Total contributions</li>
+                                <li><code>{{ContributionDate}}</code> - Contribution date</li>
+                            </ul>
+                        </div>
+
+                        <!-- FULL WIDTH TIP -->
+                        <div class="col-12">
+                            <div class="alert alert-info small mt-2">
+                                <i class="bi bi-lightbulb me-2"></i>
+                                <strong>Tip:</strong> Click on any placeholder to insert it into your template.
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div> *@
+        </div>
+
+        <div class="col-md-4">
+            <!-- Example Templates Card -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-file-text me-2"></i>Example Templates
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning small">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Click any example to load:</strong>
+                        <div class="mt-3">
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="loadExample('welcome')">
+                                        <i class="bi bi-person-plus"></i> Welcome
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="loadExample('withdrawal')">
+                                        <i class="bi bi-person-x"></i> Withdrawal
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="loadExample('loan_approval')">
+                                        <i class="bi bi-calculator"></i> Loan Approval
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="loadExample('loan_disbursement')">
+                                        <i class="bi bi-cash-stack"></i> Loan Disbursement
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="loadExample('payment_reminder')">
+                                        <i class="bi bi-bell"></i> Payment Reminder
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="loadExample('payment_received')">
+                                        <i class="bi bi-check-circle"></i> Payment Received
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="loadExample('share_transfer')">
+                                        <i class="bi bi-arrow-left-right"></i> Share Transfer
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="loadExample('contribution')">
+                                        <i class="bi bi-cash-stack"></i> Contribution
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="loadExample('guarantor_request')">
+                                        <i class="bi bi-person-check"></i> Guarantor Request
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="loadExample('agm_notification')">
+                                        <i class="bi bi-calendar-event"></i> AGM Notification
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="loadExample('dividend')">
+                                        <i class="bi bi-gift"></i> Dividend Declaration
+                                    </button>
+                                </div>
+                                <div class="col-6">
+                                    <button type="button" class="btn btn-sm btn-outline-primary w-100 mb-2" onclick="loadExample('account_update')">
+                                        <i class="bi bi-pencil-square"></i> Account Update
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function() {
+            // Character counter
+            $('#TemplateContent').on('input', function() {
+                updateCharacterCount();
+            });
+            updateCharacterCount();
+        });
+
+        function updateCharacterCount() {
+            const message = $('#TemplateContent').val();
+            const length = message.length;
+            $('#charCount').text(length);
+
+            if (length > 160) {
+                const smsCount = Math.ceil(length / 153);
+                $('#smsCount').html(`<span class="text-warning">Will be split into ${smsCount} SMS messages</span>`);
+                $('#charCount').addClass('text-warning');
+            } else {
+                $('#smsCount').html('');
+                $('#charCount').removeClass('text-warning');
+            }
+        }
+
+        function loadExample(type) {
+            let templateCode = '';
+            let templateName = '';
+            let templateContent = '';
+            let description = '';
+
+            switch(type) {
+                case 'welcome':
+                    templateCode = 'MEMBER_WELCOME';
+                    templateName = 'Member Welcome';
+                    description = 'Welcome message sent to new members upon registration';
+                    templateContent = 'Dear {{FullName}}, welcome to {{CompanyName}}! Your member number is {{MemberNo}}. Thank you for joining us. We look forward to serving you.';
+                    break;
+
+                case 'withdrawal':
+                    templateCode = 'WITHDRAWAL_APPROVED';
+                    templateName = 'Withdrawal Approved';
+                    description = 'Notification when withdrawal request is approved';
+                    templateContent = 'Dear {{FullName}}, your withdrawal request {{WithdrawalNo}} has been approved. Net amount KES {{NetPayable}} will be processed to your {{PaymentMethod}} within 3-5 business days.';
+                    break;
+
+                case 'loan_approval':
+                    templateCode = 'LOAN_APPROVED';
+                    templateName = 'Loan Approved';
+                    description = 'Notification when loan is approved';
+                    templateContent = 'Dear {{FullName}}, congratulations! Your loan of KES {{LoanAmount}} has been approved. Loan No: {{LoanNo}}. Interest Rate: {{InterestRate}}%. Funds will be disbursed within 48 hours.';
+                    break;
+
+                case 'loan_disbursement':
+                    templateCode = 'LOAN_DISBURSED';
+                    templateName = 'Loan Disbursed';
+                    description = 'Notification when loan is disbursed';
+                    templateContent = 'Dear {{FullName}}, your loan of KES {{LoanAmount}} has been disbursed. Loan No: {{LoanNo}}. First payment of KES {{InstallmentAmount}} is due on {{DueDate}}. Thank you.';
+                    break;
+
+                case 'payment_reminder':
+                    templateCode = 'PAYMENT_REMINDER';
+                    templateName = 'Payment Reminder';
+                    description = 'Reminder for upcoming loan payments';
+                    templateContent = 'Dear {{FullName}}, this is a reminder that your loan payment of KES {{InstallmentAmount}} for loan {{LoanNo}} is due on {{DueDate}}. Please ensure timely payment to avoid penalties.';
+                    break;
+
+                case 'payment_received':
+                    templateCode = 'PAYMENT_RECEIVED';
+                    templateName = 'Payment Received';
+                    description = 'Confirmation when loan payment is received';
+                    templateContent = 'Dear {{FullName}}, we have received your payment of KES {{Amount}} for loan {{LoanNo}}. Outstanding balance: KES {{LoanBalance}}. Thank you for your prompt payment.';
+                    break;
+
+                case 'share_transfer':
+                    templateCode = 'SHARE_TRANSFER';
+                    templateName = 'Share Transfer';
+                    description = 'Notification when shares are transferred';
+                    templateContent = 'Dear {{FullName}}, {{NumberOfShares}} {{SharesType}} shares have been transferred to {{TransfereeName}}. New share balance: {{ShareBalance}} shares. Reference: {{Reference}}.';
+                    break;
+
+                case 'contribution':
+                    templateCode = 'CONTRIBUTION_RECEIVED';
+                    templateName = 'Contribution Received';
+                    description = 'Confirmation when contribution is received';
+                    templateContent = 'Dear {{FullName}}, we have received your contribution of KES {{ContributionAmount}}. Receipt No: {{ReceiptNo}}. Total contributions to date: KES {{TotalContributions}}. Thank you.';
+                    break;
+
+                case 'guarantor_request':
+                    templateCode = 'GUARANTOR_REQUEST';
+                    templateName = 'Guarantor Request';
+                    description = 'Request to be a guarantor for a loan';
+                    templateContent = 'Dear {{FullName}}, you have been requested to guarantee a loan for {{BorrowerName}}. Loan Amount: KES {{LoanAmount}}. Please log in to approve or decline this request.';
+                    break;
+
+                case 'agm_notification':
+                    templateCode = 'AGM_NOTIFICATION';
+                    templateName = 'AGM Notification';
+                    description = 'Notification for Annual General Meeting';
+                    templateContent = 'Dear {{FullName}}, you are invited to the {{CompanyName}} Annual General Meeting on {{Date}} at {{Time}}. Venue: {{Venue}}. Your attendance is highly valued.';
+                    break;
+
+                case 'dividend':
+                    templateCode = 'DIVIDEND_DECLARATION';
+                    templateName = 'Dividend Declaration';
+                    description = 'Notification of dividend declaration';
+                    templateContent = 'Dear {{FullName}}, we are pleased to inform you that a dividend of KES {{Amount}} has been declared. Payment will be credited to your account on {{Date}}. Thank you for being a valued member.';
+                    break;
+
+                case 'account_update':
+                    templateCode = 'ACCOUNT_UPDATE';
+                    templateName = 'Account Update';
+                    description = 'Notification of account information update';
+                    templateContent = 'Dear {{FullName}}, your account information has been successfully updated. If you did not make this change, please contact us immediately.';
+                    break;
+
+                default:
+                    return;
+            }
+
+            $('#TemplateCode').val(templateCode);
+            $('#TemplateName').val(templateName);
+            $('#Description').val(description);
+            $('#TemplateContent').val(templateContent);
+            updateCharacterCount();
+
+            // Highlight the template content
+            $('#TemplateContent').focus();
+        }
+    </script>
+}

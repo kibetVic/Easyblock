@@ -1,0 +1,404 @@
+﻿@model SACCOBlockChainSystem.Models.ViewModels.GeneralLedgerInquiryViewModel
+
+@{
+    ViewData["Title"] = "General Ledger Inquiry";
+    Layout = "_Layout";
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<div class="container-fluid p-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: #3f2b96; font-weight: 600;">
+            <i class="fas fa-book-open me-2"></i> General Ledger Inquiry
+        </h2>
+        <div class="d-flex gap-2">
+            <span class="badge bg-primary p-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <i class="fas fa-building me-1"></i> @ViewBag.CompanyName (@ViewBag.CompanyCode)
+            </span>
+        </div>
+    </div>
+
+    <!-- Alert Messages -->
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Inquiry Form Card -->
+    <div class="card shadow-sm mb-4" style="border: none; border-radius: 10px;">
+        <div class="card-body p-4" style="background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);">
+            <form asp-action="Search" method="post" id="inquiryForm">
+                @Html.AntiForgeryToken()
+                
+                <div class="row g-4">
+                    <!-- Date Range -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold text-muted">
+                            <i class="fas fa-calendar-alt me-1"></i> Start Date:
+                        </label>
+                        <input asp-for="StartDate" type="date" class="form-control" required />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold text-muted">
+                            <i class="fas fa-calendar-alt me-1"></i> End Date:
+                        </label>
+                        <input asp-for="EndDate" type="date" class="form-control" required />
+                    </div>
+                    
+                    <!-- Account Selection -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold text-muted">
+                            <i class="fas fa-book me-1"></i> Select Account:
+                        </label>
+                        <select asp-for="SelectedAccountNo" class="form-select" required>
+                            <option value="">-- Select Account --</option>
+                            @foreach (var account in Model.Accounts)
+                            {
+                                <option value="@account.AccountNo">@account.DisplayText</option>
+                            }
+                        </select>
+                    </div>
+                    
+                    <!-- Search Button -->
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none;">
+                            <i class="fas fa-search me-2"></i> Generate
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.SelectedAccountNo))
+    {
+        <!-- Account Summary Card -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card shadow-sm h-100" style="border: none; border-radius: 10px; border-left: 5px solid #3f2b96;">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h5 class="text-muted mb-1">Current Account</h5>
+                                <h4 style="color: #3f2b96; font-weight: 600;">@Model.CurrentAccount</h4>
+                            </div>
+                            <span class="badge bg-info p-2" style="background: linear-gradient(135deg, #17a2b8 0%, #138496 100%);">
+                                <i class="fas fa-info-circle me-1"></i> @(Model.Accounts.FirstOrDefault(x => x.AccountNo == Model.SelectedAccountNo)?.NormalBalance ?? "DR") Normal
+                            </span>
+                        </div>
+                        
+                        <div class="row g-4">
+                            <div class="col-md-4">
+                                <div class="p-3 bg-light rounded">
+                                    <small class="text-muted d-block">Opening Balance</small>
+                                    <strong class="fs-5" style="color: #17a2b8;">
+                                        @Model.OpeningBalance.ToString("N2")
+                                    </strong>
+                                    <small class="text-muted d-block mt-1">As of @Model.StartDate.ToString("dd/MM/yyyy")</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="p-3 bg-light rounded">
+                                    <small class="text-muted d-block">Book Balance</small>
+                                    <strong class="fs-5" style="color: @(Model.BookBalance >= 0 ? "#28a745" : "#dc3545");">
+                                        @Model.BookBalance.ToString("N2")
+                                    </strong>
+                                    <small class="text-muted d-block mt-1">Current Balance</small>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="p-3 bg-light rounded">
+                                    <small class="text-muted d-block">Period Activity</small>
+                                    <div class="d-flex justify-content-between mt-1">
+                                        <span><i class="fas fa-arrow-up text-success me-1"></i> @Model.Transactions.Sum(x => x.DebitAmount).ToString("N2")</span>
+                                        <span><i class="fas fa-arrow-down text-danger me-1"></i> @Model.Transactions.Sum(x => x.CreditAmount).ToString("N2")</span>
+                                    </div>
+                                    <small class="text-muted d-block mt-1">@Model.Transactions.Count Transactions</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="col-md-4">
+                <div class="card shadow-sm h-100" style="border: none; border-radius: 10px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                    <div class="card-body d-flex flex-column justify-content-center align-items-center">
+                        <h6 class="text-white mb-3">Download Statement</h6>
+                        <div class="d-flex gap-3">
+                            <a href="@Url.Action("DownloadStatement", new { 
+                                accountNo = Model.SelectedAccountNo, 
+                                startDate = Model.StartDate.ToString("yyyy-MM-dd"), 
+                                endDate = Model.EndDate.ToString("yyyy-MM-dd") 
+                            })" class="btn btn-light">
+                                <i class="fas fa-download me-2"></i> CSV
+                            </a>
+                            @* <a href="@Url.Action("Print", new { 
+                                accountNo = Model.SelectedAccountNo, 
+                                startDate = Model.StartDate.ToString("yyyy-MM-dd"), 
+                                endDate = Model.EndDate.ToString("yyyy-MM-dd") 
+                            })" class="btn btn-light" target="_blank">
+                                <i class="fas fa-print me-2"></i> Print
+                            </a> *@
+                        </div>
+                        <small class="text-white-50 mt-3">
+                            <i class="fas fa-clock me-1"></i> Last Updated: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+                        </small>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="card shadow-sm" style="border: none; border-radius: 10px;">
+            <div class="card-header bg-white py-3" style="border-bottom: 2px solid #3f2b96;">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0" style="color: #3f2b96; font-weight: 600;">
+                        <i class="fas fa-list me-2"></i> Transaction History
+                    </h5>
+                    <div class="d-flex gap-2">
+                        <input type="text" id="tableSearch" class="form-control form-control-sm" placeholder="Search..." style="width: 200px;">
+                        <span class="badge bg-secondary p-2">
+                            @Model.Transactions.Count Records Found
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0" id="transactionTable">
+                        <thead style="background-color: #343a40; color: white;">
+                            <tr>
+                                <th style="padding: 15px;">Audit ID</th>
+                                <th style="padding: 15px;">Transaction Date</th>
+                                <th style="padding: 15px;">Transaction No</th>
+                                <th style="padding: 15px;">Transaction Remarks</th>
+                                <th style="padding: 15px;">Member No</th>
+                                <th style="padding: 15px; text-align: right;">Debit Amount</th>
+                                <th style="padding: 15px; text-align: right;">Credit Amount</th>
+                                <th style="padding: 15px; text-align: right;">Running Balance</th>
+                                <th style="padding: 15px; text-align: center;">Source</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                          @if (Model.Transactions != null && Model.Transactions.Any())
+                            {
+                                foreach (var transaction in Model.Transactions)
+                                {
+                                    <tr>
+                                        <td style="padding: 12px; vertical-align: middle;">@transaction.AuditId</td>
+                                        <td style="padding: 12px; vertical-align: middle;">@transaction.TransactionDate.ToString("dd/MM/yyyy")</td>
+                                        <td style="padding: 12px; vertical-align: middle;">
+                                            <span class="badge bg-secondary">@transaction.TransactionNo</span>
+                                        </td>
+                                        <td style="padding: 12px; vertical-align: middle; max-width: 300px;">
+                                            <div style="white-space: normal; word-wrap: break-word;">
+                                                @transaction.TransactionRemarks
+                                            </div>
+                                        </td>
+                                        <td style="padding: 12px; vertical-align: middle;">@transaction.MemberNo</td>
+                                        <td style="padding: 12px; vertical-align: middle; text-align: right; color: #28a745; font-weight: 500;">
+                                            @(transaction.DebitAmount > 0 ? transaction.DebitAmount.ToString("N2") : "-")
+                                        </td>
+                                        <td style="padding: 12px; vertical-align: middle; text-align: right; color: #dc3545; font-weight: 500;">
+                                            @(transaction.CreditAmount > 0 ? transaction.CreditAmount.ToString("N2") : "-")
+                                        </td>
+                                        <td style="padding: 12px; vertical-align: middle; text-align: right; font-weight: 600; color: #17a2b8;">
+                                            @transaction.RunningBalance.ToString("N2")
+                                        </td>
+                                        <td style="padding: 12px; vertical-align: middle; text-align: center;">
+                                            <span class="badge bg-info">@transaction.Source</span>
+                                        </td>
+
+                                    </tr>
+                                }
+                            }
+                            else
+                            {
+                                <tr>
+                                    <td colspan="9" class="text-center py-5">
+                                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                        <h6 class="text-muted">No matching records found</h6>
+                                        <p class="text-muted mb-0">Try adjusting your search criteria</p>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        @if (Model.Transactions.Any())
+                        {
+                            <tfoot style="background-color: #f8f9fa; font-weight: 600;">
+                                <tr>
+                                    <td colspan="5" style="padding: 15px; text-align: right;">Totals:</td>
+                                    <td style="padding: 15px; text-align: right; color: #28a745;">
+                                        @Model.Transactions.Sum(x => x.DebitAmount).ToString("N2")
+                                    </td>
+                                    <td style="padding: 15px; text-align: right; color: #dc3545;">
+                                        @Model.Transactions.Sum(x => x.CreditAmount).ToString("N2")
+                                    </td>
+                                    <td style="padding: 15px; text-align: right; color: #17a2b8;">
+                                        @(Model.Transactions.LastOrDefault()?.RunningBalance.ToString("N2") ?? Model.OpeningBalance.ToString("N2"))
+                                    </td>
+                                    <td style="padding: 15px;"></td>
+                                </tr>
+                            </tfoot>
+                        }
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Table Footer with Summary -->
+           @if (Model.Transactions != null && Model.Transactions.Any())
+            {
+                <div class="card-footer bg-white py-3">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Showing @Model.Transactions.Count transactions from @Model.StartDate.ToString("dd/MM/yyyy") to @Model.EndDate.ToString("dd/MM/yyyy")
+                            </small>
+                        </div>
+                        @* <div class="col-md-6 text-end">
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button type="button" class="btn btn-outline-secondary" onclick="exportTableToExcel()">
+                                    <i class="fas fa-file-excel me-1"></i> Excel
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                                    <i class="fas fa-print me-1"></i> Print
+                                </button>
+                            </div>
+                        </div> *@
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <!-- No Account Selected Placeholder -->
+        <div class="card shadow-sm" style="border: none; border-radius: 10px; background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-book-open fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">Select an account to view transaction history</h5>
+                <p class="text-muted mb-0">Choose an account and date range then click Generate</p>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Table search functionality
+            $("#tableSearch").on("keyup", function() {
+                var value = $(this).val().toLowerCase();
+                $("#transactionTable tbody tr").filter(function() {
+                    $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+                });
+                
+                var visibleRows = $("#transactionTable tbody tr:visible").length;
+                if (visibleRows === 0) {
+                    if ($("#noResultsRow").length === 0) {
+                        var noResults = '<tr id="noResultsRow"><td colspan="9" class="text-center py-4"><i class="fas fa-search fa-2x text-muted mb-2"></i><h6 class="text-muted">No matching records found</h6></td></tr>';
+                        $("#transactionTable tbody").append(noResults);
+                    }
+                } else {
+                    $("#noResultsRow").remove();
+                }
+            });
+
+            // Auto-submit form when account is selected (optional)
+            // $('#SelectedAccountNo').change(function() {
+            //     if ($(this).val()) {
+            //         $('#inquiryForm').submit();
+            //     }
+            // });
+        });
+
+        // Export to Excel
+        function exportTableToExcel() {
+            var downloadLink = document.createElement("a");
+            var table = document.getElementById("transactionTable");
+            var html = table.outerHTML;
+            
+            var blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+            var url = URL.createObjectURL(blob);
+            
+            downloadLink.href = url;
+            downloadLink.download = 'GL_Statement_Model.SelectedAccountNo_DateTime.Now.ToString("yyyyMMdd").xls';
+            downloadLink.click();
+            
+            URL.revokeObjectURL(url);
+        }
+
+        // Format currency
+        function formatCurrency(amount) {
+            return parseFloat(amount).toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
+        }
+    </script>
+}
+
+<style>
+    .card {
+        transition: all 0.3s ease;
+        border: none;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .card:hover {
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+    
+    .table th {
+        font-weight: 600;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .table td {
+        font-size: 13px;
+        vertical-align: middle;
+    }
+    
+    .badge {
+        font-weight: 500;
+        padding: 5px 10px;
+    }
+    
+    .form-control, .form-select {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 10px 15px;
+        font-size: 14px;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #3f2b96;
+        box-shadow: 0 0 0 0.2rem rgba(63,43,150,0.1);
+    }
+    
+    .btn {
+        border-radius: 8px;
+        padding: 10px 20px;
+        font-weight: 500;
+        transition: all 0.3s;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,

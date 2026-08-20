@@ -1,0 +1,35 @@
+﻿@model string
+
+@{
+    var badgeClass = Model switch
+    {
+        "Draft" => "bg-secondary",
+        "Submitted" => "bg-info",
+        "UnderAppraisal" => "bg-warning",
+        "Approved" => "bg-success",
+        "Rejected" => "bg-danger",
+        "Disbursed" => "bg-primary",
+        "Active" => "bg-primary",
+        "Closed" => "bg-success",
+        "WrittenOff" => "bg-dark",
+        _ => "bg-secondary"
+    };
+
+    var icon = Model switch
+    {
+        "Draft" => "file-text",
+        "Submitted" => "send",
+        "UnderAppraisal" => "clipboard-data",
+        "Approved" => "check-circle",
+        "Rejected" => "x-circle",
+        "Disbursed" => "cash-stack",
+        "Active" => "arrow-repeat",
+        "Closed" => "check-circle",
+        "WrittenOff" => "exclamation-triangle",
+        _ => "circle"
+    };
+}
+
+<span class="badge @badgeClass">
+    <i class="bi bi-@icon me-1"></i>@Model
+</span>

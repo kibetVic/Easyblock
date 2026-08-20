@@ -1,0 +1,763 @@
+﻿@model SACCOBlockChainSystem.Models.ViewModels.DashboardVM
+@{
+    ViewData["Title"] = "SACCO Blockchain Dashboard";
+}
+
+<!-- Member Statistics Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <small class="text-primary fw-semibold">TOTAL MEMBERS:</small>
+                    <strong>@Model.TotalMembers.ToString("N0")</strong>
+                </div>
+                <hr class="my-1">
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <small class="text-primary fw-semibold">ACTIVE:</small>
+                    <strong class="text-warning">@Model.ActiveMembers.ToString("N0")</strong>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold">DORMANT:</small>
+                    <small>@Model.DormantMembers.ToString("N0")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Women Card -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <small class="text-primary fw-semibold">TOTAL WOMEN:</small>
+                    <strong>@Model.TotalWomen.ToString("N0")</strong>
+                </div>
+                <hr class="my-1">
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <small class="text-primary fw-semibold">ACTIVE:</small>
+                    <strong class="text-warning">@Model.ActiveWomen.ToString("N0")</strong>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold"> DORMANT:</small>
+                    <small>@Model.DormantWomen.ToString("N0")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <small class="text-primary fw-semibold">TOTAL MEN:</small>
+                    <strong>@Model.TotalMen.ToString("N0")</strong>
+                </div>
+                <hr class="my-1">
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <small class="text-primary fw-semibold">ACTIVE:</small>
+                    <strong class="text-warning">@Model.ActiveMen.ToString("N0")</strong>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold"> DORMANT:</small>
+                    <small>@Model.DormantMen.ToString("N0")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Youth & Others Combined Card - Ultra Compact -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <small class="text-primary fw-semibold">OTHERS (NOT M/W):</small>
+                    <strong>@Model.TotalOthers.ToString("N0")</strong>
+                </div>
+                <hr class="my-1">
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <small class="text-primary fw-semibold">YOUTH:</small>
+                    <strong class="text-warning">@Model.YouthTotal.ToString("N0")</strong>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold"> FEMALE:</small>
+                    <small>@Model.YouthFemale.ToString("N0")</small>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold">MALE:</small>
+                    <small>@Model.YouthMale.ToString("N0")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Financial Metrics Row -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <small class="text-primary fw-semibold">TOTAL MEMBERS CONTRIBUTION:</small>
+                    <strong>@Model.TotalContributions.ToString("N0")</strong>
+                </div>
+                <hr class="my-1">
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <small class="text-primary fw-semibold">WOMEN:</small>
+                    <strong class="text-warning">@Model.WomenContributions.ToString("N0")</strong>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold"> MEN:</small>
+                    <small>@Model.MenContributions.ToString("N0")</small>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold"> OTHERS:</small>
+                    <small>@Model.OthersContributions.ToString("N0")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- sharecapital -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <small class="text-primary fw-semibold">SHARE CAPITAL:</small>
+                    <strong>@Model.TotalShareCapital.ToString("N0")</strong>
+                </div>
+                <hr class="my-1">
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <small class="text-primary fw-semibold">WOMEN:</small>
+                    <strong class="text-warning">@Model.WomenShareCapital.ToString("N0")</strong>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold"> MEN:</small>
+                    <small>@Model.MenShareCapital.ToString("N0")</small>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold"> OTHERS:</small>
+                    <small>@Model.OthersShareCapital.ToString("N0")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Non Withdrawal Deposits Card -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <small class="text-primary fw-semibold"> NON WITHDRAWABLE DEPOSITS:</small>
+                    <strong>@Model.TotalDeposits.ToString("N0")</strong>
+                </div>
+                <hr class="my-1">
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <small class="text-primary fw-semibold">WOMEN:</small>
+                    <strong class="text-warning">@Model.WomenDeposits.ToString("N0")</strong>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold">MEN:</small>
+                    <small>@Model.MenDeposits.ToString("N0")</small>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold"> OTHERS:</small>
+                    <small>@Model.OthersDeposits.ToString("N0")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Registration Fees Card -->
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <small class="text-primary fw-semibold">
+                        REGISTRATION FEES:
+                    </small>
+                    <strong>@Model.TotalRegistrationFees.ToString("N0")</strong>
+                </div>
+                <hr class="my-1">
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <small class="text-primary fw-semibold">WOMEN:</small>
+                    <strong class="text-warning">@Model.WomenRegistrationFees.ToString("N0")</strong>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold">MEN:</small>
+                    <small>@Model.MenRegistrationFees.ToString("N0")</small>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold">Others:</small>
+                    <small>@Model.OthersRegistrationFees.ToString("N0")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Loans Taken Row -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="text-center mb-1">
+                    <small class="text-primary fw-semibold">LOANS TAKEN:</small>
+                    <strong>@Model.TotalLoansTaken.ToString("N0")</strong>
+                </div>
+                <hr class="my-2">
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <small class="text-primary fw-semibold">WOMEN:</small>
+                    <strong class="text-warning">@Model.WomenLoansTaken.ToString("N0")</strong>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold">MEN:</small>
+                    <small>@Model.MenLoansTaken.ToString("N0")</small>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold">OTHERS:</small>
+                    <small>@Model.OthersLoansTaken.ToString("N0")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loan Balances Card -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="text-center mb-1">
+                    <small class="text-primary fw-semibold">LOANS BALANCE:</small>
+                    <strong>@Model.TotalLoanBalances.ToString("N0")</strong>
+                </div>
+                <hr class="my-2">
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <small class="text-primary fw-semibold">WOMEN:</small>
+                    <strong class="text-warning">@Model.WomenLoanBalances.ToString("N0")</strong>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold">MEN:</small>
+                    <small>@Model.MenLoanBalances.ToString("N0")</small>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold">OTHERS:</small>
+                    <small>@Model.OthersLoanBalances.ToString("N0")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loans Paid Card -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="text-center mb-1">
+                    <small class="text-primary fw-semibold">LOANS PAID:</small>
+                    <strong>@Model.TotalLoansPaid.ToString("N0")</strong>
+                </div>
+                <hr class="my-2">
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <small class="text-primary fw-semibold">WOMEN:</small>
+                    <strong class="text-warning">@Model.WomenLoansPaid.ToString("N0")</strong>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold">MEN:</small>
+                    <small>@Model.MenLoansPaid.ToString("N0")</small>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold">OTHERS:</small>
+                    <small>@Model.OthersLoansPaid.ToString("N0")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Total Loanees Card -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="text-center mb-1">
+                    <small class="text-primary fw-semibold">TOTAL LOANEES:</small>
+                    <strong>@Model.TotalLoanees.ToString("N0")</strong>
+                </div>
+                <hr class="my-2">
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <small class="text-primary fw-semibold">WOMEN:</small>
+                    <strong class="text-warning">@Model.WomenLoanees.ToString("N0")</strong>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold">MEN:</small>
+                    <small>@Model.MenLoanees.ToString("N0")</small>
+                </div>
+                <div class="d-flex justify-content-between ms-2">
+                    <small class="text-primary fw-semibold">OTHERS:</small>
+                    <small>@Model.OthersLoanees.ToString("N0")</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Repayment & Risk Card -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="text-center mb-1">
+                    <small class="text-primary fw-semibold">PORTFOLIO AT RISK>30 DAYS (PAR):</small>
+                    <h2 class="mb-1 fw-bold @(Model.PARPercent < 5 ? "text-success" : Model.PARPercent < 10 ? "text-warning" : "text-danger")">@Model.PARPercent.ToString("F1")%</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--  Inclusion Grants Card -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="text-center mb-1">
+                    <small class="text-primary fw-semibold">INCLUSION GRANT:</small>
+                    <strong> @(Model.InclusionGrantTotal.ToString("N0") ?? "0")</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--  Matching Grants Card -->
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="text-center mb-1">
+                    <small class="text-primary fw-semibold">MATCHING GRANT:</small>
+                    <strong> @(Model.MatchingGrantTotal.ToString("N0") ?? "0")</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--  Matching Grants Card -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="text-center mb-1">
+                    <small class="text-primary fw-semibold">REPAYMENT RATE(CURRENT MONTH):</small>
+                    <h2 class="mb-1 fw-bold @(Model.RepaymentRate < 5 ? "text-success" : Model.RepaymentRate < 10 ? "text-warning" : "text-danger")">@Model.RepaymentRate.ToString("F1")%</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Amount due $ Arrears-->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="text-center mb-1">
+                    <small class="text-primary fw-semibold">
+                        AMOUNT PAST DUE RATE:
+                    </small>
+                    <h2 class="mb-1 fw-bold @(Model.PARPercent < 5 ? "text-success" : Model.AmountPastDueRate < 10 ? "text-warning" : "text-danger")">@Model.AmountPastDueRate.ToString("F1")%</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--
+    BALANCE OF LOANS WITH AREARS >30 DAYS: -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="text-center mb-1">
+                    <small class="text-primary fw-semibold">
+                        BALANCE OF LOANS WITH AREARS >30 DAYS::
+                    </small>
+                    <strong> @(Model.ArrearsBalance.ToString("N0") ?? "0")</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!--  TOTAL AREARS >30 DAYS -->
+
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="text-center mb-1">
+                    <small class="text-primary fw-semibold">TOTAL AREARS >30 DAYS:</small>
+                    <strong> @(Model.TotalArrears.ToString("N0") ?? "0")</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!--  OUTSTANDING LOAN PORTFOLIO -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card h-100 shadow-sm border-0 rounded-3">
+            <div class="card-body py-2 px-3">
+                <div class="text-center mb-1">
+                    <small class="text-primary fw-semibold">OUTSTANDING LOAN PORTFOLIO:</small>
+                    <strong> @(Model.OutstandingLoanPortfolio.ToString("N0") ?? "0")</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-4">
+    <!-- Transaction Statistics Chart -->
+    <div class="col-lg-5 col-xl-8 mb-4">
+        <div class="card shadow border-0 rounded-3 h-100">
+            <div class="card-header bg-white py-3 d-flex flex-row align-items-center justify-content-between border-0">
+                <h6 class="m-0 fw-bold text-primary">Monthly Transaction Statistics</h6>
+                <div class="dropdown no-arrow">
+                    <a class="dropdown-toggle" href="#" role="button" id="dropdownMenuLink"
+                       data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <i class="fas fa-ellipsis-v fa-sm fa-fw text-gray-400"></i>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-right shadow animated--fade-in">
+                        <a class="dropdown-item" href="#" onclick="updateChart('6m')">Last 6 Months</a>
+                        <a class="dropdown-item" href="#" onclick="updateChart('1y')">Last 1 Year</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item" href="/Reports/Financial">View Detailed Report</a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="chart-area" style="position: relative; height: 280px; width: 100%;">
+                    <canvas id="transactionChart" style="width: 100%; height: 100%;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Member Growth Chart -->
+    <div class="col-lg-5 col-xl-4 mb-4">
+        <div class="card shadow border-0 rounded-3 h-100">
+            <div class="card-header bg-white py-3 border-0">
+                <h6 class="m-0 fw-bold text-primary">Member Growth</h6>
+            </div>
+            <div class="card-body">
+                <div class="chart-pie" style="position: relative; height: 280px; width: 100%;">
+                    <canvas id="memberGrowthChart" style="width: 100%; height: 100%;"></canvas>
+                </div>
+                <div class="mt-4 text-center small">
+                    <span class="me-3">
+                        <i class="fas fa-circle text-success"></i> New Members
+                    </span>
+                    <span>
+                        <i class="fas fa-circle text-primary"></i> Total Members
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        let transactionChart, memberGrowthChart;
+        let currentChartRange = '6m';
+
+        $(document).ready(function() {
+            loadChartData();
+            setInterval(refreshDashboardStats, 30000);
+
+            // Redraw charts on window resize
+            $(window).on('resize', function() {
+                if (transactionChart) {
+                    transactionChart.resize();
+                }
+                if (memberGrowthChart) {
+                    memberGrowthChart.resize();
+                }
+            });
+        });
+
+        function loadChartData() {
+            // Get current company filter if any
+            var companyCode = $('#companyFilter').val() || null;
+
+            $.ajax({
+                url: '/Home/GetChartData',
+                type: 'GET',
+                data: {
+                    range: currentChartRange,
+                    companyCode: companyCode
+                },
+                success: function(response) {
+                    if (response.success) {
+                        initTransactionChart(response.monthlyTransactions);
+                        initMemberGrowthChart(response.memberGrowth);
+                    } else {
+                        console.error('Error loading chart data:', response.message);
+                        showChartError();
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX Error:', error);
+                    showChartError();
+                }
+            });
+        }
+
+        function showChartError() {
+            $('#transactionChart').closest('.chart-area').html(
+                '<div class="text-center py-5">' +
+                '<i class="fas fa-chart-line fa-3x text-muted mb-3"></i>' +
+                '<h5 class="text-muted">No Transaction Data Available</h5>' +
+                '<p class="text-muted small">Please check back later or contact support</p>' +
+                '</div>'
+            );
+            $('#memberGrowthChart').closest('.chart-pie').html(
+                '<div class="text-center py-5">' +
+                '<i class="fas fa-users fa-3x text-muted mb-3"></i>' +
+                '<h5 class="text-muted">No Member Growth Data</h5>' +
+                '</div>'
+            );
+        }
+
+        function initTransactionChart(monthlyTransactions) {
+            const ctx = document.getElementById('transactionChart').getContext('2d');
+
+            if (!monthlyTransactions || monthlyTransactions.length === 0) {
+                showChartError();
+                return;
+            }
+
+            const months = monthlyTransactions.map(m => m.month);
+            const deposits = monthlyTransactions.map(m => m.deposits);
+            const withdrawals = monthlyTransactions.map(m => m.withdrawals);
+            const repayments = monthlyTransactions.map(m => m.loanRepayments);
+
+            // Destroy existing chart if it exists
+            if (transactionChart) {
+                transactionChart.destroy();
+            }
+
+            transactionChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: months,
+                    datasets: [
+                        {
+                            label: 'Deposits',
+                            data: deposits,
+                            borderColor: '#2ecc71',
+                            backgroundColor: 'rgba(46, 204, 113, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#2ecc71',
+                            pointBorderColor: '#fff',
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Withdrawals',
+                            data: withdrawals,
+                            borderColor: '#e74c3c',
+                            backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#e74c3c',
+                            pointBorderColor: '#fff',
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        },
+                        {
+                            label: 'Loan Repayments',
+                            data: repayments,
+                            borderColor: '#3498db',
+                            backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#3498db',
+                            pointBorderColor: '#fff',
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 12,
+                                usePointStyle: true,
+                                font: { size: 11 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    let value = context.raw;
+                                    return `${label}: KES ${value.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return 'KES ' + value.toLocaleString();
+                                },
+                                font: { size: 10 }
+                            },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        x: {
+                            ticks: {
+                                font: { size: 10 },
+                                maxRotation: 45,
+                                minRotation: 45
+                            },
+                            grid: { display: false }
+                        }
+                    },
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    hover: {
+                        mode: 'nearest',
+                        intersect: true
+                    }
+                }
+            });
+        }
+
+        function initMemberGrowthChart(memberGrowth) {
+            const ctx = document.getElementById('memberGrowthChart').getContext('2d');
+
+            if (!memberGrowth || memberGrowth.length === 0) {
+                $('#memberGrowthChart').closest('.chart-pie').html(
+                    '<div class="text-center py-5">' +
+                    '<i class="fas fa-users fa-3x text-muted mb-3"></i>' +
+                    '<h5 class="text-muted">No Member Growth Data</h5>' +
+                    '</div>'
+                );
+                return;
+            }
+
+            const periods = memberGrowth.map(m => m.period);
+            const newMembers = memberGrowth.map(m => m.newMembers);
+            const totalMembers = memberGrowth.map(m => m.totalMembers);
+
+            // Destroy existing chart if it exists
+            if (memberGrowthChart) {
+                memberGrowthChart.destroy();
+            }
+
+            memberGrowthChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: periods,
+                    datasets: [
+                        {
+                            label: 'New Members',
+                            data: newMembers,
+                            backgroundColor: '#2ecc71',
+                            borderRadius: 4,
+                            barPercentage: 0.7,
+                            categoryPercentage: 0.8
+                        },
+                        {
+                            label: 'Total Members',
+                            data: totalMembers,
+                            type: 'line',
+                            borderColor: '#3498db',
+                            borderWidth: 3,
+                            fill: false,
+                            tension: 0.4,
+                            pointBackgroundColor: '#3498db',
+                            pointBorderColor: '#fff',
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 12,
+                                usePointStyle: true,
+                                font: { size: 11 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    let value = context.raw;
+                                    return `${label}: ${value.toLocaleString()}`;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                font: { size: 10 },
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                }
+                            },
+                            grid: { color: 'rgba(0,0,0,0.05)' }
+                        },
+                        x: {
+                            ticks: {
+                                font: { size: 10 },
+                                maxRotation: 45,
+                                minRotation: 45
+                            },
+                            grid: { display: false }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChart(range) {
+            currentChartRange = range;
+            loadChartData();
+        }
+
+        function refreshDashboardStats() {
+            var companyCode = $('#companyFilter').val() || null;
+
+            $.ajax({
+                url: '/Home/GetDashboardStats',
+                type: 'GET',
+                data: { companyCode: companyCode },
+                success: function(response) {
+                    if (response.success) {
+                        // Update any live stats if needed
+                        console.log('Dashboard stats refreshed:', response.data);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('Error refreshing stats:', error);
+                }
+            });
+        }
+
+        // If you have a company filter dropdown, add this event handler
+        $(document).on('change', '#companyFilter', function() {
+            loadChartData();
+        });
+    </script>
+}

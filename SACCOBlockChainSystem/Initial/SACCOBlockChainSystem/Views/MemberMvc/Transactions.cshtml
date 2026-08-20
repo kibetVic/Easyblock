@@ -1,0 +1,509 @@
+﻿@model SACCOBlockChainSystem.Models.Member
+
+@{
+    ViewData["Title"] = "Member Transactions";
+    var transactions = ViewBag.Transactions as List<dynamic> ?? new List<dynamic>();
+    var loanHistory = ViewBag.LoanHistory as List<dynamic> ?? new List<dynamic>();
+}
+
+<div class="container-fluid">
+    <!-- Member Summary -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-user"></i> Member: @Model.Surname @Model.OtherNames</h5>
+                        <div>
+                            <span class="badge bg-light text-dark">@Model.MemberNo</span>
+                            <a href="/MemberMvc/Details/@Model.MemberNo" class="btn btn-sm btn-light">
+                                <i class="fas fa-user"></i> Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Total Shares</h6>
+                                    <h3 class="text-primary">KES @ViewBag.TotalShares?.ToString("N2")</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Loan Balance</h6>
+                                    <h3 class="text-danger">KES @ViewBag.LoanBalance?.ToString("N2")</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Total Deposits</h6>
+                                    <h3 class="text-success">KES @ViewBag.TotalDeposits?.ToString("N2")</h3>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h6 class="card-title">Last Transaction</h6>
+                                    <small>@ViewBag.LastTransactionDate?.ToString("dd/MM/yyyy HH:mm")</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Transaction Filters -->
+        <div class="col-md-3">
+            <div class="card">
+                <div class="card-header">
+                    <h6><i class="fas fa-filter"></i> Filter Transactions</h6>
+                </div>
+                <div class="card-body">
+                    <form id="filterForm">
+                        <div class="mb-3">
+                            <label class="form-label">Transaction Type</label>
+                            <select class="form-select" id="transactionType">
+                                <option value="">All Types</option>
+                                <option value="SHARE">Share Purchase</option>
+                                <option value="DEPOSIT">Deposit</option>
+                                <option value="WITHDRAWAL">Withdrawal</option>
+                                <option value="LOAN">Loan</option>
+                                <option value="REPAYMENT">Loan Repayment</option>
+                                <option value="FEE">Fee Payment</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Date Range</label>
+                            <input type="date" class="form-control mb-2" id="dateFrom"
+                                   value="@DateTime.Now.AddMonths(-1).ToString("yyyy-MM-dd")">
+                            <input type="date" class="form-control" id="dateTo"
+                                   value="@DateTime.Now.ToString("yyyy-MM-dd")">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Min Amount (KES)</label>
+                            <input type="number" class="form-control" id="minAmount" placeholder="0">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Max Amount (KES)</label>
+                            <input type="number" class="form-control" id="maxAmount" placeholder="1000000">
+                        </div>
+
+                        <button type="button" class="btn btn-primary w-100" onclick="filterTransactions()">
+                            <i class="fas fa-search"></i> Apply Filters
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary w-100 mt-2" onclick="resetFilters()">
+                            <i class="fas fa-redo"></i> Reset
+                        </button>
+                    </form>
+
+                    <!-- Quick Actions -->
+                    <div class="mt-4">
+                        <h6><i class="fas fa-bolt"></i> Quick Actions</h6>
+                        <div class="d-grid gap-2">
+                            <a href="/Transaction/NewShare/@Model.MemberNo" class="btn btn-success">
+                                <i class="fas fa-plus-circle"></i> New Share Purchase
+                            </a>
+                            <a href="/Transaction/NewDeposit/@Model.MemberNo" class="btn btn-info">
+                                <i class="fas fa-piggy-bank"></i> New Deposit
+                            </a>
+                            <a href="/Loan/Apply/@Model.MemberNo" class="btn btn-warning">
+                                <i class="fas fa-hand-holding-usd"></i> Apply for Loan
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transaction List -->
+        <div class="col-md-9">
+            <div class="card">
+                <div class="card-header">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h5><i class="fas fa-exchange-alt"></i> Transaction History</h5>
+                        <div>
+                            <button class="btn btn-sm btn-outline-primary" onclick="exportToCSV()">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                            <button class="btn btn-sm btn-outline-info" onclick="refreshTransactions()">
+                                <i class="fas fa-sync"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="transactionList">
+                        <!-- Transactions will be loaded here via AJAX -->
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="sr-only">Loading transactions...</span>
+                            </div>
+                            <p class="mt-2">Loading transactions...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loan History (if any) -->
+            @if (loanHistory.Count > 0)
+            {
+                <div class="card mt-4">
+                    <div class="card-header bg-warning">
+                        <h5><i class="fas fa-money-check-alt"></i> Loan History</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Loan No</th>
+                                        <th>Amount</th>
+                                        <th>Interest</th>
+                                        <th>Status</th>
+                                        <th>Due Date</th>
+                                        <th>Balance</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var loan in loanHistory)
+                                    {
+                                        <tr>
+                                            <td>@loan.LoanNo</td>
+                                            <td>@loan.Amount?.ToString("N2")</td>
+                                            <td>@loan.InterestRate%</td>
+                                            <td>
+                                                <span class="badge @(loan.Status == "ACTIVE" ? "bg-success" : "bg-secondary")">
+                                                    @loan.Status
+                                                </span>
+                                            </td>
+                                            <td>@loan.DueDate?.ToString("dd/MM/yyyy")</td>
+                                            <td>@loan.Balance?.ToString("N2")</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Blockchain Verification Modal -->
+<div class="modal fade" id="blockchainModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-link"></i> Blockchain Verification</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="blockchainDetails">
+                Loading...
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .transaction-card {
+            border-left: 4px solid;
+            transition: all 0.3s;
+        }
+
+            .transaction-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            }
+
+        .transaction-SHARE {
+            border-color: #28a745;
+        }
+
+        .transaction-DEPOSIT {
+            border-color: #17a2b8;
+        }
+
+        .transaction-LOAN {
+            border-color: #ffc107;
+        }
+
+        .transaction-REPAYMENT {
+            border-color: #007bff;
+        }
+
+        .transaction-FEE {
+            border-color: #6c757d;
+        }
+
+        .transaction-WITHDRAWAL {
+            border-color: #dc3545;
+        }
+
+        .amount-positive {
+            color: #28a745;
+            font-weight: bold;
+        }
+
+        .amount-negative {
+            color: #dc3545;
+            font-weight: bold;
+        }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            loadTransactions();
+        });
+
+        function loadTransactions() {
+            $.ajax({
+                url: '/api/Transaction/member/@Model.MemberNo',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        displayTransactions(response.data);
+                    } else {
+                        $('#transactionList').html(`
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                ${response.message || 'No transactions found'}
+                            </div>
+                        `);
+                    }
+                },
+                error: function() {
+                    $('#transactionList').html(`
+                        <div class="alert alert-danger">
+                            <i class="fas fa-times-circle"></i>
+                            Error loading transactions
+                        </div>
+                    `);
+                }
+            });
+        }
+
+        function displayTransactions(transactions) {
+            if (!transactions || transactions.length === 0) {
+                $('#transactionList').html(`
+                    <div class="text-center py-5">
+                        <i class="fas fa-exchange-alt fa-3x text-muted mb-3"></i>
+                        <h5>No transactions found</h5>
+                        <p class="text-muted">This member has no transaction history yet.</p>
+                    </div>
+                `);
+                return;
+            }
+
+            var html = `
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Reference</th>
+                                <th>Description</th>
+                                <th>Amount (KES)</th>
+                                <th>Balance</th>
+                                <th>Status</th>
+                                <th>Blockchain</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+
+            transactions.forEach(function(tx) {
+                var typeClass = '';
+                var typeText = '';
+                var amountClass = tx.amount >= 0 ? 'amount-positive' : 'amount-negative';
+
+                switch(tx.transactionType) {
+                    case 'SHARE': typeClass = 'SHARE'; typeText = 'Share Purchase'; break;
+                    case 'DEPOSIT': typeClass = 'DEPOSIT'; typeText = 'Deposit'; break;
+                    case 'LOAN': typeClass = 'LOAN'; typeText = 'Loan'; break;
+                    case 'REPAYMENT': typeClass = 'REPAYMENT'; typeText = 'Repayment'; break;
+                    case 'FEE': typeClass = 'FEE'; typeText = 'Fee'; break;
+                    case 'WITHDRAWAL': typeClass = 'WITHDRAWAL'; typeText = 'Withdrawal'; break;
+                }
+
+                html += `
+                    <tr class="transaction-${typeClass}">
+                        <td>${new Date(tx.transactionDate).toLocaleDateString()}</td>
+                        <td>
+                            <span class="badge bg-${getTypeColor(tx.transactionType)}">
+                                ${typeText}
+                            </span>
+                        </td>
+                        <td><small>${tx.referenceNo || tx.transactionId}</small></td>
+                        <td>${tx.description || 'Transaction'}</td>
+                        <td class="${amountClass}">${tx.amount?.toLocaleString()}</td>
+                        <td>${tx.balanceAfter?.toLocaleString()}</td>
+                        <td>
+                            ${getStatusBadge(tx.status)}
+                        </td>
+                        <td>
+                            ${tx.blockchainTxId ?
+                                `<span class="badge bg-success" title="${tx.blockchainTxId}">
+                                    <i class="fas fa-check"></i> Verified
+                                </span>` :
+                                `<span class="badge bg-secondary">Pending</span>`
+                            }
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-info" onclick="viewDetails('${tx.transactionId}')">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            ${tx.blockchainTxId ?
+                                `<button class="btn btn-sm btn-outline-warning" onclick="viewBlockchain('${tx.blockchainTxId}')">
+                                    <i class="fas fa-link"></i>
+                                </button>` : ''
+                            }
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3 text-end">
+                    <small class="text-muted">
+                        Showing ${transactions.length} transactions
+                    </small>
+                </div>
+            `;
+
+            $('#transactionList').html(html);
+        }
+
+        function getTypeColor(type) {
+            switch(type) {
+                case 'SHARE': return 'success';
+                case 'DEPOSIT': return 'info';
+                case 'LOAN': return 'warning';
+                case 'REPAYMENT': return 'primary';
+                case 'FEE': return 'secondary';
+                case 'WITHDRAWAL': return 'danger';
+                default: return 'light';
+            }
+        }
+
+        function getStatusBadge(status) {
+            switch(status) {
+                case 'COMPLETED': return '<span class="badge bg-success">Completed</span>';
+                case 'PENDING': return '<span class="badge bg-warning">Pending</span>';
+                case 'FAILED': return '<span class="badge bg-danger">Failed</span>';
+                case 'REVERSED': return '<span class="badge bg-secondary">Reversed</span>';
+                default: return '<span class="badge bg-light text-dark">'+status+'</span>';
+            }
+        }
+
+        function filterTransactions() {
+            var filters = {
+                type: $('#transactionType').val(),
+                dateFrom: $('#dateFrom').val(),
+                dateTo: $('#dateTo').val(),
+                minAmount: $('#minAmount').val(),
+                maxAmount: $('#maxAmount').val()
+            };
+
+            $('#transactionList').html(`
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="sr-only">Filtering...</span>
+                    </div>
+                    <p class="mt-2">Applying filters...</p>
+                </div>
+            `);
+
+            $.ajax({
+                url: '/api/Transaction/member/@Model.MemberNo/filter',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(filters),
+                success: function(response) {
+                    displayTransactions(response.data);
+                }
+            });
+        }
+
+        function resetFilters() {
+            $('#transactionType').val('');
+            $('#dateFrom').val('@DateTime.Now.AddMonths(-1).ToString("yyyy-MM-dd")');
+            $('#dateTo').val('@DateTime.Now.ToString("yyyy-MM-dd")');
+            $('#minAmount').val('');
+            $('#maxAmount').val('');
+            loadTransactions();
+        }
+
+        function refreshTransactions() {
+            loadTransactions();
+        }
+
+        function viewDetails(transactionId) {
+            $.ajax({
+                url: '/api/Transaction/' + transactionId,
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        // Show details in a modal or alert
+                        var tx = response.data;
+                        alert(`
+                            Transaction Details:
+                            \nID: ${tx.transactionId}
+                            \nType: ${tx.transactionType}
+                            \nAmount: KES ${tx.amount?.toLocaleString()}
+                            \nDate: ${new Date(tx.transactionDate).toLocaleString()}
+                            \nDescription: ${tx.description || 'N/A'}
+                            \nReference: ${tx.referenceNo || 'N/A'}
+                        `);
+                    }
+                }
+            });
+        }
+
+        function viewBlockchain(blockchainTxId) {
+            $.ajax({
+                url: '/Blockchain/Transaction/' + blockchainTxId,
+                type: 'GET',
+                success: function(response) {
+                    $('#blockchainDetails').html(response);
+                    $('#blockchainModal').modal('show');
+                },
+                error: function() {
+                    $('#blockchainDetails').html(`
+                        <div class="alert alert-danger">
+                            <i class="fas fa-times-circle"></i>
+                            Could not load blockchain details
+                        </div>
+                    `);
+                    $('#blockchainModal').modal('show');
+                }
+            });
+        }
+
+        function exportToCSV() {
+            window.location.href = '/api/Transaction/export/@Model.MemberNo';
+        }
+    </script>
+}

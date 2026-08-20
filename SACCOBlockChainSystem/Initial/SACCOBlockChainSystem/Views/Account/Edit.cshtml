@@ -1,0 +1,256 @@
+﻿@model SACCOBlockChainSystem.Models.ViewModels.EditUserVm
+
+@{
+    ViewData["Title"] = "Edit User";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user-edit me-2"></i>Edit User
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="UserId" />
+                        <input type="hidden" asp-for="UserLoginId" />
+                        <input type="hidden" asp-for="DateCreated" />
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
+
+                        <!-- Account Information -->
+                        <div class="form-section-title mb-3">
+                            <i class="fas fa-user-circle me-2"></i>Account Information
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="UserName" class="form-label">Username *</label>
+                                <input asp-for="UserName" class="form-control" />
+                                <span asp-validation-for="UserName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="UserLoginId" class="form-label">Login ID</label>
+                                <input asp-for="UserLoginId" class="form-control" readonly disabled />
+                                <small class="text-muted">Login ID is auto-generated and cannot be changed</small>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Email" class="form-label">Email *</label>
+                                <input asp-for="Email" type="email" class="form-control" />
+                                <span asp-validation-for="Email" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Phone" class="form-label">Phone Number</label>
+                                <input asp-for="Phone" class="form-control" />
+                                <span asp-validation-for="Phone" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Department" class="form-label">Department</label>
+                                <input asp-for="Department" class="form-control" />
+                                <span asp-validation-for="Department" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="UserGroup" class="form-label">User Group/Role *</label>
+                                <select asp-for="UserGroup" class="form-control" required>
+                                    <option value="">-- Select Role --</option>
+                                    @if (ViewBag.UserGroups != null)
+                                    {
+                                        foreach (var group in ViewBag.UserGroups)
+                                        {
+                                            <option value="@group">@group</option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="UserGroup" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="CompanyCode" class="form-label">Company Code *</label>
+                                <select asp-for="CompanyCode" class="form-control" required>
+                                    <option value="">-- Select Company --</option>
+                                    @if (ViewBag.Companies != null)
+                                    {
+                                        foreach (var company in ViewBag.Companies)
+                                        {
+                                            <option value="@company.CompanyCode">@company.DisplayText</option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="CompanyCode" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Status" class="form-label">Status</label>
+                                <select asp-for="Status" class="form-control">
+                                    @foreach (var status in Model.AvailableStatuses)
+                                    {
+                                        <option value="@status">@status</option>
+                                    }
+                                </select>
+                                <span asp-validation-for="Status" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Location Information -->
+                        <div class="form-section-title mb-3 mt-2">
+                            <i class="fas fa-map-marker-alt me-2"></i>Location Information
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="SubCountyId" class="form-label">Sub-County</label>
+                                <select asp-for="SubCountyId" class="form-control" id="SubCountyId">
+                                    <option value="">-- Select Sub-County --</option>
+                                    @if (ViewBag.SubCounties != null)
+                                    {
+                                        foreach (var subCounty in ViewBag.SubCounties)
+                                        {
+                                            <option value="@subCounty.Id">@subCounty.SubCountyName</option>
+                                        }
+                                    }
+                                </select>
+                                <input type="hidden" asp-for="SubCounty" />
+                                <span asp-validation-for="SubCountyId" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="WardId" class="form-label">Ward</label>
+                                <select asp-for="WardId" class="form-control" id="WardId">
+                                    <option value="">-- Select Ward --</option>
+                                </select>
+                                <input type="hidden" asp-for="Ward" />
+                                <span asp-validation-for="WardId" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Additional Info -->
+                        <div class="form-section-title mb-3 mt-2">
+                            <i class="fas fa-info-circle me-2"></i>Additional Information
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Date Created</label>
+                                <input type="text" value="@(Model.DateCreated?.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A")"
+                                       class="form-control" readonly disabled />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Lock Status</label>
+                                <div class="form-control-plaintext">
+                                    @if (Model.IsLocked)
+                                    {
+                                        <span class="badge bg-danger">Locked</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">Unlocked</span>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Form Buttons -->
+                        <div class="d-flex justify-content-between mt-4">
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Back to List
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-1"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Get current values from the model (rendered as HTML)
+            var currentSubCountyId = @(Model.SubCountyId.HasValue ? Model.SubCountyId.Value.ToString() : "0");
+            var currentWardId = @(Model.WardId.HasValue ? Model.WardId.Value.ToString() : "0");
+            
+            console.log("Current SubCountyId:", currentSubCountyId);
+            console.log("Current WardId:", currentWardId);
+
+            // Load wards for the current subcounty on page load
+            if (currentSubCountyId !== "0" && currentSubCountyId !== "") {
+                loadWards(currentSubCountyId, currentWardId);
+            }
+
+            // SubCounty change - load wards
+            $('#SubCountyId').change(function() {
+                var subCountyId = $(this).val();
+                console.log("SubCounty changed to:", subCountyId);
+                
+                if (subCountyId && subCountyId !== "0") {
+                    loadWards(subCountyId, null);
+                    // Update hidden SubCounty field
+                    var subCountyName = $('#SubCountyId option:selected').text();
+                    $('#SubCounty').val(subCountyName);
+                } else {
+                    $('#WardId').empty().append('<option value="">-- Select Ward --</option>');
+                    $('#WardId').val('');
+                    $('#Ward').val('');
+                }
+            });
+
+            // Ward change - update hidden field
+            $('#WardId').change(function() {
+                var wardName = $('#WardId option:selected').text();
+                $('#Ward').val(wardName);
+                console.log("Ward selected:", wardName);
+            });
+
+            function loadWards(subCountyId, selectedWardId) {
+                console.log("Loading wards for SubCountyId:", subCountyId);
+                
+                $.ajax({
+                    url: '/Account/GetWardsBySubCounty',
+                    type: 'GET',
+                    data: { subCountyId: subCountyId },
+                    dataType: 'json',
+                    success: function(data) {
+                        console.log("Wards received:", data);
+                        var wardSelect = $('#WardId');
+                        wardSelect.empty();
+                        wardSelect.append('<option value="">-- Select Ward --</option>');
+                        
+                        if (data && data.length > 0) {
+                            $.each(data, function(index, ward) {
+                                var selected = (selectedWardId && selectedWardId == ward.id) ? 'selected' : '';
+                                wardSelect.append('<option value="' + ward.id + '" ' + selected + '>' + ward.wardName + '</option>');
+                            });
+                            
+                            // If there's a selected ward, update the hidden field
+                            if (selectedWardId) {
+                                var selectedWardName = $('#WardId option:selected').text();
+                                $('#Ward').val(selectedWardName);
+                                console.log("Selected ward name set to:", selectedWardName);
+                            }
+                        } else {
+                            console.log("No wards found for this subcounty");
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Error loading wards:", error);
+                        console.log("Response text:", xhr.responseText);
+                    }
+                });
+            }
+        });
+    </script>
+}

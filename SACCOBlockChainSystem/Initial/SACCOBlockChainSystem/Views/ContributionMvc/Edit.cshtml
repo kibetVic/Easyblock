@@ -1,0 +1,242 @@
+﻿@using SACCOBlockChainSystem.Models.DTOs
+@model ContributionDTO
+@{
+    ViewData["Title"] = "Edit Contribution";
+    var contributionId = ViewBag.ContributionId as int?;
+    var shareTypes = ViewBag.ShareTypes as List<ShareTypeDTO>;
+    var companyCode = ViewBag.CompanyCode as string;
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h4>
+                        <i class="fas fa-edit"></i> Edit Contribution
+                    </h4>
+                </div>
+
+                <div class="card-body">
+                    <!-- Display validation summary -->
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <h5 class="alert-heading">
+                                <i class="fas fa-exclamation-triangle"></i> Please fix the following errors:
+                            </h5>
+                            <ul class="mb-0">
+                                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                {
+                                    <li>@error.ErrorMessage</li>
+                                }
+                            </ul>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Note:</strong> Only certain fields can be edited. Amount changes may require approval.
+                    </div>
+
+                    <form asp-action="Edit" asp-route-id="@contributionId" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <input type="hidden" asp-for="CompanyCode" value="@companyCode" />
+                        <input type="hidden" asp-for="CreatedBy" />
+                        <input type="hidden" asp-for="MemberNo" id="memberNoField" />
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label>Member Number</label>
+                                    <input type="text" class="form-control" value="@Model.MemberNo" readonly />
+                                    <small class="text-muted">Member number cannot be changed</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="TransactionDate">Transaction Date *</label>
+                                    <input asp-for="TransactionDate" type="datetime-local" class="form-control" required />
+                                    <span asp-validation-for="TransactionDate" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="SharesCode">Share Type *</label>
+                                    <select asp-for="SharesCode" class="form-control" required>
+                                        <option value="">Select Share Type</option>
+                                        @foreach (var shareType in shareTypes)
+                                        {
+                                            <option value="@shareType.SharesCode"
+                                                    data-min="@shareType.MinAmount"
+                                                    data-max="@shareType.MaxAmount">
+                                                @shareType.SharesType (@shareType.SharesCode)
+                                                @if (shareType.IsMainShares)
+                                                {
+                                                    <text> - Main Shares</text>
+                                                }
+                                            </option>
+                                        }
+                                    </select>
+                                    <small class="text-muted" id="shareTypeInfo"></small>
+                                    <span asp-validation-for="SharesCode" class="text-danger"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Amount">Amount (KES) *</label>
+                                    <input asp-for="Amount" type="number" step="0.01" class="form-control"
+                                           required placeholder="Enter amount" id="amountField" />
+                                    <div class="form-text text-muted">
+                                        <i class="fas fa-info-circle"></i>
+                                        Changing the amount will create a correction transaction on the blockchain
+                                    </div>
+                                    <div id="amountValidation" class="text-danger mt-1"></div>
+                                    <span asp-validation-for="Amount" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="ReceiptNo">Receipt Number</label>
+                                    <input asp-for="ReceiptNo" class="form-control" readonly />
+                                    <small class="text-muted">Receipt number cannot be changed</small>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="PaymentMethod">Payment Method</label>
+                                    <select asp-for="PaymentMethod" class="form-control">
+                                        <option value="CASH">Cash</option>
+                                        <option value="CHEQUE">Cheque</option>
+                                        <option value="BANK_TRANSFER">Bank Transfer</option>
+                                        <option value="MPESA">M-Pesa</option>
+                                        <option value="OTHER">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label asp-for="ReferenceNo">Reference Number</label>
+                                    <input asp-for="ReferenceNo" class="form-control"
+                                           placeholder="Cheque No, M-Pesa Code, etc." />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group mb-3">
+                                    <label asp-for="Remarks">Remarks (include reason for edit)</label>
+                                    <textarea asp-for="Remarks" class="form-control" rows="3"
+                                              placeholder="Explain why this contribution is being edited..."></textarea>
+                                    <small class="text-muted">This remark will be recorded on the blockchain</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Reason for Edit (Required) -->
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="form-group mb-3">
+                                    <label for="editReason">Reason for Edit *</label>
+                                    <textarea id="editReason" name="editReason" class="form-control" rows="2"
+                                              placeholder="Required: Explain why this contribution needs to be edited..."
+                                              required></textarea>
+                                    <small class="text-muted">This will be permanently recorded on the blockchain</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-warning btn-lg">
+                                <i class="fas fa-save"></i> Update Contribution
+                            </button>
+                            <a asp-action="Details" asp-route-id="@contributionId" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <a asp-action="Index" class="btn btn-outline-secondary btn-lg">
+                                <i class="fas fa-list"></i> Back to List
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        // Share type change handler
+        document.getElementById('SharesCode').addEventListener('change', function() {
+            const selectedOption = this.options[this.selectedIndex];
+            const minAmount = selectedOption.getAttribute('data-min');
+            const maxAmount = selectedOption.getAttribute('data-max');
+
+            let infoText = `Minimum amount: KES ${parseFloat(minAmount).toLocaleString()}`;
+            if (maxAmount && parseFloat(maxAmount) > 0) {
+                infoText += `, Maximum amount: KES ${parseFloat(maxAmount).toLocaleString()}`;
+            }
+
+            document.getElementById('shareTypeInfo').textContent = infoText;
+        });
+
+        // Amount validation
+        document.getElementById('amountField').addEventListener('input', function() {
+            const amount = parseFloat(this.value);
+            const shareSelect = document.getElementById('SharesCode');
+            const selectedOption = shareSelect.options[shareSelect.selectedIndex];
+
+            if (selectedOption.value) {
+                const minAmount = parseFloat(selectedOption.getAttribute('data-min'));
+                const maxAmount = parseFloat(selectedOption.getAttribute('data-max'));
+
+                const validationDiv = document.getElementById('amountValidation');
+
+                if (amount < minAmount) {
+                    validationDiv.textContent = `Amount cannot be less than KES ${minAmount.toLocaleString()}`;
+                } else if (maxAmount > 0 && amount > maxAmount) {
+                    validationDiv.textContent = `Amount cannot exceed KES ${maxAmount.toLocaleString()}`;
+                } else {
+                    validationDiv.textContent = '';
+                }
+            }
+        });
+
+        // Validate reason for edit before submit
+        document.querySelector('form').addEventListener('submit', function(event) {
+            const editReason = document.getElementById('editReason').value.trim();
+            if (!editReason) {
+                event.preventDefault();
+                alert('Please provide a reason for editing this contribution.');
+                document.getElementById('editReason').focus();
+            }
+        });
+
+        // Initialize form
+        document.addEventListener('DOMContentLoaded', function() {
+            // Trigger share type info display
+            const shareSelect = document.getElementById('SharesCode');
+            if (shareSelect.value) {
+                shareSelect.dispatchEvent(new Event('change'));
+            }
+
+            // Focus on first editable field
+            document.getElementById('TransactionDate').focus();
+        });
+    </script>
+}

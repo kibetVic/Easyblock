@@ -1,0 +1,231 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.LoanInquiryResponseDTO
+
+@{
+    ViewData["Title"] = $"Loan Inquiry - {Model.MemberNo}";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="bi bi-cash-stack"></i> Loan Details - @Model.MemberName (@Model.MemberNo)
+        </h3>
+        <div class="card-tools">
+            <a href="@Url.Action("LoanInquiry")" class="btn btn-secondary btn-sm">
+                <i class="bi bi-arrow-left"></i> New Inquiry
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <!-- Summary Cards -->
+        <div class="row">
+            <div class="col-md-3">
+                <div class="small-box bg-info">
+                    <div class="inner">
+                        <h3>@Model.TotalLoans</h3>
+                        <p>Total Loans</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="small-box bg-success">
+                    <div class="inner">
+                        <h3>@Model.TotalBorrowed.ToString("N2")</h3>
+                        <p>Total Borrowed</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="small-box bg-warning">
+                    <div class="inner">
+                        <h3>@Model.TotalOutstanding.ToString("N2")</h3>
+                        <p>Total Outstanding</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="small-box bg-danger">
+                    <div class="inner">
+                        <h3>@Model.TotalRepaid.ToString("N2")</h3>
+                        <p>Total Repaid</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="info-box bg-light">
+                    <div class="info-box-content">
+                        <span class="info-box-text">Active Loans</span>
+                        <span class="info-box-number">@Model.ActiveLoansCount</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="info-box bg-light">
+                    <div class="info-box-content">
+                        <span class="info-box-text">Overdue Loans</span>
+                        <span class="info-box-number">@Model.OverdueLoansCount</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="info-box bg-light">
+                    <div class="info-box-content">
+                        <span class="info-box-text">Completed Loans</span>
+                        <span class="info-box-number">@Model.CompletedLoansCount</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loans List -->
+        @foreach (var loan in Model.Loans)
+        {
+            <div class="card mt-3 @(loan.IsOverdue ? "border-danger" : "")">
+                <div class="card-header @(loan.IsOverdue ? "bg-danger text-white" : "bg-light")">
+                    <h5 class="card-title">
+                        Loan @loan.LoanNo - @loan.LoanType
+                        <span class="badge @(loan.Status == "Active" ? "bg-success" : (loan.Status == "Disbursed" ? "bg-info" : "bg-secondary")) ml-2">
+                            @loan.Status
+                        </span>
+                        @if (loan.IsOverdue)
+                        {
+                            <span class="badge bg-danger ml-2">OVERDUE</span>
+                        }
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td width="40%"><strong>Principal Amount:</strong></td>
+                                    <td>@loan.PrincipalAmount.ToString("N2")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Approved Amount:</strong></td>
+                                    <td>@loan.ApprovedAmount.ToString("N2")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Disbursed Amount:</strong></td>
+                                    <td>@loan.DisbursedAmount.ToString("N2")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Outstanding Balance:</strong></td>
+                                    <td class="text-danger">@loan.OutstandingBalance.ToString("N2")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Outstanding Interest:</strong></td>
+                                    <td class="text-warning">@loan.OutstandingInterest.ToString("N2")</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td width="40%"><strong>Application Date:</strong></td>
+                                    <td>@loan.ApplicationDate.ToString("dd-MMM-yyyy")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Disbursement Date:</strong></td>
+                                    <td>@(loan.DisbursementDate?.ToString("dd-MMM-yyyy") ?? "Not Disbursed")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Interest Rate:</strong></td>
+                                    <td>@loan.InterestRate%</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Repayment Period:</strong></td>
+                                    <td>@loan.RepaymentPeriod months</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Next Due Date:</strong></td>
+                                    <td class="@(loan.NextDueDate < DateTime.Now ? "text-danger" : "")">
+                                        @(loan.NextDueDate?.ToString("dd-MMM-yyyy") ?? "N/A")
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Guarantors -->
+                    @if (loan.Guarantors.Any())
+                    {
+                        <div class="mt-3">
+                            <h6>Guarantors</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Member No</th>
+                                            <th>Name</th>
+                                            <th>Guarantee Amount</th>
+                                            <th>Balance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var guarantor in loan.Guarantors)
+                                        {
+                                            <tr>
+                                                <td>@guarantor.MemberNo</td>
+                                                <td>@guarantor.FullName</td>
+                                                <td class="text-end">@guarantor.GuaranteeAmount.ToString("N2")</td>
+                                                <td class="text-end">@guarantor.Balance.ToString("N2")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+
+                    <!-- Recent Repayments -->
+                    @if (loan.RecentRepayments.Any())
+                    {
+                        <div class="mt-3">
+                            <h6>Recent Repayments</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Amount</th>
+                                            <th>Principal</th>
+                                            <th>Interest</th>
+                                            <th>Penalty</th>
+                                            <th>Receipt No</th>
+                                            <th>Balance After</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var repayment in loan.RecentRepayments)
+                                        {
+                                            <tr>
+                                                <td>@repayment.PaymentDate.ToString("dd-MMM-yyyy")</td>
+                                                <td class="text-end">@repayment.Amount.ToString("N2")</td>
+                                                <td class="text-end">@repayment.Principal.ToString("N2")</td>
+                                                <td class="text-end">@repayment.Interest.ToString("N2")</td>
+                                                <td class="text-end">@repayment.Penalty.ToString("N2")</td>
+                                                <td>@repayment.ReceiptNo</td>
+                                                <td class="text-end">@repayment.BalanceAfter.ToString("N2")</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (!Model.Loans.Any())
+        {
+            <div class="alert alert-info">
+                No loans found for this member.
+            </div>
+        }
+    </div>
+</div>

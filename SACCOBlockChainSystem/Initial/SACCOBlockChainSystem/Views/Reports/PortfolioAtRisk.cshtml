@@ -1,0 +1,359 @@
+﻿@using SACCOBlockChainSystem.Models.ViewModels
+@model PortfolioAtRiskViewModel
+@{
+    ViewData["Title"] = "Portfolio at Risk Report";
+    var showModal = !Model.Filter.AsAtDate.HasValue;
+}
+
+<style>
+    .report-container {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        margin: 20px;
+    }
+    .report-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    .report-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #333;
+        margin: 0;
+    }
+    .btn-group {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .btn {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.3s ease;
+    }
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+    .btn-primary:hover {
+        background-color: #0056b3;
+    }
+    .btn-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+    .btn-danger:hover {
+        background-color: #c82333;
+    }
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+    .btn-secondary:hover {
+        background-color: #5a6268;
+    }
+    .report-table-wrapper {
+        overflow-x: auto;
+        margin-top: 20px;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .report-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+        background-color: white;
+    }
+    .report-table th,
+    .report-table td {
+        border: 1px solid #dee2e6;
+        padding: 12px 10px;
+        text-align: left;
+        vertical-align: middle;
+    }
+    .report-table th {
+        background-color: #343a40;
+        color: white;
+        font-weight: 600;
+        position: sticky;
+        top: 0;
+        white-space: nowrap;
+    }
+    .report-table tbody tr:hover {
+        background-color: #f5f5f5;
+    }
+    .report-table tbody tr:nth-child(even) {
+        background-color: #f8f9fa;
+    }
+    .text-end {
+        text-align: right !important;
+    }
+    .grandtotal-row {
+        background-color: #343a40 !important;
+        font-weight: bold;
+    }
+    .grandtotal-row td {
+        background-color: #343a40;
+        color: white;
+    }
+    .alert-info {
+        padding: 15px;
+        background-color: #cce5ff;
+        border: 1px solid #b8daff;
+        border-radius: 4px;
+        color: #004085;
+        text-align: center;
+        margin-top: 20px;
+    }
+    .badge {
+        background-color: #17a2b8;
+        color: white;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        margin-left: 10px;
+    }
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.5);
+        z-index: 1050;
+        align-items: center;
+        justify-content: center;
+    }
+    .modal.show {
+        display: flex;
+    }
+    .modal-dialog {
+        width: 500px;
+        max-width: 90%;
+    }
+    .modal-content {
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    .modal-header {
+        background-color: #007bff;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 8px 8px 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .modal-header h5 {
+        margin: 0;
+        font-size: 18px;
+    }
+    .modal-body {
+        padding: 20px;
+    }
+    .modal-footer {
+        padding: 15px 20px;
+        border-top: 1px solid #dee2e6;
+        text-align: right;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+    .form-group {
+        margin-bottom: 15px;
+    }
+    .form-label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 5px;
+        color: #333;
+    }
+    .form-control {
+        width: 100%;
+        padding: 10px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+        box-sizing: border-box;
+    }
+    .btn-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 24px;
+        cursor: pointer;
+        opacity: 0.8;
+        line-height: 1;
+    }
+    .btn-close:hover {
+        opacity: 1;
+    }
+    .no-data {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+        font-size: 16px;
+    }
+</style>
+
+<div class="report-container">
+    <div class="report-header">
+        <h2 class="report-title">
+            PORTFOLIO AT RISK (PAR) REPORT
+            @if (Model.Filter.AsAtDate.HasValue)
+            {
+                <span>AS AT @Model.Filter.AsAtDate.Value.ToString("dd/MM/yyyy")</span>
+            }
+            @if (Model.Records.Any())
+            {
+                <span class="badge">@Model.Records.Count Loan Types</span>
+            }
+        </h2>
+        <div class="btn-group">
+            @if (Model.Filter.AsAtDate.HasValue)
+            {
+                <a asp-action="ExportExcel"
+                   asp-route-AsAtDate="@Model.Filter.AsAtDate.Value.ToString("yyyy-MM-dd")"
+                   class="btn btn-primary">
+                    📊 Export Excel
+                </a>
+                <a asp-action="ExportPdf"
+                   asp-route-AsAtDate="@Model.Filter.AsAtDate.Value.ToString("yyyy-MM-dd")"
+                   class="btn btn-danger">
+                    📑 Export PDF
+                </a>
+            }
+            <a href="/PortfolioAtRisk" class="btn btn-secondary">
+                🗑️ Clear Filter
+            </a>
+        </div>
+    </div>
+
+    <!-- Hidden form for date submission -->
+    <form method="post" action="/PortfolioAtRisk" id="reportForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="AsAtDate" id="AsAtDate" />
+    </form>
+
+    @if (Model.Records.Any())
+    {
+        <div class="report-table-wrapper">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>Loan Type</th>
+                        <th class="text-end">Outstanding Principal (KES)</th>
+                        <th class="text-end">Arrears (KES)</th>
+                        <th class="text-end">PAR %</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.Records)
+                    {
+                        <tr>
+                            <td style="white-space: nowrap;">@item.LoanTypeName</td
+                            <td class="text-end">@string.Format("{0:N2}", item.OutstandingPrincipal)</td
+                            <td class="text-end">@string.Format("{0:N2}", item.Arrears)</td
+                            <td class="text-end">@string.Format("{0:N2}", item.PAR)%</td
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr class="grandtotal-row">
+                        <td class="text-end"><strong>TOTAL:</strong></td>
+                        <td class="text-end"><strong>@string.Format("{0:N2}", Model.TotalOutstandingPrincipal)</strong></td>
+                        <td class="text-end"><strong>@string.Format("{0:N2}", Model.TotalArrears)</strong></td>
+                        <td class="text-end"><strong>@string.Format("{0:N2}", Model.OverallPAR)%</strong></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    }
+    else if (Model.Filter.AsAtDate.HasValue)
+    {
+        <div class="alert-info">No loan data found for the selected date.</div>
+    }
+    else
+    {
+        <div class="no-data">
+            <p>Please select a date to view the Portfolio at Risk report.</p>
+        </div>
+    }
+</div>
+
+<!-- Modal for As At Date -->
+<div class="modal" id="dateModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5>📅 Select As At Date</h5>
+                <button type="button" class="btn-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">As At Date:</label>
+                    <input type="date" id="asAtDateInput" class="form-control" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" id="okBtn">Generate Report</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        var showModal = @(showModal ? "true" : "false");
+        
+        function closeModal() {
+            document.getElementById('dateModal').classList.remove('show');
+        }
+        
+        function showModalFunc() {
+            document.getElementById('dateModal').classList.add('show');
+        }
+        
+        if (showModal) {
+            showModalFunc();
+        }
+        
+        document.getElementById('okBtn')?.addEventListener('click', function() {
+            var selectedDate = document.getElementById('asAtDateInput').value;
+            if (!selectedDate) {
+                alert('Please select a date.');
+                return;
+            }
+            document.getElementById('AsAtDate').value = selectedDate;
+            document.getElementById('reportForm').submit();
+        });
+        
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            var modal = document.getElementById('dateModal');
+            if (event.target == modal) {
+                modal.classList.remove('show');
+            }
+        }
+        
+        // Handle Enter key in modal inputs
+        document.getElementById('asAtDateInput')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('okBtn').click();
+            }
+        });
+    </script>
+}

@@ -1,0 +1,176 @@
+﻿@model dynamic
+@{
+    ViewData["Title"] = "Share Types Report";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h1 class="display-6">
+                <i class="fas fa-chart-bar"></i> Share Types Report
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                    <li class="breadcrumb-item"><a asp-action="Index">Share Types</a></li>
+                    <li class="breadcrumb-item active">Report</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-tags"></i> Total Share Types
+                    </h5>
+                    <h2 class="card-text">@Model.TotalShareTypes</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-star"></i> Main Share Types
+                    </h5>
+                    <h2 class="card-text">@Model.MainShareTypes</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-users"></i> Total Members
+                    </h5>
+                    <h2 class="card-text">@Model.TotalMembers</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        <i class="fas fa-money-bill-wave"></i> Total Shares
+                    </h5>
+                    <h2 class="card-text">@Model.TotalShares.ToString("C")</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Types by Priority -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-secondary text-white">
+                    <h5>
+                        <i class="fas fa-sort-amount-down"></i> Share Types by Priority
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Priority</th>
+                                    <th>Number of Share Types</th>
+                                    <th>Share Types</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var priorityGroup in Model.ShareTypesByPriority)
+                                {
+                                    <tr>
+                                        <td>
+                                            <span class="badge bg-dark">@priorityGroup.Priority</span>
+                                        </td>
+                                        <td>@priorityGroup.Count</td>
+                                        <td>
+                                            @foreach (var type in priorityGroup.Types)
+                                            {
+                                                <span class="badge bg-light text-dark me-1">@type</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Usage Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h5>
+                        <i class="fas fa-chart-pie"></i> Usage Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Share Type</th>
+                                    <th>Members Using</th>
+                                    <th>Total Shares Value</th>
+                                    <th>Usage Percentage</th>
+                                    <th>Chart</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var stat in Model.UsageStatistics)
+                                {
+                                    <tr>
+                                        <td>@stat.SharesType</td>
+                                        <td>@stat.TotalMembers</td>
+                                        <td>@stat.TotalShares.ToString("C")</td>
+                                        <td>@stat.UsagePercentage.ToString("F1")%</td>
+                                        <td>
+                                            <div class="progress" style="height: 20px;">
+                                                <div class="progress-bar bg-success"
+                                                     style="width: @stat.UsagePercentage%">
+                                                    @stat.UsagePercentage.ToString("F1")%
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Report Actions -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-body text-center">
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-primary" onclick="window.print()">
+                            <i class="fas fa-print"></i> Print Report
+                        </button>
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Share Types
+                        </a>
+                        <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary">
+                            <i class="fas fa-home"></i> Home
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

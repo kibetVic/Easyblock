@@ -1,0 +1,753 @@
+@model SACCOBlockChainSystem.Models.ViewModels.LoanApplicationDisbursementIndexViewModel
+@{
+    ViewData["Title"] = "Loan Application & Disbursement Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var hasData = Model != null && Model.Loans != null && Model.Loans.Any();
+    var startDate = Model?.StartDate ?? (ViewBag.StartDate as DateTime? ?? DateTime.Now);
+    var endDate = Model?.EndDate ?? (ViewBag.EndDate as DateTime? ?? DateTime.Now);
+    var companyName = Model?.CompanyName ?? ViewBag.CompanyName ?? "";
+}
+
+<style media="print">
+    .app-sidebar, .app-header, .main-footer, .sidebar-wrapper, .navbar,
+    .breadcrumb, .footer, [data-lte-toggle="sidebar"], .brand-link,
+    .sidebar-footer, .no-print {
+        display: none !important;
+    }
+
+    .app-main, .app-content, .content-wrapper, .main-content {
+        margin-left: 0 !important;
+        padding: 20px !important;
+        width: 100% !important;
+    }
+
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .card-header {
+        background-color: #007bff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+        .table th {
+            background-color: #f2f2f2 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+    .btn, .export-buttons, #exportExcelBtn, #exportPdfBtn {
+        display: none !important;
+    }
+
+    body {
+        background: white !important;
+        font-size: 10pt;
+    }
+</style>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h3 class="card-title">
+            <i class="fas fa-file-invoice me-2"></i>Loan Application & Disbursement Report
+        </h3>
+    </div>
+
+    <div class="card-body">
+        <!-- Filter Section -->
+        <div class="row mb-4 no-print">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Select Date Range</h5>
+                    </div>
+                    <div class="card-body">
+                        <form asp-controller="LoanReport" asp-action="LoanApplicationDisbursementReport" method="post" id="reportForm">
+                            @Html.AntiForgeryToken()
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">Start Date</label>
+                                        <input type="date" name="startDate" id="startDate"
+                                               class="form-control"
+                                               value="@startDate.ToString("yyyy-MM-dd")"
+                                               required />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">End Date</label>
+                                        <input type="date" name="endDate" id="endDate"
+                                               class="form-control"
+                                               value="@endDate.ToString("yyyy-MM-dd")"
+                                               required />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">&nbsp;</label>
+                                        <div>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-search me-1"></i>Generate Report
+                                            </button>
+                                            <button type="button" class="btn btn-success" id="exportExcelBtn" onclick="exportLoanAppDisbursementToExcel(); return false;">
+                                                <i class="fas fa-file-excel me-1"></i>Export to Excel
+                                            </button>
+                                            <button type="button" class="btn btn-danger" id="exportPdfBtn" onclick="exportLoanAppDisbursementToPdf(); return false;">
+                                                <i class="fas fa-file-pdf me-1"></i>Export to PDF
+                                            </button>
+                                            <button type="button" class="btn btn-secondary" onclick="window.print()">
+                                                <i class="fas fa-print me-1"></i>Print
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Export Forms -->
+                        <form asp-controller="LoanReport" asp-action="ExportLoanApplicationDisbursementToExcel" method="post" id="excelForm" style="display:none;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="startDate" id="excelStartDate" />
+                            <input type="hidden" name="endDate" id="excelEndDate" />
+                        </form>
+                        <form asp-controller="LoanReport" asp-action="ExportLoanApplicationDisbursementToPdf" method="post" id="pdfForm" style="display:none;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="startDate" id="pdfStartDate" />
+                            <input type="hidden" name="endDate" id="pdfEndDate" />
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (hasData)
+        {
+            <!-- Report Header -->
+            <div class="text-center mb-4">
+                <h2 class="display-6 fw-bold">@companyName.ToUpper()</h2>
+                <h4 class="text-muted">LOAN APPLICATION & DISBURSEMENT REPORT</h4>
+                <h5 class="text-muted">@startDate.ToString("dd/MM/yyyy") - @endDate.ToString("dd/MM/yyyy")</h5>
+                <hr class="my-3" />
+            </div>
+
+            <!-- Summary Statistics -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="small-box bg-primary">
+                        <div class="inner">
+                            <h3>@Model.TotalLoanApplications</h3>
+                            <p>Total Applications</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-file-invoice"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-success">
+                        <div class="inner">
+                            <h3>@Model.ApprovedCount</h3>
+                            <p>Approved Count</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-info">
+                        <div class="inner">
+                            <h3>@Model.DisbursedCount</h3>
+                            <p>Disbursed Count</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-hand-holding-usd"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-warning">
+                        <div class="inner">
+                            <h3>@Model.ApprovedRate.ToString("N0")%</h3>
+                            <p>Approved Rate</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="small-box bg-secondary">
+                        <div class="inner">
+                            <h3>@Model.TotalAppliedAmount.ToString("N2")</h3>
+                            <p>Total Applied</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-money-bill"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="small-box bg-dark">
+                        <div class="inner">
+                            <h3>@Model.TotalAppraisedAmount.ToString("N2")</h3>
+                            <p>Total Appraised</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="small-box bg-danger">
+                        <div class="inner">
+                            <h3>@Model.TotalDisbursedAmount.ToString("N2")</h3>
+                            <p>Total Disbursed</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-hand-holding-usd"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loans Table -->
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover" id="loansTable">
+                    <thead class="bg-primary text-white">
+                        <tr>
+                            <th>MemberNo</th>
+                            <th>Name</th>
+                            <th>LoanNo</th>
+                            <th>Age</th>
+                            <th>LoanType</th>
+                            <th class="text-end">Applied Amt</th>
+                            <th class="text-center">Period</th>
+                            <th class="text-center">Apply Date</th>
+                            <th class="text-end">Appraised Amt</th>
+                            <th class="text-center">Appraised Date</th>
+                            <th>Appraised By</th>
+                            <th>Status</th>
+                            <th class="text-center">Disb.Date</th>
+                            <th class="text-end">Disb.Amt</th>
+                            <th class="text-end">Balance</th>
+                            <th class="text-center">Guarantors</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Loans)
+                        {
+                            <tr>
+                                <td>@item.MemberNo</td>
+                                <td>@item.Name</td>
+                                <td>@item.LoanNo</td>
+                                <td>@item.AgeGroup</td>
+                                <td>@item.LoanType</td>
+                                <td class="text-end">@item.AppliedAmount.ToString("N2")</td>
+                                <td class="text-center">@item.Period</td>
+                                <td class="text-center">@item.ApplyDate.ToString("dd/MM/yyyy")</td>
+                                <td class="text-end">@(item.AppraisedAmount?.ToString("N2") ?? "-")</td>
+                                <td class="text-center">@(item.AppraisedDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                <td>@(item.AppraisedBy ?? "-")</td>
+                                <td>
+                                    @if (item.LoanStatus == "Disbursed")
+                                    {
+                                        <span class="badge bg-success">DISBURSED</span>
+                                    }
+                                    else if (item.LoanStatus == "Approved" || item.LoanStatus == "Endorsed")
+                                    {
+                                        <span class="badge bg-info">APPROVED</span>
+                                    }
+                                    else if (item.LoanStatus == "Rejected")
+                                    {
+                                        <span class="badge bg-danger">REJECTED</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@item.LoanStatus.ToUpper()</span>
+                                    }
+                                </td>
+                                <td class="text-center">@(item.DisbursementDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                <td class="text-end">@(item.DisbursementAmount?.ToString("N2") ?? "-")</td>
+                                <td class="text-end">@item.LoanBalance.ToString("N2")</td>
+                                <td class="text-center">@item.GuarantorCount</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="bg-light fw-bold">
+                        <tr>
+                            <td colspan="5" class="text-end">TOTALS:</td>
+                            <td class="text-end">@Model.TotalAppliedAmount.ToString("N2")</td>
+                            <td colspan="2"></td>
+                            <td class="text-end">@Model.TotalAppraisedAmount.ToString("N2")</td>
+                            <td colspan="3"></td>
+                            <td></td>
+                            <td class="text-end">@Model.TotalDisbursedAmount.ToString("N2")</td>
+                            <td class="text-end">@Model.TotalLoanBalance.ToString("N2")</td>
+                            <td></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Report Footer -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="small text-muted text-center">
+                        <i class="fas fa-info-circle"></i>
+                        Report Generated By: @Model.PrintedBy on @Model.GeneratedOn.ToString("dd/MM/yyyy HH:mm:ss")<br />
+                        Period: @Model.StartDate.ToString("dd/MM/yyyy") - @Model.EndDate.ToString("dd/MM/yyyy")<br />
+                        Company: @Model.CompanyName
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info text-center py-5">
+                <i class="fas fa-chart-bar fa-3x mb-3"></i>
+                <h5>No Data Available</h5>
+                <p>Select a date range and click "Generate" to view loan application and disbursement data.</p>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function() {
+            'use strict';
+
+            function domReady(fn) {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', fn);
+                } else {
+                    fn();
+                }
+            }
+
+            domReady(function() {
+                const exportExcelBtn = document.getElementById('exportExcelBtn');
+                const exportPdfBtn = document.getElementById('exportPdfBtn');
+                const startDate = document.getElementById('startDate');
+                const endDate = document.getElementById('endDate');
+                const excelStartDate = document.getElementById('excelStartDate');
+                const excelEndDate = document.getElementById('excelEndDate');
+                const pdfStartDate = document.getElementById('pdfStartDate');
+                const pdfEndDate = document.getElementById('pdfEndDate');
+                const excelForm = document.getElementById('excelForm');
+                const pdfForm = document.getElementById('pdfForm');
+                const reportForm = document.getElementById('reportForm');
+                const loansTable = document.getElementById('loansTable');
+
+                function validateDates() {
+                    if (!startDate || !endDate) {
+                        alert('Date inputs not found');
+                        return false;
+                    }
+
+                    const start = startDate.value;
+                    const end = endDate.value;
+
+                    if (!start || !end) {
+                        alert('Please select both start and end dates');
+                        if (startDate) startDate.focus();
+                        return false;
+                    }
+
+                    const startDateTime = new Date(start);
+                    const endDateTime = new Date(end);
+
+                    if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+                        alert('Please enter valid dates');
+                        return false;
+                    }
+
+                    if (startDateTime > endDateTime) {
+                        alert('Start date cannot be greater than end date');
+                        return false;
+                    }
+
+                    return true;
+                }
+
+                if (startDate) {
+                    startDate.addEventListener('change', function() {
+                        if (endDate && endDate.value) validateDates();
+                    });
+                }
+
+                if (endDate) {
+                    endDate.addEventListener('change', function() {
+                        if (startDate && startDate.value) validateDates();
+                    });
+                }
+
+                // Excel Export
+                if (exportExcelBtn) {
+                    exportExcelBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (!validateDates()) return;
+
+                        const originalText = exportExcelBtn.innerHTML;
+                        exportExcelBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                        exportExcelBtn.disabled = true;
+                        exportExcelBtn.style.opacity = '0.8';
+
+                        excelStartDate.value = startDate.value;
+                        excelEndDate.value = endDate.value;
+
+                        console.log('Exporting Loan Application to Excel:', startDate.value, 'to', endDate.value);
+                        excelForm.submit();
+
+                        setTimeout(function() {
+                            exportExcelBtn.innerHTML = originalText;
+                            exportExcelBtn.disabled = false;
+                            exportExcelBtn.style.opacity = '1';
+                        }, 3000);
+                    });
+                }
+
+                // PDF Export
+                if (exportPdfBtn) {
+                    exportPdfBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (!validateDates()) return;
+
+                        const originalText = exportPdfBtn.innerHTML;
+                        exportPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                        exportPdfBtn.disabled = true;
+                        exportPdfBtn.style.opacity = '0.8';
+
+                        pdfStartDate.value = startDate.value;
+                        pdfEndDate.value = endDate.value;
+
+                        console.log('Exporting Loan Application to PDF:', startDate.value, 'to', endDate.value);
+                        pdfForm.submit();
+
+                        setTimeout(function() {
+                            exportPdfBtn.innerHTML = originalText;
+                            exportPdfBtn.disabled = false;
+                            exportPdfBtn.style.opacity = '1';
+                        }, 3000);
+                    });
+                }
+
+                // Report Form Submission
+                if (reportForm) {
+                    reportForm.addEventListener('submit', function(e) {
+                        if (!validateDates()) {
+                            e.preventDefault();
+                            return false;
+                        }
+                    });
+                }
+
+                // Print button enhancement
+                const printBtn = document.querySelector('button[onclick="window.print()"]');
+                if (printBtn && !printBtn.hasAttribute('data-handler-attached')) {
+                    printBtn.setAttribute('data-handler-attached', 'true');
+                    printBtn.addEventListener('click', function(e) {
+                        const originalText = this.innerHTML;
+                        this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Preparing Print...';
+                        this.disabled = true;
+
+                        setTimeout(function() {
+                            window.print();
+                            setTimeout(function() {
+                                printBtn.innerHTML = originalText;
+                                printBtn.disabled = false;
+                            }, 1000);
+                        }, 100);
+                    });
+                }
+
+                @if (hasData)
+                {
+                        <text>
+                        if (loansTable && typeof $.fn !== 'undefined' && $.fn.DataTable) {
+                            try {
+                                $(loansTable).DataTable({
+                                    pageLength: 25,
+                                    ordering: true,
+                                    responsive: true,
+                                    scrollX: true,
+                                    language: {
+                                        search: "Search:",
+                                        lengthMenu: "Show _MENU_ entries",
+                                        info: "Showing _START_ to _END_ of _TOTAL_ entries"
+                                    }
+                                });
+                                console.log('DataTable initialized');
+                            } catch (error) {
+                                console.error('DataTable error:', error);
+                            }
+                        }
+                        </text>
+                }
+
+                // Set default dates if empty
+                if (startDate && !startDate.value) {
+                    const lastMonth = new Date();
+                    lastMonth.setMonth(lastMonth.getMonth() - 1);
+                    const year = lastMonth.getFullYear();
+                    const month = String(lastMonth.getMonth() + 1).padStart(2, '0');
+                    const day = String(lastMonth.getDate()).padStart(2, '0');
+                    startDate.value = `${year}-${month}-${day}`;
+                }
+
+                if (endDate && !endDate.value) {
+                    const today = new Date();
+                    const year = today.getFullYear();
+                    const month = String(today.getMonth() + 1).padStart(2, '0');
+                    const day = String(today.getDate()).padStart(2, '0');
+                    endDate.value = `${year}-${month}-${day}`;
+                }
+            });
+
+            // Global fallback functions
+            window.exportLoanAppDisbursementToExcel = function() {
+                const startDate = document.getElementById('startDate');
+                const endDate = document.getElementById('endDate');
+                const excelStartDate = document.getElementById('excelStartDate');
+                const excelEndDate = document.getElementById('excelEndDate');
+                const excelForm = document.getElementById('excelForm');
+                const btn = document.getElementById('exportExcelBtn');
+
+                if (!startDate || !endDate) {
+                    alert('Date inputs not found');
+                    return false;
+                }
+
+                const start = startDate.value;
+                const end = endDate.value;
+
+                if (!start || !end) {
+                    alert('Please select both start and end dates');
+                    if (startDate) startDate.focus();
+                    return false;
+                }
+
+                if (new Date(start) > new Date(end)) {
+                    alert('Start date cannot be greater than end date');
+                    return false;
+                }
+
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                    btn.disabled = true;
+                    btn.style.opacity = '0.8';
+                    btn.setAttribute('data-original-text', originalText);
+                }
+
+                excelStartDate.value = start;
+                excelEndDate.value = end;
+                excelForm.submit();
+
+                setTimeout(function() {
+                    if (btn) {
+                        const originalText = btn.getAttribute('data-original-text') || '<i class="fas fa-file-excel me-1"></i>Export to Excel';
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    }
+                }, 3000);
+
+                return false;
+            };
+
+            window.exportLoanAppDisbursementToPdf = function() {
+                const startDate = document.getElementById('startDate');
+                const endDate = document.getElementById('endDate');
+                const pdfStartDate = document.getElementById('pdfStartDate');
+                const pdfEndDate = document.getElementById('pdfEndDate');
+                const pdfForm = document.getElementById('pdfForm');
+                const btn = document.getElementById('exportPdfBtn');
+
+                if (!startDate || !endDate) {
+                    alert('Date inputs not found');
+                    return false;
+                }
+
+                const start = startDate.value;
+                const end = endDate.value;
+
+                if (!start || !end) {
+                    alert('Please select both start and end dates');
+                    if (startDate) startDate.focus();
+                    return false;
+                }
+
+                if (new Date(start) > new Date(end)) {
+                    alert('Start date cannot be greater than end date');
+                    return false;
+                }
+
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                    btn.disabled = true;
+                    btn.style.opacity = '0.8';
+                    btn.setAttribute('data-original-text', originalText);
+                }
+
+                pdfStartDate.value = start;
+                pdfEndDate.value = end;
+                pdfForm.submit();
+
+                setTimeout(function() {
+                    if (btn) {
+                        const originalText = btn.getAttribute('data-original-text') || '<i class="fas fa-file-pdf me-1"></i>Export to PDF';
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    }
+                }, 3000);
+
+                return false;
+            };
+
+            domReady(function() {
+                const excelBtn = document.getElementById('exportExcelBtn');
+                const pdfBtn = document.getElementById('exportPdfBtn');
+
+                if (excelBtn && !excelBtn.hasAttribute('onclick')) {
+                    excelBtn.setAttribute('onclick', 'exportLoanAppDisbursementToExcel(); return false;');
+                }
+
+                if (pdfBtn && !pdfBtn.hasAttribute('onclick')) {
+                    pdfBtn.setAttribute('onclick', 'exportLoanAppDisbursementToPdf(); return false;');
+                }
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', function(e) {
+                    const tag = e.target.tagName.toLowerCase();
+                    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+                    if (e.ctrlKey && e.key === 'e') {
+                        e.preventDefault();
+                        if (excelBtn) excelBtn.click();
+                    }
+                    if (e.ctrlKey && e.key === 'p') {
+                        e.preventDefault();
+                        if (pdfBtn) pdfBtn.click();
+                    }
+                });
+            });
+
+            // Add loading indicator CSS
+            if (!document.getElementById('export-loading-styles')) {
+                const style = document.createElement('style');
+                style.id = 'export-loading-styles';
+                style.textContent = `
+                    .fa-spinner, .fa-spin { animation: spin 1s linear infinite; }
+                    @@keyframes spin { to { transform: rotate(360deg); } }
+                    button:disabled { cursor: not-allowed; opacity: 0.7; }
+                `;
+                document.head.appendChild(style);
+            }
+
+            // Debug logging
+            domReady(function() {
+                console.log('Loan Application & Disbursement Report Loaded');
+                console.log('Excel button:', !!document.getElementById('exportExcelBtn'));
+                console.log('PDF button:', !!document.getElementById('exportPdfBtn'));
+                console.log('Has data:', @Json.Serialize(hasData));
+            });
+        })();
+    </script>
+}
+
+<style>
+    .small-box {
+        border-radius: 0.25rem;
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+        display: block;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+        .small-box > .inner {
+            padding: 10px;
+        }
+
+        .small-box h3 {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0 0 10px;
+            padding: 0;
+            white-space: nowrap;
+            color: white;
+        }
+
+        .small-box p {
+            color: white;
+            font-size: 1rem;
+            margin-bottom: 0;
+        }
+
+        .small-box .icon {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            color: rgba(0,0,0,0.15);
+            font-size: 70px;
+        }
+
+    .bg-primary {
+        background-color: #007bff !important;
+    }
+
+    .bg-success {
+        background-color: #28a745 !important;
+    }
+
+    .bg-info {
+        background-color: #17a2b8 !important;
+    }
+
+    .bg-warning {
+        background-color: #ffc107 !important;
+        color: #212529;
+    }
+
+    .bg-secondary {
+        background-color: #6c757d !important;
+    }
+
+    .bg-dark {
+        background-color: #343a40 !important;
+    }
+
+    .bg-danger {
+        background-color: #dc3545 !important;
+    }
+
+    .badge {
+        font-size: 0.875rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+    @@media print {
+        .small-box {
+            box-shadow: none;
+            border: 1px solid #ddd;
+        }
+    }
+</style>

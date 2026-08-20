@@ -1,0 +1,886 @@
+﻿@using System.Security.Claims
+@model SACCOBlockChainSystem.Models.ViewModels.PeriodicRegisteredMembersIndexViewModel
+@{
+    ViewData["Title"] = "Periodic Registered Members Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var hasData = Model != null && Model.Members != null && Model.Members.Any();
+    var startDate = Model?.StartDate ?? (ViewBag.StartDate as DateTime? ?? DateTime.Now.AddMonths(-1));
+    var endDate = Model?.EndDate ?? (ViewBag.EndDate as DateTime? ?? DateTime.Now);
+    var companyName = Model?.CompanyName ?? ViewBag.CompanyName ?? "";
+}
+
+<style media="print">
+    .app-sidebar, .app-header, .main-footer, .sidebar-wrapper, .navbar,
+    .breadcrumb, .footer, [data-lte-toggle="sidebar"], .brand-link,
+    .sidebar-footer, .no-print {
+        display: none !important;
+    }
+
+    .app-main, .app-content, .content-wrapper, .main-content {
+        margin-left: 0 !important;
+        padding: 20px !important;
+        width: 100% !important;
+    }
+
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .card-header {
+        background-color: #20c997 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+        .table th {
+            background-color: #f2f2f2 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+    .btn, .export-buttons, #exportExcelBtn, #exportPdfBtn {
+        display: none !important;
+    }
+
+    body {
+        background: white !important;
+        font-size: 11pt;
+    }
+
+    .bg-teal {
+        background-color: #20c997 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+</style>
+
+<div class="card">
+    <div class="card-header bg-teal text-white">
+        <h3 class="card-title">
+            <i class="fas fa-calendar-alt me-2"></i>Periodic Registered Members Report
+        </h3>
+    </div>
+
+    <div class="card-body">
+        <!-- Filter Section - Hidden when printing -->
+        <div class="row mb-4 no-print">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Select Registration Period</h5>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="PeriodicRegisteredMembers" method="post" id="reportForm">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">Start Date</label>
+                                        <input type="date" name="startDate" id="startDate"
+                                               class="form-control"
+                                               value="@startDate.ToString("yyyy-MM-dd")"
+                                               required />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">End Date</label>
+                                        <input type="date" name="endDate" id="endDate"
+                                               class="form-control"
+                                               value="@endDate.ToString("yyyy-MM-dd")"
+                                               required />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">&nbsp;</label>
+                                        <div>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-search me-1"></i>Generate Report
+                                            </button>
+                                            <button type="button" class="btn btn-success" id="exportExcelBtn" onclick="exportPeriodicMembersToExcel(); return false;">
+                                                <i class="fas fa-file-excel me-1"></i>Excel
+                                            </button>
+                                            <button type="button" class="btn btn-danger" id="exportPdfBtn" onclick="exportPeriodicMembersToPdf(); return false;">
+                                                <i class="fas fa-file-pdf me-1"></i>PDF
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Export Forms -->
+                        <form asp-action="ExportPeriodicRegisteredMembersToExcel" method="post" id="excelForm" style="display:none;">
+                            <input type="hidden" name="startDate" id="excelStartDate" />
+                            <input type="hidden" name="endDate" id="excelEndDate" />
+                        </form>
+                        <form asp-action="ExportPeriodicRegisteredMembersToPdf" method="post" id="pdfForm" style="display:none;">
+                            <input type="hidden" name="startDate" id="pdfStartDate" />
+                            <input type="hidden" name="endDate" id="pdfEndDate" />
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (hasData)
+        {
+            <!-- Report Header - Exactly as in the image -->
+            <div class="text-center mb-4">
+                <h2 class="display-6 fw-bold">@companyName.ToUpper()</h2>
+                <h4 class="text-muted">MEMBERS REGISTERED BETWEEN @Model.FormattedStartDate AND @Model.FormattedEndDate</h4>
+                <hr class="my-4" />
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="small-box bg-info">
+                        <div class="inner">
+                            <h3>@Model.TotalMembers</h3>
+                            <p>Total Registered</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-user-plus"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-primary">
+                        <div class="inner">
+                            <h3>@Model.MaleCount</h3>
+                            <p>Male</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-male"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-danger">
+                        <div class="inner">
+                            <h3>@Model.FemaleCount</h3>
+                            <p>Female</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-female"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-secondary">
+                        <div class="inner">
+                            <h3>@Model.OtherCount</h3>
+                            <p>Others</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-genderless"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Members Table - Exactly as in the image -->
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover" id="membersTable">
+                    <thead class="bg-teal text-white">
+                        <tr>
+                            <th>MemberNo</th>
+                            <th>Names</th>
+                            <th>Sex</th>
+                            <th>Registration Date</th>
+                            <th>MobileNo</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Members)
+                        {
+                            <tr>
+                                <td>@item.MemberNo</td>
+                                <td>@item.FullName</td>
+                                <td>@item.Sex</td>
+                                <td>@item.RegistrationDate?.ToString("dd/MM/yyyy")</td>
+                                <td>@item.MobileNo</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Statistics Section - Exactly as in the image -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Registration Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td width="50%"><strong>Total Members:</strong></td>
+                                    <td><strong>@Model.TotalMembers</strong></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>MALE:</strong></td>
+                                    <td><strong>@Model.MaleCount</strong></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>FEMALE:</strong></td>
+                                    <td><strong>@Model.FemaleCount</strong></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>OTHERS:</strong></td>
+                                    <td><strong>@Model.OtherCount</strong></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Period Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td width="50%"><strong>From:</strong></td>
+                                    <td>@Model.FormattedStartDate</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>To:</strong></td>
+                                    <td>@Model.FormattedEndDate</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Duration:</strong></td>
+                                    <td>@((Model.EndDate - Model.StartDate).Days + 1) days</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Average per day:</strong></td>
+                                    <td>@((Model.TotalMembers / (decimal)((Model.EndDate - Model.StartDate).Days + 1)).ToString("N1"))</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Information -->
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="small text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Generated By: @User.Identity.Name on @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") |
+                        Period: @Model.FormattedStartDate - @Model.FormattedEndDate |
+                        Company: @companyName
+                    </div>
+                </div>
+            </div>
+        }
+        else if (ViewBag.StartDate != null)
+        {
+            <div class="alert alert-info text-center py-5">
+                <i class="fas fa-calendar-times fa-3x mb-3"></i>
+                <h5>No Members Found</h5>
+                <p>There are no members registered between @startDate.ToString("dd/MM/yyyy") and @endDate.ToString("dd/MM/yyyy")</p>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info text-center py-5">
+                <i class="fas fa-calendar-alt fa-3x mb-3"></i>
+                <h5>Select a Date Range</h5>
+                <p>Please select a start and end date to generate the report</p>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function() {
+            'use strict';
+
+            // DOM ready helper
+            function domReady(fn) {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', fn);
+                } else {
+                    fn();
+                }
+            }
+
+            domReady(function() {
+                // Get all required elements
+                const exportExcelBtn = document.getElementById('exportExcelBtn');
+                const exportPdfBtn = document.getElementById('exportPdfBtn');
+                const startDate = document.getElementById('startDate');
+                const endDate = document.getElementById('endDate');
+                const excelStartDate = document.getElementById('excelStartDate');
+                const excelEndDate = document.getElementById('excelEndDate');
+                const pdfStartDate = document.getElementById('pdfStartDate');
+                const pdfEndDate = document.getElementById('pdfEndDate');
+                const excelForm = document.getElementById('excelForm');
+                const pdfForm = document.getElementById('pdfForm');
+                const reportForm = document.getElementById('reportForm');
+                const membersTable = document.getElementById('membersTable');
+
+                // Date validation function
+                function validateDates() {
+                    if (!startDate || !endDate) {
+                        console.error('Date inputs not found');
+                        return false;
+                    }
+
+                    const start = startDate.value;
+                    const end = endDate.value;
+
+                    if (!start || !end) {
+                        alert('Please select both start and end dates');
+                        return false;
+                    }
+
+                    const startDateTime = new Date(start);
+                    const endDateTime = new Date(end);
+
+                    if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+                        alert('Please enter valid dates');
+                        return false;
+                    }
+
+                    if (startDateTime > endDateTime) {
+                        alert('Start date cannot be greater than end date');
+                        return false;
+                    }
+
+                    return true;
+                }
+
+                // Add date validation on change
+                if (startDate) {
+                    startDate.addEventListener('change', function() {
+                        if (endDate && endDate.value) {
+                            validateDates();
+                        }
+                    });
+                }
+
+                if (endDate) {
+                    endDate.addEventListener('change', function() {
+                        if (startDate && startDate.value) {
+                            validateDates();
+                        }
+                    });
+                }
+
+                // Export to Excel
+                if (exportExcelBtn) {
+                    exportExcelBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (!validateDates()) return;
+
+                        if (!startDate || !endDate) {
+                            alert('Date inputs not found');
+                            return;
+                        }
+
+                        const sDate = startDate.value;
+                        const eDate = endDate.value;
+
+                        if (!sDate || !eDate) {
+                            alert('Please select both start and end dates');
+                            return;
+                        }
+
+                        if (!excelStartDate || !excelEndDate) {
+                            alert('Excel form hidden inputs not found');
+                            return;
+                        }
+
+                        if (!excelForm) {
+                            alert('Excel form not found');
+                            return;
+                        }
+
+                        // Show loading state
+                        const originalText = exportExcelBtn.innerHTML;
+                        exportExcelBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                        exportExcelBtn.disabled = true;
+                        exportExcelBtn.style.opacity = '0.8';
+
+                        // Set the date values and submit
+                        excelStartDate.value = sDate;
+                        excelEndDate.value = eDate;
+
+                        console.log('Exporting to Excel with dates:', sDate, 'to', eDate);
+                        excelForm.submit();
+
+                        // Reset button after a short delay
+                        setTimeout(function() {
+                            exportExcelBtn.innerHTML = originalText;
+                            exportExcelBtn.disabled = false;
+                            exportExcelBtn.style.opacity = '1';
+                        }, 3000);
+                    });
+                }
+
+                // Export to PDF
+                if (exportPdfBtn) {
+                    exportPdfBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (!validateDates()) return;
+
+                        if (!startDate || !endDate) {
+                            alert('Date inputs not found');
+                            return;
+                        }
+
+                        const sDate = startDate.value;
+                        const eDate = endDate.value;
+
+                        if (!sDate || !eDate) {
+                            alert('Please select both start and end dates');
+                            return;
+                        }
+
+                        if (!pdfStartDate || !pdfEndDate) {
+                            alert('PDF form hidden inputs not found');
+                            return;
+                        }
+
+                        if (!pdfForm) {
+                            alert('PDF form not found');
+                            return;
+                        }
+
+                        // Show loading state
+                        const originalText = exportPdfBtn.innerHTML;
+                        exportPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                        exportPdfBtn.disabled = true;
+                        exportPdfBtn.style.opacity = '0.8';
+
+                        // Set the date values and submit
+                        pdfStartDate.value = sDate;
+                        pdfEndDate.value = eDate;
+
+                        console.log('Exporting to PDF with dates:', sDate, 'to', eDate);
+                        pdfForm.submit();
+
+                        // Reset button after a short delay
+                        setTimeout(function() {
+                            exportPdfBtn.innerHTML = originalText;
+                            exportPdfBtn.disabled = false;
+                            exportPdfBtn.style.opacity = '1';
+                        }, 3000);
+                    });
+                }
+
+                // Handle report form submission
+                if (reportForm) {
+                    reportForm.addEventListener('submit', function(e) {
+                        if (!validateDates()) {
+                            e.preventDefault();
+                            return false;
+                        }
+                    });
+                }
+
+                // Initialize DataTable if available and data exists
+                @if (hasData)
+                {
+                        <text>
+                        if (membersTable && typeof $.fn !== 'undefined' && $.fn.DataTable) {
+                            try {
+                                $(membersTable).DataTable({
+                                    pageLength: 25,
+                                    ordering: true,
+                                    responsive: true,
+                                    language: {
+                                        search: "Search:",
+                                        lengthMenu: "Show _MENU_ entries",
+                                        info: "Showing _START_ to _END_ of _TOTAL_ entries"
+                                    }
+                                });
+                                console.log('DataTable initialized successfully');
+                            } catch (error) {
+                                console.error('DataTable initialization error:', error);
+                            }
+                        } else {
+                            console.log('DataTable not available or no data');
+                        }
+                        </text>
+                }
+
+                // Add print button enhancement
+                const printBtn = document.querySelector('button[onclick="window.print()"]');
+                if (printBtn && !printBtn.hasAttribute('data-handler-attached')) {
+                    printBtn.setAttribute('data-handler-attached', 'true');
+                    printBtn.addEventListener('click', function(e) {
+                        const originalText = this.innerHTML;
+                        this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Preparing Print...';
+                        this.disabled = true;
+
+                        setTimeout(function() {
+                            window.print();
+                            setTimeout(function() {
+                                printBtn.innerHTML = originalText;
+                                printBtn.disabled = false;
+                            }, 1000);
+                        }, 100);
+                    });
+                }
+
+                // Set default dates if empty
+                if (startDate && !startDate.value) {
+                    const today = new Date();
+                    const lastMonth = new Date();
+                    lastMonth.setMonth(lastMonth.getMonth() - 1);
+                    startDate.value = formatDateForInput(lastMonth);
+                }
+
+                if (endDate && !endDate.value) {
+                    endDate.value = formatDateForInput(new Date());
+                }
+            });
+
+            // Helper function to format date for input field (YYYY-MM-DD)
+            function formatDateForInput(date) {
+                const year = date.getFullYear();
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                const day = String(date.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            }
+
+            // Global fallback functions - These work even if event listeners fail
+            window.exportPeriodicMembersToExcel = function() {
+                const startDate = document.getElementById('startDate');
+                const endDate = document.getElementById('endDate');
+                const excelStartDate = document.getElementById('excelStartDate');
+                const excelEndDate = document.getElementById('excelEndDate');
+                const excelForm = document.getElementById('excelForm');
+                const btn = document.getElementById('exportExcelBtn');
+
+                if (!startDate || !endDate || !excelStartDate || !excelEndDate || !excelForm) {
+                    alert('Export form not properly configured. Please refresh the page and try again.');
+                    return false;
+                }
+
+                const sDate = startDate.value;
+                const eDate = endDate.value;
+
+                if (!sDate || !eDate) {
+                    alert('Please select both start and end dates');
+                    if (startDate) startDate.focus();
+                    return false;
+                }
+
+                // Validate dates
+                const startDateTime = new Date(sDate);
+                const endDateTime = new Date(eDate);
+
+                if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+                    alert('Please enter valid dates');
+                    return false;
+                }
+
+                if (startDateTime > endDateTime) {
+                    alert('Start date cannot be greater than end date');
+                    return false;
+                }
+
+                // Show loading state
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                    btn.disabled = true;
+                    btn.style.opacity = '0.8';
+                    btn.setAttribute('data-original-text', originalText);
+                }
+
+                // Set the date values and submit
+                excelStartDate.value = sDate;
+                excelEndDate.value = eDate;
+
+                console.log('Exporting to Excel with dates:', sDate, 'to', eDate);
+                excelForm.submit();
+
+                // Reset button after a short delay
+                setTimeout(function() {
+                    if (btn) {
+                        const originalText = btn.getAttribute('data-original-text') || '<i class="fas fa-file-excel me-1"></i>Excel';
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    }
+                }, 3000);
+
+                return false;
+            };
+
+            window.exportPeriodicMembersToPdf = function() {
+                const startDate = document.getElementById('startDate');
+                const endDate = document.getElementById('endDate');
+                const pdfStartDate = document.getElementById('pdfStartDate');
+                const pdfEndDate = document.getElementById('pdfEndDate');
+                const pdfForm = document.getElementById('pdfForm');
+                const btn = document.getElementById('exportPdfBtn');
+
+                if (!startDate || !endDate || !pdfStartDate || !pdfEndDate || !pdfForm) {
+                    alert('Export form not properly configured. Please refresh the page and try again.');
+                    return false;
+                }
+
+                const sDate = startDate.value;
+                const eDate = endDate.value;
+
+                if (!sDate || !eDate) {
+                    alert('Please select both start and end dates');
+                    if (startDate) startDate.focus();
+                    return false;
+                }
+
+                // Validate dates
+                const startDateTime = new Date(sDate);
+                const endDateTime = new Date(eDate);
+
+                if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+                    alert('Please enter valid dates');
+                    return false;
+                }
+
+                if (startDateTime > endDateTime) {
+                    alert('Start date cannot be greater than end date');
+                    return false;
+                }
+
+                // Show loading state
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                    btn.disabled = true;
+                    btn.style.opacity = '0.8';
+                    btn.setAttribute('data-original-text', originalText);
+                }
+
+                // Set the date values and submit
+                pdfStartDate.value = sDate;
+                pdfEndDate.value = eDate;
+
+                console.log('Exporting to PDF with dates:', sDate, 'to', eDate);
+                pdfForm.submit();
+
+                // Reset button after a short delay
+                setTimeout(function() {
+                    if (btn) {
+                        const originalText = btn.getAttribute('data-original-text') || '<i class="fas fa-file-pdf me-1"></i>PDF';
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    }
+                }, 3000);
+
+                return false;
+            };
+
+            // Set onclick attributes as backup
+            domReady(function() {
+                const excelBtn = document.getElementById('exportExcelBtn');
+                const pdfBtn = document.getElementById('exportPdfBtn');
+
+                // Only set onclick if not already set and button exists
+                if (excelBtn && !excelBtn.hasAttribute('onclick')) {
+                    excelBtn.setAttribute('onclick', 'exportPeriodicMembersToExcel(); return false;');
+                    console.log('Excel button onclick handler set');
+                }
+
+                if (pdfBtn && !pdfBtn.hasAttribute('onclick')) {
+                    pdfBtn.setAttribute('onclick', 'exportPeriodicMembersToPdf(); return false;');
+                    console.log('PDF button onclick handler set');
+                }
+
+                // Add keyboard shortcuts (Ctrl+E for Excel, Ctrl+P for PDF)
+                document.addEventListener('keydown', function(e) {
+                    // Check if not typing in an input field
+                    const tag = e.target.tagName.toLowerCase();
+                    if (tag === 'input' || tag === 'textarea' || tag === 'select') {
+                        return;
+                    }
+
+                    if (e.ctrlKey && e.key === 'e') {
+                        e.preventDefault();
+                        console.log('Keyboard shortcut: Ctrl+E');
+                        if (excelBtn) {
+                            excelBtn.click();
+                        }
+                    }
+                    if (e.ctrlKey && e.key === 'p') {
+                        e.preventDefault();
+                        console.log('Keyboard shortcut: Ctrl+P');
+                        if (pdfBtn) {
+                            pdfBtn.click();
+                        }
+                    }
+                });
+            });
+
+            // Add loading indicator CSS if not exists
+            if (!document.getElementById('export-loading-styles')) {
+                const style = document.createElement('style');
+                style.id = 'export-loading-styles';
+                style.textContent = `
+                    .btn-loading {
+                        position: relative;
+                        pointer-events: none;
+                        opacity: 0.8;
+                    }
+
+                    .btn-loading:after {
+                        content: "";
+                        position: absolute;
+                        width: 16px;
+                        height: 16px;
+                        top: 50%;
+                        left: 50%;
+                        margin-left: -8px;
+                        margin-top: -8px;
+                        border: 2px solid rgba(255,255,255,0.3);
+                        border-radius: 50%;
+                        border-top-color: white;
+                        animation: spin 0.6s linear infinite;
+                    }
+
+                    @@keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+
+                    .fa-spinner, .fa-spin {
+                        animation: spin 1s linear infinite;
+                    }
+
+                    button:disabled {
+                        cursor: not-allowed;
+                        opacity: 0.7;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            // Debug helper - log page load
+            domReady(function() {
+                console.log('=================================');
+                console.log('Periodic Registered Members Report Page Loaded');
+                console.log('=================================');
+                console.log('Excel button exists:', !!document.getElementById('exportExcelBtn'));
+                console.log('PDF button exists:', !!document.getElementById('exportPdfBtn'));
+                console.log('Start date input exists:', !!document.getElementById('startDate'));
+                console.log('End date input exists:', !!document.getElementById('endDate'));
+                console.log('Excel form exists:', !!document.getElementById('excelForm'));
+                console.log('PDF form exists:', !!document.getElementById('pdfForm'));
+                console.log('=================================');
+            });
+
+            // Prevent double submission
+            domReady(function() {
+                let isSubmitting = false;
+
+                const excelBtn = document.getElementById('exportExcelBtn');
+                const pdfBtn = document.getElementById('exportPdfBtn');
+
+                if (excelBtn) {
+                    excelBtn.addEventListener('click', function(e) {
+                        if (isSubmitting) {
+                            e.preventDefault();
+                            return false;
+                        }
+                        isSubmitting = true;
+                        setTimeout(function() {
+                            isSubmitting = false;
+                        }, 5000);
+                    });
+                }
+
+                if (pdfBtn) {
+                    pdfBtn.addEventListener('click', function(e) {
+                        if (isSubmitting) {
+                            e.preventDefault();
+                            return false;
+                        }
+                        isSubmitting = true;
+                        setTimeout(function() {
+                            isSubmitting = false;
+                        }, 5000);
+                    });
+                }
+            });
+        })();
+    </script>
+}
+
+<style>
+    .small-box {
+        border-radius: 0.25rem;
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+        display: block;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+        .small-box > .inner {
+            padding: 10px;
+        }
+
+        .small-box h3 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 0 0 10px;
+            padding: 0;
+            white-space: nowrap;
+            color: white;
+        }
+
+        .small-box p {
+            color: white;
+            font-size: 1rem;
+        }
+
+        .small-box .icon {
+            color: rgba(0,0,0,0.15);
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            transition: all .3s linear;
+            z-index: 0;
+        }
+
+            .small-box .icon > i {
+                font-size: 70px;
+            }
+
+        .small-box:hover .icon {
+            font-size: 75px;
+        }
+
+    .bg-teal {
+        background-color: #20c997 !important;
+    }
+
+    @@media (max-width: 767px) {
+        .small-box {
+            text-align: center;
+        }
+
+            .small-box .icon {
+                display: none;
+            }
+    }
+</style>

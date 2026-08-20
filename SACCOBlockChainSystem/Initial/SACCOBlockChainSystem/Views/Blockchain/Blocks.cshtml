@@ -1,0 +1,96 @@
+﻿@model IEnumerable<SACCOBlockChainSystem.Models.Block>
+
+@{
+    ViewData["Title"] = "All Blocks";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-cubes"></i> All Blocks</h4>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover" id="blocksTable">
+                            <thead>
+                                <tr>
+                                    <th>Block ID</th>
+                                    <th>Block Hash</th>
+                                    <th>Previous Hash</th>
+                                    <th>Merkle Root</th>
+                                    <th>Timestamp</th>
+                                    <th>Nonce</th>
+                                    <th>Transactions</th>
+                                    <th>Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var block in Model)
+                                {
+                                    <tr>
+                                        <td>#@block.BlockId</td>
+                                        <td><code>@block.BlockHash.Substring(0, Math.Min(16, block.BlockHash?.Length ?? 0))...</code></td>
+                                        <td><code>@(block.PreviousHash?.Substring(0, Math.Min(8, block.PreviousHash?.Length ?? 0)) ?? "0")...</code></td>
+                                        <td><code>@(block.MerkleRoot?.Substring(0, Math.Min(8, block.MerkleRoot?.Length ?? 0)) ?? "...")</code></td>
+                                        <td>@block.Timestamp.ToString("dd MMM yyyy HH:mm:ss")</td>
+                                        <td>@block.Nonce</td>
+                                        <td>
+                                            <span class="badge bg-info">@(block.Transactions?.Count ?? 0)</span>
+                                        </td>
+                                        <td>
+                                            @if (block.Confirmed)
+                                            {
+                                                <span class="badge bg-success">Confirmed</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-warning">Pending</span>
+                                            }
+                                        </td>
+                                        <td>
+                                            <a asp-action="BlockDetails" asp-route-blockHash="@block.BlockHash"
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-search"></i> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    @if (!Model.Any())
+                    {
+                        <div class="text-center py-4">
+                            <i class="fas fa-cubes fa-3x text-muted mb-3"></i>
+                            <h5>No blocks found</h5>
+                            <p>The blockchain is empty. Create a genesis block to start.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css" />
+}
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            $('#blocksTable').DataTable({
+                pageLength: 25,
+                order: [[0, 'desc']],
+                language: {
+                    emptyTable: "No blocks found"
+                }
+            });
+        });
+    </script>
+}

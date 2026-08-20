@@ -1,0 +1,335 @@
+﻿@model List<SACCOBlockChainSystem.Models.DTOs.LoanSummaryDTO>
+@{
+    ViewData["Title"] = "All Loans Management";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var totalLoans = Model.Count;
+    var totalPrincipal = Model.Sum(l => l.PrincipalAmount);
+    var totalApproved = Model.Sum(l => l.ApprovedAmount);
+    var totalDisbursed = Model.Sum(l => l.DisbursedAmount);
+    var totalOutstanding = Model.Sum(l => l.OutstandingBalance);
+}
+
+@section Styles {
+    <style>
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .summary-card {
+            transition: transform 0.2s;
+            border-left: 4px solid transparent;
+        }
+
+            .summary-card:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            }
+
+        .filter-section {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .table-actions .btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .progress-sm {
+            height: 5px;
+        }
+
+        .loan-status {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+    </style>
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <a asp-action="Index" asp-controller="Home" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Back to Dashboard
+                </a>
+                <h2 class="page-title mb-0">
+                    <i class="bi bi-files me-2"></i>Loans Management
+                </h2>
+            </div>
+            <div>
+                <a asp-action="Apply" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>New Loan Application
+                </a>
+                <button class="btn btn-outline-success ms-2" onclick="exportToExcel()">
+                    <i class="bi bi-file-excel me-2"></i>Export
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Alert Messages -->
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>
+        @TempData["SuccessMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        @TempData["ErrorMessage"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card summary-card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50 mb-2">Total Loans</h6>
+                        <h3 class="mb-0">@totalLoans</h3>
+                    </div>
+                    <i class="bi bi-files fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card summary-card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50 mb-2">Total Principal</h6>
+                        <h5 class="mb-0">KES @totalPrincipal.ToString("N0")</h5>
+                    </div>
+                    <i class="bi bi-cash-stack fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card summary-card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50 mb-2">Total Disbursed</h6>
+                        <h5 class="mb-0">KES @totalDisbursed.ToString("N0")</h5>
+                    </div>
+                    <i class="bi bi-cash fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card summary-card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="text-white-50 mb-2">Outstanding</h6>
+                        <h5 class="mb-0">KES @totalOutstanding.ToString("N0")</h5>
+                    </div>
+                    <i class="bi bi-clock-history fs-1 opacity-50"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Advanced Filter Section -->
+<div class="filter-section">
+    <h5 class="mb-3">
+        <i class="bi bi-funnel me-2"></i>Filter Loans
+        <button class="btn btn-sm btn-link float-end" type="button" data-bs-toggle="collapse" data-bs-target="#advancedFilters">
+            Advanced Filters
+        </button>
+    </h5>
+
+    <form asp-action="SearchResults" method="get" id="filterForm">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Loan Status</label>
+                <select name="LoanStatus" class="form-select">
+                    <option value="">All Statuses</option>
+                    <option value="Draft">Draft</option>
+                    <option value="Submitted">Submitted</option>
+                    <option value="UnderAppraisal">Under Appraisal</option>
+                    <option value="PendingFinalApproval">Pending Final Approval</option>
+                    <option value="Approved">Approved</option>
+                    <option value="Rejected">Rejected</option>
+                    <option value="Disbursed">Disbursed</option>
+                    <option value="Active">Active</option>
+                    <option value="Closed">Closed</option>
+                    <option value="WrittenOff">Written Off</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Search By</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" name="searchTerm" class="form-control" placeholder="Loan No / Member Name" />
+                </div>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">From Date</label>
+                <input type="date" name="FromDate" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To Date</label>
+                <input type="date" name="ToDate" class="form-control" />
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-2"></i>Apply Filter
+                </button>
+            </div>
+        </div>
+
+        <div class="collapse mt-3" id="advancedFilters">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Min Amount</label>
+                    <div class="input-group">
+                        <span class="input-group-text">KES</span>
+                        <input type="number" name="MinAmount" class="form-control" step="0.01" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Max Amount</label>
+                    <div class="input-group">
+                        <span class="input-group-text">KES</span>
+                        <input type="number" name="MaxAmount" class="form-control" step="0.01" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Loan Type</label>
+                    <select name="LoanCode" class="form-select">
+                        <option value="">All Types</option>
+                        @if (ViewBag.LoanTypes != null)
+                        {
+                            foreach (var type in ViewBag.LoanTypes)
+                            {
+                                <option value="@type.LoanCode">@type.LoanType</option>
+                            }
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Member No</label>
+                    <input type="text" name="MemberNo" class="form-control" placeholder="Member Number" />
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Status Tabs -->
+<ul class="nav nav-pills mb-3" id="statusTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="all-tab" data-bs-toggle="pill" data-bs-target="#all" type="button">
+            All Loans <span class="badge bg-secondary ms-2">@totalLoans</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="pending-tab" data-bs-toggle="pill" data-bs-target="#pending" type="button">
+            Pending <span class="badge bg-warning ms-2">@Model.Count(l => l.LoanStatus == "Draft" || l.LoanStatus == "Submitted")</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="active-tab" data-bs-toggle="pill" data-bs-target="#active" type="button">
+            Active <span class="badge bg-success ms-2">@Model.Count(l => l.LoanStatus == "Disbursed" || l.LoanStatus == "Active")</span>
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="completed-tab" data-bs-toggle="pill" data-bs-target="#completed" type="button">
+            Completed <span class="badge bg-info ms-2">@Model.Count(l => l.LoanStatus == "Closed")</span>
+        </button>
+    </li>
+</ul>
+
+<!-- Loans Table -->
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="all">
+        @await Html.PartialAsync("_LoansTable", Model)
+    </div>
+
+    <div class="tab-pane fade" id="pending">
+        @await Html.PartialAsync("_LoansTable", Model.Where(l => l.LoanStatus == "Draft" || l.LoanStatus == "Submitted" || l.LoanStatus == "UnderAppraisal" || l.LoanStatus == "PendingFinalApproval").ToList())
+    </div>
+
+    <div class="tab-pane fade" id="active">
+        @await Html.PartialAsync("_LoansTable", Model.Where(l => l.LoanStatus == "Disbursed" || l.LoanStatus == "Active").ToList())
+    </div>
+
+    <div class="tab-pane fade" id="completed">
+        @await Html.PartialAsync("_LoansTable", Model.Where(l => l.LoanStatus == "Closed").ToList())
+    </div>
+</div>
+
+<!-- Pagination -->
+@if (ViewBag.TotalPages > 1)
+{
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            <li class="page-item @(ViewBag.CurrentPage == 1 ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action("AllLoans", new { page = ViewBag.CurrentPage - 1 })">Previous</a>
+            </li>
+            @for (int i = 1; i <= ViewBag.TotalPages; i++)
+            {
+                <li class="page-item @(i == ViewBag.CurrentPage ? "active" : "")">
+                    <a class="page-link" href="@Url.Action("AllLoans", new { page = i })">@i</a>
+                </li>
+            }
+            <li class="page-item @(ViewBag.CurrentPage == ViewBag.TotalPages ? "disabled" : "")">
+                <a class="page-link" href="@Url.Action("AllLoans", new { page = ViewBag.CurrentPage + 1 })">Next</a>
+            </li>
+        </ul>
+    </nav>
+}
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
+
+            // Auto-refresh every 60 seconds (optional)
+            // setInterval(function() { location.reload(); }, 60000);
+        });
+
+        function exportToExcel() {
+            var searchParams = new URLSearchParams($('#filterForm').serialize()).toString();
+            window.location.href = '@Url.Action("ExportAllLoans")?' + searchParams;
+        }
+
+        function quickFilter(status) {
+            $('select[name="LoanStatus"]').val(status);
+            $('#filterForm').submit();
+        }
+
+        function clearFilters() {
+            $('#filterForm')[0].reset();
+            $('#filterForm').submit();
+        }
+    </script>
+}

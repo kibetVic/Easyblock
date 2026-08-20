@@ -1,0 +1,635 @@
+﻿@using SACCOBlockChainSystem.Models.ViewModels
+@using SACCOBlockChainSystem.Models
+@using SACCOBlockChainSystem.Models.DTOs
+@model ShareTypeCreateDTO
+
+@{
+    ViewData["Title"] = "Share Types";
+    var glAccounts = ViewBag.GlAccounts as List<GlSetup> ?? new List<GlSetup>();
+    var shareTypes = ViewBag.ShareTypes as List<ShareTypeViewModel> ?? new List<ShareTypeViewModel>();
+    var companyName = ViewBag.CompanyName as string ?? "JUHUDI SACCO";
+}
+
+<div class="container-fluid">
+
+    <!-- Success Message -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Error Message -->
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- FORM -->
+    <div class="card mb-4">
+        <div class="card-header bg-success text-white">
+            <h4><i class="fas fa-chart-line"></i> Share Types</h4>
+        </div>
+
+        <div class="card-body">
+            <form asp-action="Create" method="post" id="shareTypeForm">
+                @Html.AntiForgeryToken()
+
+                <!-- Hidden fields -->
+                <input type="hidden" asp-for="SharesCode" id="SharesCode" />
+                <input type="hidden" asp-for="CompanyCode" />
+                <input type="hidden" asp-for="CreatedBy" />
+                <input type="hidden" name="action" id="actionField" value="" />
+
+                <div class="row">
+                    <!-- LEFT SIDE - Form Fields -->
+                    <div class="col-md-8">
+                        <!-- SHARE CODE and SHARE TYPE -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label>Share Code *</label>
+                                <input asp-for="SharesCode" class="form-control" id="SharesCodeInput"
+                                       placeholder="Enter share code (e.g., SH001, SAVINGS, etc.)" />
+                                <small class="text-muted">Enter a unique share code for this share type</small>
+                                <span asp-validation-for="SharesCode" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label>Share Type *</label>
+                                <input asp-for="SharesType" class="form-control" id="SharesType"
+                                       placeholder="Enter share type name (e.g., Savings Shares, Investment Shares)" />
+                                <small class="text-muted">Enter a descriptive name for this share type</small>
+                                <span asp-validation-for="SharesType" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- NUMBERS -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label>Min Amount</label>
+                                <input asp-for="MinAmount" id="MinAmount" class="form-control" type="number" step="0.01" value="0" />
+                                <small class="text-muted">Minimum contribution amount</small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label>Max Amount</label>
+                                <input asp-for="MaxAmount" id="MaxAmount" class="form-control" type="number" step="0.01" />
+                                <small class="text-muted">Maximum contribution amount (0 = unlimited)</small>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label>Loan Ratio</label>
+                                <input asp-for="LoanToShareRatio" id="LoanToShareRatio" class="form-control" type="number" step="0.1" value="3" />
+                                <small class="text-muted">Loan to share ratio (e.g., 3 = 3x)</small>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label>Company</label>
+                                <input class="form-control" value="@companyName" readonly />
+                                <small class="text-muted">Your company</small>
+                            </div>
+                        </div>
+
+                        <!-- SHARES ACC & PP ACCOUNT (GL Account) -->
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label>Select GL Account *</label>
+                                <div class="input-group">
+                                    <input asp-for="SharesAcc" id="SharesAcc" class="form-control"
+                                           placeholder="Select a GL account" readonly />
+                                    <button type="button" class="btn btn-outline-secondary" id="openAccountModalBtn">
+                                        <i class="fas fa-search"></i> Select Account
+                                    </button>
+                                </div>
+                                <small class="text-muted">Select a GL account. This will be used for both Share Control A/C and PP Account</small>
+                                <span asp-validation-for="SharesAcc" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Hidden field for Ppacc - will be set automatically -->
+                        <input type="hidden" asp-for="Ppacc" id="Ppacc" />
+                    </div>
+
+                    <!-- RIGHT SIDE - Checkboxes -->
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-header bg-secondary text-white">
+                                <h6 class="mb-0"><i class="fas fa-check-square"></i> Share Type Settings</h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="form-check mb-3">
+                                    <input asp-for="IsMainShares" type="checkbox" class="form-check-input" id="IsMainShares" checked />
+                                    <label class="form-check-label fw-bold" for="IsMainShares">Main Shares</label>
+                                    <div class="small text-muted">Primary share type for members</div>
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <input asp-for="Withdrawable" type="checkbox" class="form-check-input" id="Withdrawable" />
+                                    <label class="form-check-label fw-bold" for="Withdrawable">Withdrawable</label>
+                                    <div class="small text-muted">Members can withdraw these shares</div>
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <input asp-for="UsedToOffset" type="checkbox" class="form-check-input" id="UsedToOffset" />
+                                    <label class="form-check-label fw-bold" for="UsedToOffset">Offset Loan</label>
+                                    <div class="small text-muted">Can be used to offset loans</div>
+                                </div>
+
+                                <div class="form-check mb-3">
+                                    <input asp-for="UsedToGuarantee" type="checkbox" class="form-check-input" id="UsedToGuarantee" />
+                                    <label class="form-check-label fw-bold" for="UsedToGuarantee">Guarantee</label>
+                                    <div class="small text-muted">Can be used as loan guarantee</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- BUTTONS -->
+                <div class="mt-4 d-flex gap-2">
+                    <button type="button" class="btn btn-primary" id="btnSave">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+
+                    <button type="button" class="btn btn-warning" id="btnUpdate">
+                        <i class="fas fa-edit"></i> Update
+                    </button>
+
+                    <button type="button" class="btn btn-danger" id="btnDelete">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+
+                    <button type="button" class="btn btn-dark" id="btnNew">
+                        <i class="fas fa-plus"></i> New
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- GL Account Selection Modal -->
+    <div class="modal fade" id="accountModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-info text-white">
+                    <h5><i class="fas fa-search"></i> Select GL Account</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" id="accountSearch" class="form-control mb-3"
+                           placeholder="Search account by code or name...">
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Acc No</th>
+                                    <th>Account Name</th>
+                                    <th style="width: 100px;">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="accountTable">
+                                @foreach (var acc in glAccounts)
+                                {
+                                    <tr>
+                                        <td><strong>@acc.AccNo</strong></td>
+                                        <td>@acc.Glaccname</td>
+                                        <td>
+                                            <button type="button"
+                                                    class="btn btn-sm btn-success pick-account"
+                                                    data-acc="@acc.AccNo"
+                                                    data-name="@acc.Glaccname">
+                                                <i class="fas fa-check"></i> Select
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                                @if (!glAccounts.Any())
+                                {
+                                    <tr>
+                                        <td colspan="3" class="text-center text-muted">
+                                            No GL accounts found. Please create GL accounts first.
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- EXISTING SHARE TYPES TABLE -->
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <h5><i class="fas fa-list"></i> Existing Share Types</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="shareTypesTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Code</th>
+                            <th>Share Type</th>
+                            <th>GL Account</th>
+                            <th>Min Amount</th>
+                            <th>Max Amount</th>
+                            <th>Loan Ratio</th>
+                            <th style="width: 100px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in shareTypes)
+                        {
+                            <tr>
+                                <td><strong>@item.SharesCode</strong></td>
+                                <td>@item.SharesType</td>
+                                <td>@item.SharesAcc</td>
+                                <td class="text-end">@item.MinAmount.ToString("N2")</td>
+                                <td class="text-end">@item.MaxAmount.ToString("N2")</td>
+                                <td class="text-end">@item.LoanToShareRatio</td>
+                                <td>
+                                    <button type="button"
+                                            class="btn btn-sm btn-info select-btn w-100"
+                                            data-code="@item.SharesCode"
+                                            data-type="@item.SharesType"
+                                            data-acc="@item.SharesAcc"
+                                            data-min="@item.MinAmount"
+                                            data-max="@item.MaxAmount"
+                                            data-ratio="@item.LoanToShareRatio"
+                                            data-main="@item.IsMainShares.ToString().ToLower()"
+                                            data-withdraw="@item.Withdrawable.ToString().ToLower()"
+                                            data-offset="@item.UsedToOffset.ToString().ToLower()"
+                                            data-guarantee="@item.UsedToGuarantee.ToString().ToLower()">
+                                        <i class="fas fa-edit"></i> Select
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                        @if (!shareTypes.Any())
+                        {
+                            <tr>
+                                <td colspan="8" class="text-center text-muted py-4">
+                                    <i class="fas fa-info-circle"></i> No share types found. Click "New" to create one.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Function to submit form with specific action
+        window.submitForm = function(action) {
+            console.log('submitForm called with action:', action);
+
+            const sharesCodeInput = document.getElementById('SharesCodeInput');
+            const sharesType = document.getElementById('SharesType');
+            const sharesAcc = document.getElementById('SharesAcc');
+
+            if (!sharesCodeInput || !sharesType || !sharesAcc) {
+                console.error('Required form elements not found!');
+                alert('Form elements missing. Please refresh the page.');
+                return;
+            }
+
+            const sharesCode = sharesCodeInput.value.trim();
+            const sharesTypeValue = sharesType.value.trim();
+            const sharesAccValue = sharesAcc.value.trim();
+
+            console.log(`Submitting with action: ${action}, SharesCode: ${sharesCode}`);
+
+            // Basic validation
+            if (!sharesCode) {
+                showNotification('Share Code is required', 'error');
+                sharesCodeInput.focus();
+                return;
+            }
+
+            if (!sharesTypeValue) {
+                showNotification('Share Type is required', 'error');
+                sharesType.focus();
+                return;
+            }
+
+            if (!sharesAccValue) {
+                showNotification('Please select a GL Account first', 'error');
+                return;
+            }
+
+            if (action === 'save') {
+                if (!confirm(`Save new share type "${sharesCode} - ${sharesTypeValue}"?`)) return;
+            }
+
+            if (action === 'update') {
+                if (!sharesCode) {
+                    showNotification('Please select a share type to update', 'warning');
+                    return;
+                }
+                if (!confirm(`Update share type "${sharesCode} - ${sharesTypeValue}"?`)) return;
+            }
+
+            if (action === 'delete') {
+                if (!sharesCode) {
+                    showNotification('Please select a share type to delete', 'warning');
+                    return;
+                }
+                if (!confirm(`Delete share type "${sharesCode} - ${sharesTypeValue}"? This action cannot be undone.`)) return;
+            }
+
+            // Set the hidden field value
+            const hiddenSharesCode = document.getElementById('SharesCode');
+            if (hiddenSharesCode) {
+                hiddenSharesCode.value = sharesCode;
+            }
+
+            // Set action and submit
+            const actionField = document.getElementById('actionField');
+            const form = document.getElementById('shareTypeForm');
+
+            if (actionField) {
+                actionField.value = action;
+            }
+
+            if (form) {
+                console.log('Submitting form...');
+                form.submit();
+            } else {
+                console.error('Form not found!');
+                alert('Form not found. Please refresh the page.');
+            }
+        };
+
+        // Reset form function
+        window.resetForm = function() {
+            if (confirm('Clear all form fields?')) {
+                document.getElementById('SharesCodeInput').value = '';
+                document.getElementById('SharesCode').value = '';
+                document.getElementById('SharesType').value = '';
+                document.getElementById('SharesAcc').value = '';
+                document.getElementById('Ppacc').value = '';  // Clear hidden Ppacc
+                document.getElementById('MinAmount').value = '0';
+                document.getElementById('MaxAmount').value = '';
+                document.getElementById('LoanToShareRatio').value = '3';
+
+                document.getElementById('IsMainShares').checked = true;
+                document.getElementById('Withdrawable').checked = false;
+                document.getElementById('UsedToOffset').checked = false;
+                document.getElementById('UsedToGuarantee').checked = false;
+
+                // Remove highlighting
+                document.querySelectorAll('#shareTypesTable tbody tr').forEach(r => r.classList.remove('table-primary'));
+
+                showNotification('Form cleared', 'info');
+                document.getElementById('SharesCodeInput').focus();
+            }
+        };
+
+        // Helper function to show notifications
+        function showNotification(message, type) {
+            console.log(`Notification: ${type} - ${message}`);
+            if (typeof toastr !== 'undefined') {
+                toastr[type](message);
+            } else {
+                if (type === 'error') {
+                    alert('❌ Error: ' + message);
+                } else if (type === 'warning') {
+                    alert('⚠️ Warning: ' + message);
+                } else if (type === 'success') {
+                    alert('✅ Success: ' + message);
+                } else {
+                    alert('ℹ️ Info: ' + message);
+                }
+            }
+        }
+
+        // Wait for DOM to be fully loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM fully loaded and parsed');
+
+            const btnSave = document.getElementById('btnSave');
+            const btnUpdate = document.getElementById('btnUpdate');
+            const btnDelete = document.getElementById('btnDelete');
+            const btnNew = document.getElementById('btnNew');
+            const openAccountModalBtn = document.getElementById('openAccountModalBtn');
+
+            if (btnSave) {
+                btnSave.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Save button clicked');
+                    window.submitForm('save');
+                });
+            }
+
+            if (btnUpdate) {
+                btnUpdate.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Update button clicked');
+                    window.submitForm('update');
+                });
+            }
+
+            if (btnDelete) {
+                btnDelete.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Delete button clicked');
+                    window.submitForm('delete');
+                });
+            }
+
+            if (btnNew) {
+                btnNew.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('New button clicked');
+                    window.resetForm();
+                });
+            }
+
+            if (openAccountModalBtn) {
+                openAccountModalBtn.addEventListener('click', function() {
+                    const modalElement = document.getElementById('accountModal');
+                    if (modalElement) {
+                        const modal = new bootstrap.Modal(modalElement);
+                        modal.show();
+                    }
+                });
+            }
+
+            // PICK ACCOUNT FROM MODAL - Sets both SharesAcc AND Ppacc
+            document.querySelectorAll('.pick-account').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const acc = this.dataset.acc;
+                    const name = this.dataset.name;
+
+                    const sharesAccInput = document.getElementById('SharesAcc');
+                    const ppaccInput = document.getElementById('Ppacc');
+                    const sharesTypeInput = document.getElementById('SharesType');
+                    const sharesCodeInput = document.getElementById('SharesCodeInput');
+                    const hiddenSharesCode = document.getElementById('SharesCode');
+
+                    // Set both SharesAcc and Ppacc to the selected account
+                    if (sharesAccInput) sharesAccInput.value = acc;
+                    if (ppaccInput) ppaccInput.value = acc;  // Set Ppacc automatically
+
+                    // ONLY SET TYPE IF EMPTY
+                    if (sharesTypeInput && !sharesTypeInput.value) {
+                        sharesTypeInput.value = name;
+                    }
+
+                    // ONLY SET CODE IF EMPTY (only for new records)
+                    if (sharesCodeInput && !sharesCodeInput.value) {
+                        sharesCodeInput.value = acc;
+                        if (hiddenSharesCode) hiddenSharesCode.value = acc;
+                    }
+
+                    const modalElement = document.getElementById('accountModal');
+                    const modal = bootstrap.Modal.getInstance(modalElement);
+                    if (modal) modal.hide();
+
+                    showNotification('Account selected: ' + acc, 'success');
+                });
+            });
+
+            // SEARCH IN MODAL
+            const accountSearch = document.getElementById('accountSearch');
+            if (accountSearch) {
+                accountSearch.addEventListener('keyup', function() {
+                    let val = this.value.toLowerCase();
+                    document.querySelectorAll('#accountTable tr').forEach(row => {
+                        const text = row.innerText.toLowerCase();
+                        row.style.display = text.includes(val) ? '' : 'none';
+                    });
+                });
+            }
+
+            // SELECT EXISTING SHARE TYPE - Sets both SharesAcc AND Ppacc
+            document.querySelectorAll('.select-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    console.log('Select button clicked for:', this.dataset.code);
+
+                    document.getElementById('SharesCodeInput').value = this.dataset.code;
+                    document.getElementById('SharesCode').value = this.dataset.code;
+                    document.getElementById('SharesType').value = this.dataset.type;
+                    document.getElementById('SharesAcc').value = this.dataset.acc;
+                    document.getElementById('Ppacc').value = this.dataset.pp || this.dataset.acc;  // Set Ppacc from data or use SharesAcc
+                    document.getElementById('MinAmount').value = this.dataset.min;
+                    document.getElementById('MaxAmount').value = this.dataset.max;
+                    document.getElementById('LoanToShareRatio').value = this.dataset.ratio;
+
+                    document.getElementById('IsMainShares').checked = this.dataset.main === "true";
+                    document.getElementById('Withdrawable').checked = this.dataset.withdraw === "true";
+                    document.getElementById('UsedToOffset').checked = this.dataset.offset === "true";
+                    document.getElementById('UsedToGuarantee').checked = this.dataset.guarantee === "true";
+
+                    // Highlight selected row
+                    document.querySelectorAll('#shareTypesTable tbody tr').forEach(r => r.classList.remove('table-primary'));
+                    this.closest('tr').classList.add('table-primary');
+
+                    showNotification('Share type loaded for ' + (this.dataset.code ? 'update' : 'view'), 'info');
+                });
+            });
+
+            // Auto-populate SharesAcc and Ppacc when SharesCode is entered (optional)
+            const sharesCodeInput = document.getElementById('SharesCodeInput');
+            if (sharesCodeInput) {
+                sharesCodeInput.addEventListener('blur', function() {
+                    const code = this.value.trim();
+                    const sharesAccInput = document.getElementById('SharesAcc');
+                    const ppaccInput = document.getElementById('Ppacc');
+                    if (code && sharesAccInput && !sharesAccInput.value) {
+                        sharesAccInput.value = code;
+                        if (ppaccInput) ppaccInput.value = code;  // Also set Ppacc
+                    }
+                });
+            }
+
+            // Auto-dismiss alerts after 5 seconds
+            setTimeout(function() {
+                const alerts = document.querySelectorAll('.alert');
+                alerts.forEach(alert => {
+                    const bsAlert = new bootstrap.Alert(alert);
+                    setTimeout(() => bsAlert.close(), 5000);
+                });
+            }, 3000);
+
+            if (sharesCodeInput) sharesCodeInput.focus();
+
+            console.log('All event handlers attached successfully');
+        });
+    </script>
+}
+
+<style>
+    .table-primary {
+        background-color: #cfe2ff !important;
+    }
+
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .card {
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+    }
+
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .alert {
+        animation: slideDown 0.5s ease;
+    }
+
+    {
+        transform: translateY(-100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
+    }
+
+    .form-check {
+        margin-bottom: 5px;
+    }
+
+    .form-check-input {
+        cursor: pointer;
+    }
+
+    .form-check-label {
+        cursor: pointer;
+        margin-left: 5px;
+    }
+
+    .text-end {
+        text-align: right;
+    }
+
+    .w-100 {
+        width: 100%;
+    }
+
+    .d-flex {
+        display: flex;
+    }
+
+    .gap-2 {
+        gap: 0.5rem;
+    }
+</style>

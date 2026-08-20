@@ -1,0 +1,637 @@
+﻿@using System.Security.Claims
+@using SACCOBlockChainSystem.Models.ViewModels
+@model SACCOBlockChainSystem.Models.ViewModels.AgingAnalysisIndexViewModel
+@{
+    ViewData["Title"] = "Aging Analysis Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var hasData = Model != null && Model.Loans != null && Model.Loans.Any();
+    var asAtDate = Model?.AsAtDate ?? (ViewBag.AsAtDate as DateTime? ?? DateTime.Now);
+    var companyName = Model?.CompanyName ?? ViewBag.CompanyName ?? "";
+}
+
+<style media="print">
+    .app-sidebar, .app-header, .main-footer, .sidebar-wrapper, .navbar,
+    .breadcrumb, .footer, [data-lte-toggle="sidebar"], .brand-link,
+    .sidebar-footer, .no-print {
+        display: none !important;
+    }
+
+    .app-main, .app-content, .content-wrapper, .main-content {
+        margin-left: 0 !important;
+        padding: 20px !important;
+        width: 100% !important;
+    }
+
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .card-header {
+        background-color: #17a2b8 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        font-size: 10pt;
+    }
+
+        .table th {
+            background-color: #f2f2f2 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+            font-size: 9pt;
+        }
+
+    .btn, .export-buttons, #exportExcelBtn, #exportPdfBtn {
+        display: none !important;
+    }
+
+    body {
+        background: white !important;
+        font-size: 10pt;
+    }
+
+    .bg-info {
+        background-color: #17a2b8 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .performing {
+        background-color: #d4edda;
+    }
+
+    .special-mention {
+        background-color: #fff3cd;
+    }
+
+    .watchful {
+        background-color: #ffe5b4;
+    }
+
+    .substandard {
+        background-color: #ffd0b0;
+    }
+
+    .doubtful {
+        background-color: #f7b7b7;
+    }
+
+    .loss {
+        background-color: #f5a3a3;
+    }
+
+    .loss-over365 {
+        background-color: #f58b8b;
+    }
+</style>
+
+<div class="card">
+    <div class="card-header bg-info text-white">
+        <h3 class="card-title">
+            <i class="fas fa-chart-line me-2"></i>Aging Analysis Report
+        </h3>
+    </div>
+
+    <div class="card-body">
+        <!-- Filter Section - Hidden when printing -->
+        <div class="row mb-4 no-print">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>As At Date</h5>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="AgingAnalysis" method="post" id="reportForm">
+                            @Html.AntiForgeryToken()
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">As At Date</label>
+                                        <input type="date" name="asAtDate" id="asAtDate"
+                                               class="form-control"
+                                               value="@asAtDate.ToString("yyyy-MM-dd")"
+                                               required />
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">&nbsp;</label>
+                                        <div>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-sync-alt me-1"></i>Run Analysis
+                                            </button>
+                                            <button type="button" class="btn btn-success" id="exportExcelBtn" onclick="exportAgingAnalysisToExcel(); return false;">
+                                                <i class="fas fa-file-excel me-1"></i>Excel
+                                            </button>
+                                            <button type="button" class="btn btn-danger" id="exportPdfBtn" onclick="exportAgingAnalysisToPdf(); return false;">
+                                                <i class="fas fa-file-pdf me-1"></i>PDF
+                                            </button>
+                                           
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Export Forms - WITH AntiForgeryToken -->
+                        <form asp-action="ExportAgingAnalysisToExcel" method="post" id="excelForm" style="display:none;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="asAtDate" id="excelAsAtDate" />
+                        </form>
+                        <form asp-action="ExportAgingAnalysisToPdf" method="post" id="pdfForm" style="display:none;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="asAtDate" id="pdfAsAtDate" />
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (hasData)
+        {
+            <!-- Report Header -->
+            <div class="text-center mb-4">
+                <h2 class="display-6 fw-bold">@companyName.ToUpper()</h2>
+                <h1 class="display-5 fw-bold text-info">AGING ANALYSIS</h1>
+                <h4 class="text-muted">As At @asAtDate.ToString("dd/MM/yyyy")</h4>
+                <hr class="my-4" />
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="small-box bg-primary">
+                        <div class="inner">
+                            <h3>@Model.TotalLoans</h3>
+                            <p>Total Loans</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-file-invoice"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-success">
+                        <div class="inner">
+                            <h3>@Model.TotalLoanBalance.ToString("N2")</h3>
+                            <p>Total Balance</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-money-bill"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-warning">
+                        <div class="inner">
+                            <h3>@Model.SpecialMentionCount</h3>
+                            <p>Special Mention</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-danger">
+                        <div class="inner">
+                            <h3>@(Model.SubstandardCount + Model.DoubtfulCount + Model.LossCount + Model.LossOver365Count)</h3>
+                            <p>Non-Performing</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aging Categories Summary -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Aging Categories Summary (Cumulative Arrears)</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="p-2 performing rounded">
+                                        <strong>Performing (0 days):</strong><br>
+                                        @Model.PerformingCount loans | <span class="fw-bold">@Model.TotalPerforming.ToString("N2")</span><br>
+                                        <small class="text-muted">Current month's due amount</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-2 special-mention rounded">
+                                        <strong>Special Mention (1-30 days):</strong><br>
+                                        @Model.SpecialMentionCount loans | <span class="fw-bold">@Model.TotalSpecialMention.ToString("N2")</span><br>
+                                        <small class="text-muted">2 months due (current + 1 previous)</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-2 watchful rounded">
+                                        <strong>Watchful (31-60 days):</strong><br>
+                                        @Model.WatchfulCount loans | <span class="fw-bold">@Model.TotalWatchful.ToString("N2")</span><br>
+                                        <small class="text-muted">3 months due</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="p-2 substandard rounded">
+                                        <strong>Substandard (61-90 days):</strong><br>
+                                        @Model.SubstandardCount loans | <span class="fw-bold">@Model.TotalSubstandard.ToString("N2")</span><br>
+                                        <small class="text-muted">4 months due</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mt-2">
+                                    <div class="p-2 doubtful rounded">
+                                        <strong>Doubtful (91-180 days):</strong><br>
+                                        @Model.DoubtfulCount loans | <span class="fw-bold">@Model.TotalDoubtful.ToString("N2")</span><br>
+                                        <small class="text-muted">6 months due</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mt-2">
+                                    <div class="p-2 loss rounded">
+                                        <strong>Loss (181-365 days):</strong><br>
+                                        @Model.LossCount loans | <span class="fw-bold">@Model.TotalLoss.ToString("N2")</span><br>
+                                        <small class="text-muted">12 months due</small>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 mt-2">
+                                    <div class="p-2 loss-over365 rounded">
+                                        <strong>Loss >365 days:</strong><br>
+                                        @Model.LossOver365Count loans | <span class="fw-bold">@Model.TotalLossOver365.ToString("N2")</span><br>
+                                        <small class="text-muted">Total remaining balance</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Loans Table -->
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover" id="loansTable">
+                    <thead class="bg-info text-white">
+                        <tr>
+                            <th>LoanNo</th>
+                            <th>MemberNo</th>
+                            <th>Name</th>
+                            <th class="text-end">Loan Balance</th>
+                            <th class="text-center">Repay Period</th>
+                            <th class="text-center">Date Issued</th>
+                            <th class="text-center">Days In Arrears</th>
+                            <th class="text-center">Last Repay Date</th>
+                            <th class="text-center">Date of Completion</th>
+                            <th>Loan Type</th>
+                            <th class="text-end">Performing 0 days</th>
+                            <th class="text-end">Special Mention 1-30 days</th>
+                            <th class="text-end">Watchful 31-60 days</th>
+                            <th class="text-end">Substandard 61-90 days</th>
+                            <th class="text-end">Doubtful 91-180 days</th>
+                            <th class="text-end">Loss 181-365 days</th>
+                            <th class="text-end">Loss >365 days</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Loans)
+                        {
+                            string rowClass = "";
+                            if (item.ArrearsCategory == AgingCategories.PERFORMING) rowClass = "performing";
+                            else if (item.ArrearsCategory == AgingCategories.SPECIAL_MENTION) rowClass = "special-mention";
+                            else if (item.ArrearsCategory == AgingCategories.WATCHFUL) rowClass = "watchful";
+                            else if (item.ArrearsCategory == AgingCategories.SUBSTANDARD) rowClass = "substandard";
+                            else if (item.ArrearsCategory == AgingCategories.DOUBTFUL) rowClass = "doubtful";
+                            else if (item.ArrearsCategory == AgingCategories.LOSS) rowClass = "loss";
+                            else if (item.ArrearsCategory == AgingCategories.LOSS_OVER_365) rowClass = "loss-over365";
+
+                            <tr class="@rowClass">
+                                <td>@item.LoanNo</td>
+                                <td>@item.MemberNo</td>
+                                <td>@item.FullName</td>
+                                <td class="text-end">@item.LoanBalance.ToString("N2")</td>
+                                <td class="text-center">@(item.RepayPeriod.HasValue? item.RepayPeriod.Value.ToString() + " months" : "-")</td>
+                                <td class="text-center">@(item.DateIssued?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                <td class="text-center fw-bold">@item.DaysInArrears</td>
+                                <td class="text-center">@(item.LastRepayDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                <td class="text-center">@(item.DateOfCompletion?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                <td>@(item.ValueChain ?? "-")</td>
+                                <td class="text-end">@item.Performing.ToString("N2")</td>
+                                <td class="text-end">@item.SpecialMention.ToString("N2")</td>
+                                <td class="text-end">@item.Watchful.ToString("N2")</td>
+                                <td class="text-end">@item.Substandard.ToString("N2")</td>
+                                <td class="text-end">@item.Doubtful.ToString("N2")</td>
+                                <td class="text-end">@item.Loss.ToString("N2")</td>
+                                <td class="text-end">@item.LossOver365.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="bg-light fw-bold">
+                        <tr>
+                            <td colspan="3" class="text-end">TOTAL</td>
+                            <td class="text-end">@Model.TotalLoanBalance.ToString("N2")</td>
+                            <td colspan="6"></td>
+                            <td class="text-end">@Model.TotalPerforming.ToString("N2")</td>
+                            <td class="text-end">@Model.TotalSpecialMention.ToString("N2")</td>
+                            <td class="text-end">@Model.TotalWatchful.ToString("N2")</td>
+                            <td class="text-end">@Model.TotalSubstandard.ToString("N2")</td>
+                            <td class="text-end">@Model.TotalDoubtful.ToString("N2")</td>
+                            <td class="text-end">@Model.TotalLoss.ToString("N2")</td>
+                            <td class="text-end">@Model.TotalLossOver365.ToString("N2")</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Report Information -->
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="small text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Generated By: @User.Identity.Name on @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") |
+                        As At: @Model.AsAtDate.ToString("dd/MM/yyyy") |
+                        Company: @companyName |
+                        Total Loans: @Model.TotalLoans
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info text-center py-5">
+                <i class="fas fa-chart-line fa-3x mb-3"></i>
+                <p><br>Select the date and click "Generate Report" to view loans data.</p>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function() {
+            'use strict';
+
+            function domReady(fn) {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', fn);
+                } else {
+                    fn();
+                }
+            }
+
+            // Global functions - accessible from onclick
+            window.exportAgingAnalysisToExcel = function() {
+                console.log('Excel export function called');
+
+                const asAtDate = document.getElementById('asAtDate');
+                const excelAsAtDate = document.getElementById('excelAsAtDate');
+                const excelForm = document.getElementById('excelForm');
+                const btn = document.getElementById('exportExcelBtn');
+
+                if (!asAtDate) {
+                    alert('As At Date input not found');
+                    return false;
+                }
+
+                const date = asAtDate.value;
+                if (!date) {
+                    alert('Please select an as at date');
+                    asAtDate.focus();
+                    return false;
+                }
+
+                if (!excelAsAtDate || !excelForm) {
+                    alert('Export form not properly configured');
+                    return false;
+                }
+
+                // Show loading state
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                    btn.disabled = true;
+                    btn.style.opacity = '0.8';
+                }
+
+                // Set the date and submit
+                excelAsAtDate.value = date;
+                console.log('Submitting Excel export with date:', date);
+                excelForm.submit();
+
+                // Reset button after a short delay
+                setTimeout(function() {
+                    if (btn) {
+                        btn.innerHTML = '<i class="fas fa-file-excel me-1"></i>Excel';
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    }
+                }, 3000);
+
+                return false;
+            };
+
+            window.exportAgingAnalysisToPdf = function() {
+                console.log('PDF export function called');
+
+                const asAtDate = document.getElementById('asAtDate');
+                const pdfAsAtDate = document.getElementById('pdfAsAtDate');
+                const pdfForm = document.getElementById('pdfForm');
+                const btn = document.getElementById('exportPdfBtn');
+
+                if (!asAtDate) {
+                    alert('As At Date input not found');
+                    return false;
+                }
+
+                const date = asAtDate.value;
+                if (!date) {
+                    alert('Please select an as at date');
+                    asAtDate.focus();
+                    return false;
+                }
+
+                if (!pdfAsAtDate || !pdfForm) {
+                    alert('Export form not properly configured');
+                    return false;
+                }
+
+                // Show loading state
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                    btn.disabled = true;
+                    btn.style.opacity = '0.8';
+                }
+
+                // Set the date and submit
+                pdfAsAtDate.value = date;
+                console.log('Submitting PDF export with date:', date);
+                pdfForm.submit();
+
+                // Reset button after a short delay
+                setTimeout(function() {
+                    if (btn) {
+                        btn.innerHTML = '<i class="fas fa-file-pdf me-1"></i>PDF';
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    }
+                }, 3000);
+
+                return false;
+            };
+
+            // Initialize DataTable if jQuery is available
+            domReady(function() {
+                const loansTable = document.getElementById('loansTable');
+                const asAtDate = document.getElementById('asAtDate');
+                const reportForm = document.getElementById('reportForm');
+
+                @if (hasData)
+                {
+                        <text>
+                        if (loansTable && typeof $ !== 'undefined' && $.fn.DataTable) {
+                            try {
+                                $(loansTable).DataTable({
+                                    pageLength: 25,
+                                    ordering: true,
+                                    responsive: true,
+                                    scrollX: true,
+                                    language: {
+                                        search: "Search:",
+                                        lengthMenu: "Show _MENU_ entries",
+                                        info: "Showing _START_ to _END_ of _TOTAL_ entries"
+                                    }
+                                });
+                                console.log('DataTable initialized');
+                            } catch(e) {
+                                console.log('DataTable error:', e);
+                            }
+                        }
+                        </text>
+                }
+
+                // Set default date to today if empty
+                if (asAtDate && !asAtDate.value) {
+                    const today = new Date();
+                    const year = today.getFullYear();
+                    const month = String(today.getMonth() + 1).padStart(2, '0');
+                    const day = String(today.getDate()).padStart(2, '0');
+                    asAtDate.value = `${year}-${month}-${day}`;
+                }
+
+                // Handle report form submission
+                if (reportForm) {
+                    reportForm.addEventListener('submit', function(e) {
+                        const date = asAtDate.value;
+                        if (!date) {
+                            e.preventDefault();
+                            alert('Please select an as at date');
+                            return false;
+                        }
+                    });
+                }
+
+                console.log('=================================');
+                console.log('Aging Analysis Report Ready');
+                console.log('=================================');
+                console.log('Excel button exists:', !!document.getElementById('exportExcelBtn'));
+                console.log('PDF button exists:', !!document.getElementById('exportPdfBtn'));
+                console.log('Excel form exists:', !!document.getElementById('excelForm'));
+                console.log('PDF form exists:', !!document.getElementById('pdfForm'));
+                console.log('Has data:', @Json.Serialize(hasData));
+                console.log('=================================');
+            });
+        })();
+    </script>
+}
+
+<style>
+    .small-box {
+        border-radius: 0.25rem;
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+        display: block;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+        .small-box > .inner {
+            padding: 10px;
+        }
+
+        .small-box h3 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 0 0 10px;
+            padding: 0;
+            white-space: nowrap;
+            color: white;
+        }
+
+        .small-box p {
+            color: white;
+            font-size: 1rem;
+        }
+
+        .small-box .icon {
+            color: rgba(0,0,0,0.15);
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            transition: all .3s linear;
+            z-index: 0;
+        }
+
+            .small-box .icon > i {
+                font-size: 70px;
+            }
+
+        .small-box:hover .icon {
+            font-size: 75px;
+        }
+
+    .bg-info {
+        background-color: #17a2b8 !important;
+    }
+
+    .performing {
+        background-color: #d4edda;
+    }
+
+    .special-mention {
+        background-color: #fff3cd;
+    }
+
+    .watchful {
+        background-color: #ffe5b4;
+    }
+
+    .substandard {
+        background-color: #ffd0b0;
+    }
+
+    .doubtful {
+        background-color: #f7b7b7;
+    }
+
+    .loss {
+        background-color: #f5a3a3;
+    }
+
+    .loss-over365 {
+        background-color: #f58b8b;
+    }
+
+    @@media (max-width: 767px) {
+        .small-box {
+            text-align: center;
+        }
+
+            .small-box .icon {
+                display: none;
+            }
+    }
+</style>

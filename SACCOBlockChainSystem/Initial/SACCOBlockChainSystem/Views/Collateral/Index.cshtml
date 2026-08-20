@@ -1,0 +1,380 @@
+﻿@model List<SACCOBlockChainSystem.Models.DTOs.CollateralResponseDTO>
+
+@{
+    ViewData["Title"] = "Collaterals";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var newColCode = ViewBag.NewColCode as string;
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center">
+                <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+                <h2><i class="bi bi-bank2 me-2"></i>Collateral Management</h2>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Form Card -->
+    <div class="card shadow-sm mb-4" id="formCard">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0" id="formTitle"><i class="bi bi-plus-circle me-2"></i>Add New Collateral</h5>
+        </div>
+        <div class="card-body">
+            <form id="collateralForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="Id" />
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Collateral Code *</label>
+                        <input type="text" class="form-control bg-light" id="ColCode" readonly />
+                        <small class="text-muted">Auto-generated unique code</small>
+                    </div>
+                    <div class="col-md-5 mb-3">
+                        <label class="form-label fw-bold">Collateral Description *</label>
+                        <input type="text" class="form-control" id="Coldescription" required maxlength="100" />
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label fw-bold">Percentage (%) *</label>
+                        <input type="number" step="0.01" class="form-control" id="Percentage" required min="0" max="100" />
+                        <small class="text-muted">Value between 0 and 100</small>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" onclick="resetForm()">Reset</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Save Collateral</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- List Card -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Collaterals List</h5>
+                    <small class="text-muted">Manage collateral assets</small>
+                </div>
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search by code or description..." />
+                        <button class="btn btn-outline-secondary" onclick="filterTable()"><i class="bi bi-search"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            @if (!Model.Any())
+            {
+                <div class="alert alert-info text-center py-5">
+                    <i class="bi bi-info-circle fs-1"></i>
+                    <h5 class="mt-3">No collaterals found</h5>
+                    <p class="mb-0">Use the form above to create your first collateral.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover" id="dataTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Code</th>
+                                <th>Description</th>
+                                <th class="text-end">Percentage (%)</th>
+                                <th>Blockchain Tx</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr id="row-@item.Id">
+                                    <td><strong>@item.ColCode</strong></td>
+                                    <td>@item.Coldescription</td>
+                                    <td class="text-end">@item.Percentage.ToString("N2")%</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.BlockchainTxId))
+                                        {
+                                            <code class="small">@(item.BlockchainTxId.Length > 12 ? item.BlockchainTxId.Substring(0, 12) + "..." : item.BlockchainTxId)</code>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Not recorded</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-outline-info" onclick="viewDetails(@item.Id)"><i class="bi bi-eye"></i></button>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="editCollateral(@item.Id)"><i class="bi bi-pencil"></i></button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteCollateral(@item.Id, '@item.ColCode')"><i class="bi bi-trash"></i></button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3 text-muted">
+                    <small>Total: @Model.Count() collateral(s)</small>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- View Modal -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-eye me-2"></i>Collateral Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <label class="fw-bold text-muted">Collateral Code:</label>
+                        <p id="v_ColCode">-</p>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="fw-bold text-muted">Percentage:</label>
+                        <p id="v_Percentage">-</p>
+                    </div>
+                    <div class="col-12 mb-2">
+                        <label class="fw-bold text-muted">Description:</label>
+                        <p id="v_Coldescription">-</p>
+                    </div>
+                    <div class="col-12 mb-2">
+                        <label class="fw-bold text-muted">Blockchain Tx ID:</label>
+                        <p id="v_BlockchainTxId">-</p>
+                    </div>
+                    <div class="col-12 mb-2">
+                        <label class="fw-bold text-muted">Company Code:</label>
+                        <p id="v_CompanyCode">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            loadNewCode();
+            if ($.fn.DataTable) {
+                $('#dataTable').DataTable({
+                    pageLength: 10,
+                    ordering: true,
+                    searching: false,
+                    paging: true,
+                    language: {
+                        lengthMenu: "Show _MENU_ collaterals per page",
+                        info: "Showing _START_ to _END_ of _TOTAL_ collaterals",
+                        infoEmpty: "No collaterals found"
+                    }
+                });
+            }
+        });
+
+        function filterTable() {
+            var searchText = $('#searchInput').val().toLowerCase();
+            $('#dataTable tbody tr').each(function() {
+                var text = $(this).text().toLowerCase();
+                $(this).toggle(text.indexOf(searchText) > -1);
+            });
+        }
+
+        function loadNewCode() {
+            $.get('@Url.Action("GenerateCode", "Collateral")', function(r) {
+                if (r.success) $('#ColCode').val(r.colCode);
+            });
+        }
+
+        $('#collateralForm').on('submit', function(e) {
+            e.preventDefault();
+
+            if (!$('#Coldescription').val()) {
+                showToast('error', 'Collateral Description is required');
+                $('#Coldescription').addClass('is-invalid');
+                return;
+            }
+            $('#Coldescription').removeClass('is-invalid');
+
+            if (!$('#Percentage').val() || parseFloat($('#Percentage').val()) < 0 || parseFloat($('#Percentage').val()) > 100) {
+                showToast('error', 'Percentage must be between 0 and 100');
+                $('#Percentage').addClass('is-invalid');
+                return;
+            }
+            $('#Percentage').removeClass('is-invalid');
+
+            var data = {
+                Id: $('#Id').val() || null,
+                ColCode: $('#ColCode').val(),
+                Coldescription: $('#Coldescription').val(),
+                Percentage: parseFloat($('#Percentage').val())
+            };
+
+            var id = $('#Id').val();
+            var url = id ? '/Collateral/Edit?id=' + id : '/Collateral/Create';
+            var btn = $('#submitBtn');
+            btn.prop('disabled', true).html('<i class="bi bi-hourglass-split me-2"></i>Saving...');
+
+            $.ajax({
+                url: url,
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                success: function(r) {
+                    if (r.success) {
+                        showToast('success', r.message);
+                        setTimeout(function() { location.reload(); }, 1500);
+                    } else {
+                        showToast('error', r.message);
+                        btn.prop('disabled', false).html('<i class="bi bi-save me-2"></i>Save Collateral');
+                    }
+                },
+                error: function() {
+                    showToast('error', 'An error occurred');
+                    btn.prop('disabled', false).html('<i class="bi bi-save me-2"></i>Save Collateral');
+                }
+            });
+        });
+
+        function resetForm() {
+            $('#collateralForm')[0].reset();
+            $('#Id').val('');
+            $('#formTitle').html('<i class="bi bi-plus-circle me-2"></i>Add New Collateral');
+            $('#submitBtn').html('<i class="bi bi-save me-2"></i>Save Collateral');
+            loadNewCode();
+        }
+
+        function editCollateral(id) {
+            $.get('/Collateral/GetDetails?id=' + id, function(r) {
+                if (r.success) {
+                    var c = r.collateral;
+                    $('#Id').val(c.id);
+                    $('#ColCode').val(c.colCode);
+                    $('#Coldescription').val(c.coldescription);
+                    $('#Percentage').val(c.percentage);
+                    $('#formTitle').html('<i class="bi bi-pencil-square me-2"></i>Edit Collateral');
+                    $('#submitBtn').html('<i class="bi bi-save me-2"></i>Update Collateral');
+                    $('#formCard')[0].scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        }
+
+        function viewDetails(id) {
+            $.get('/Collateral/GetDetails?id=' + id, function(r) {
+                if (r.success) {
+                    var c = r.collateral;
+                    $('#v_ColCode').text(c.colCode);
+                    $('#v_Coldescription').text(c.coldescription);
+                    $('#v_Percentage').text(c.percentage + '%');
+                    $('#v_BlockchainTxId').text(c.blockchainTxId || 'Not recorded');
+                    $('#v_CompanyCode').text(c.companyCode || 'N/A');
+                    $('#viewModal').modal('show');
+                }
+            });
+        }
+
+        function deleteCollateral(id, code) {
+            if (confirm(`Are you sure you want to delete collateral '${code}'? This action cannot be undone.`)) {
+                $.ajax({
+                    url: '/Collateral/Delete?id=' + id,
+                    type: 'POST',
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                    success: function(r) {
+                        if (r.success) {
+                            showToast('success', r.message);
+                            setTimeout(function() { location.reload(); }, 1000);
+                        } else {
+                            showToast('error', r.message);
+                        }
+                    }
+                });
+            }
+        }
+
+        function showToast(type, message) {
+            var toastHtml = `
+                <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0 position-fixed bottom-0 end-0 m-3" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body"><i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            $('body').append(toastHtml);
+            var toast = $('.toast').last();
+            var bsToast = new bootstrap.Toast(toast[0]);
+            bsToast.show();
+            toast.on('hidden.bs.toast', function() { $(this).remove(); });
+        }
+    </script>
+}
+
+@section Styles {
+    <style>
+        .form-control:focus, .form-select:focus {
+            border-color: #00AEEF;
+            box-shadow: 0 0 0 0.2rem rgba(0, 174, 239, 0.15);
+        }
+
+        .btn-primary {
+            background: linear-gradient(145deg, #00AEEF, #164799);
+            border: none;
+        }
+
+            .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(0, 174, 239, 0.2);
+            }
+
+        .card {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 174, 239, 0.05);
+        }
+
+        .badge {
+            padding: 5px 10px;
+            font-weight: 500;
+        }
+
+        .btn-group .btn {
+            margin: 0 2px;
+        }
+
+        .toast {
+            z-index: 1050;
+        }
+    </style>
+}

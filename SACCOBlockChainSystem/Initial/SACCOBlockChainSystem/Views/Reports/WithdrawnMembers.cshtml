@@ -1,0 +1,937 @@
+﻿@using System.Security.Claims
+@model SACCOBlockChainSystem.Models.ViewModels.WithdrawnMembersIndexViewModel
+@{
+    ViewData["Title"] = "Withdrawn Members Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var hasData = Model != null && Model.Members != null && Model.Members.Any();
+    var reportDate = Model?.ReportDate ?? (ViewBag.ReportDate as DateTime? ?? DateTime.Now);
+    var companyName = Model?.CompanyName ?? ViewBag.CompanyName ?? "";
+    var startDate = Model?.StartDate;
+    var endDate = Model?.EndDate;
+}
+
+<style media="print">
+    .app-sidebar, .app-header, .main-footer, .sidebar-wrapper, .navbar,
+    .breadcrumb, .footer, [data-lte-toggle="sidebar"], .brand-link,
+    .sidebar-footer, .no-print {
+        display: none !important;
+    }
+
+    .app-main, .app-content, .content-wrapper, .main-content {
+        margin-left: 0 !important;
+        padding: 20px !important;
+        width: 100% !important;
+    }
+
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .card-header {
+        background-color: #dc3545 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+        .table th {
+            background-color: #f2f2f2 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+    .btn, .export-buttons, #exportExcelBtn, #exportPdfBtn {
+        display: none !important;
+    }
+
+    body {
+        background: white !important;
+        font-size: 11pt;
+    }
+
+    .bg-danger {
+        background-color: #dc3545 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+</style>
+
+<div class="card">
+    <div class="card-header bg-danger text-white">
+        <h3 class="card-title">
+            <i class="fas fa-user-slash me-2"></i>Withdrawn Members Report
+        </h3>
+    </div>
+
+    <div class="card-body">
+        <!-- Filter Section - Hidden when printing -->
+        <div class="row mb-4 no-print">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filter by Withdrawal Date (Optional)</h5>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="WithdrawnMembers" method="post" id="reportForm">
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">Start Date</label>
+                                        <input type="date" name="startDate" id="startDate"
+                                               class="form-control"
+                                               value="@(startDate?.ToString("yyyy-MM-dd"))" />
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">End Date</label>
+                                        <input type="date" name="endDate" id="endDate"
+                                               class="form-control"
+                                               value="@(endDate?.ToString("yyyy-MM-dd"))" />
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">&nbsp;</label>
+                                        <div>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-search me-1"></i>Generate Report
+                                            </button>
+                                            <button type="button" class="btn btn-success" id="exportExcelBtn" onclick="exportWithdrawnMembersToExcel(); return false;">
+                                                <i class="fas fa-file-excel me-1"></i>Excel
+                                            </button>
+                                            <button type="button" class="btn btn-danger" id="exportPdfBtn" onclick="exportWithdrawnMembersToPdf(); return false;">
+                                                <i class="fas fa-file-pdf me-1"></i>PDF
+                                            </button>
+                                            <button type="button" class="btn btn-info" id="clearFilterBtn" onclick="clearWithdrawnFilter(); return false;">
+                                                <i class="fas fa-undo me-1"></i>Clear Filter
+                                            </button>
+                                        </div>
+                                        <small class="text-muted">Leave dates empty to show all withdrawn members</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Export Forms -->
+                        <form asp-action="ExportWithdrawnMembersToExcel" method="post" id="excelForm" style="display:none;">
+                            <input type="hidden" name="startDate" id="excelStartDate" />
+                            <input type="hidden" name="endDate" id="excelEndDate" />
+                        </form>
+                        <form asp-action="ExportWithdrawnMembersToPdf" method="post" id="pdfForm" style="display:none;">
+                            <input type="hidden" name="startDate" id="pdfStartDate" />
+                            <input type="hidden" name="endDate" id="pdfEndDate" />
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (hasData)
+        {
+            <!-- Report Header - Exactly as in the image -->
+            <div class="text-center mb-4">
+                <h2 class="display-6 fw-bold">@companyName.ToUpper()</h2>
+                <h3 class="text-muted">@DateTime.Now.ToString("dd/MM/yyyy")</h3>
+                <h1 class="display-5 fw-bold text-danger">WITHDRAWN MEMBERS</h1>
+                @if (startDate.HasValue || endDate.HasValue)
+                {
+                    <h5 class="text-muted">
+                        @(startDate.HasValue? startDate.Value.ToString("dd/MM/yyyy") : "Beginning")
+                        -
+                        @(endDate.HasValue? endDate.Value.ToString("dd/MM/yyyy") : "Present")
+                    </h5>
+                }
+                <hr class="my-4" />
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="small-box bg-info">
+                        <div class="inner">
+                            <h3>@Model.TotalMembers</h3>
+                            <p>Total Withdrawn</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-user-slash"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-primary">
+                        <div class="inner">
+                            <h3>@Model.MaleCount</h3>
+                            <p>Male</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-male"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-danger">
+                        <div class="inner">
+                            <h3>@Model.FemaleCount</h3>
+                            <p>Female</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-female"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-success">
+                        <div class="inner">
+                            <h3>@Model.GrandTotalAmount.ToString("N2")</h3>
+                            <p>Total Amount</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-money-bill"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Members Table - Exactly as in the image -->
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover" id="membersTable">
+                    <thead class="bg-danger text-white">
+                        <tr>
+                            <th>MemberNo</th>
+                            <th>Name</th>
+                            <th>Date Withdrawn</th>
+                            <th class="text-end">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Members)
+                        {
+                            <tr>
+                                <td>@item.MemberNo</td>
+                                <td>@item.FullName</td>
+                                <td>@item.WithdrawalDate?.ToString("dd/MM/yyyy")</td>
+                                <td class="text-end">@item.TotalAmount.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="bg-light fw-bold">
+                        <tr>
+                            <td colspan="3" class="text-end">GRAND TOTAL:</td>
+                            <td class="text-end text-danger">@Model.GrandTotalAmount.ToString("N2")</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Detailed Statistics (Optional - can be hidden if not needed) -->
+            <div class="row mt-4 no-print">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Withdrawal Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td width="60%"><strong>Total Share Capital:</strong></td>
+                                    <td class="text-end">@Model.TotalShareCapital.ToString("N2")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Savings/Deposits:</strong></td>
+                                    <td class="text-end">@Model.TotalSavingsDeposits.ToString("N2")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Registration Fee:</strong></td>
+                                    <td class="text-end">@Model.TotalRegistrationFee.ToString("N2")</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Total Passbook Amount:</strong></td>
+                                    <td class="text-end">@Model.TotalPassbookAmount.ToString("N2")</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Demographics</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td width="60%"><strong>Male Members:</strong></td>
+                                    <td class="text-end">@Model.MaleCount (@((Model.MaleCount * 100 / (Model.TotalMembers == 0 ? 1 : Model.TotalMembers)).ToString("N0"))%)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Female Members:</strong></td>
+                                    <td class="text-end">@Model.FemaleCount (@((Model.FemaleCount * 100 / (Model.TotalMembers == 0 ? 1 : Model.TotalMembers)).ToString("N0"))%)</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Others:</strong></td>
+                                    <td class="text-end">@Model.OtherCount (@((Model.OtherCount * 100 / (Model.TotalMembers == 0 ? 1 : Model.TotalMembers)).ToString("N0"))%)</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Information -->
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="small text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Generated By: @User.Identity.Name on @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") |
+                        Company: @companyName |
+                        Total Withdrawn: @Model.TotalMembers
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info text-center py-5">
+                <i class="fas fa-user-slash fa-3x mb-3"></i>
+                <h5>No Withdrawn Members Found</h5>
+                <p>
+                    @if (startDate.HasValue || endDate.HasValue)
+                    {
+                        <span>
+                            There are no members who withdrew between
+                            @(startDate.HasValue? startDate.Value.ToString("dd/MM/yyyy") : "the beginning")
+                            and
+                            @(endDate.HasValue? endDate.Value.ToString("dd/MM/yyyy") : "present")
+                        </span>
+                    }
+                    else
+                    {
+                        <span>There are no withdrawn members in the system</span>
+                    }
+                </p>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function() {
+            'use strict';
+
+            // DOM ready helper
+            function domReady(fn) {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', fn);
+                } else {
+                    fn();
+                }
+            }
+
+            domReady(function() {
+                // Get all required elements
+                const exportExcelBtn = document.getElementById('exportExcelBtn');
+                const exportPdfBtn = document.getElementById('exportPdfBtn');
+                const clearFilterBtn = document.getElementById('clearFilterBtn');
+                const startDate = document.getElementById('startDate');
+                const endDate = document.getElementById('endDate');
+                const excelStartDate = document.getElementById('excelStartDate');
+                const excelEndDate = document.getElementById('excelEndDate');
+                const pdfStartDate = document.getElementById('pdfStartDate');
+                const pdfEndDate = document.getElementById('pdfEndDate');
+                const excelForm = document.getElementById('excelForm');
+                const pdfForm = document.getElementById('pdfForm');
+                const reportForm = document.getElementById('reportForm');
+                const membersTable = document.getElementById('membersTable');
+
+                // Date validation function
+                function validateDates() {
+                    if (!startDate || !endDate) {
+                        return true; // Dates are optional
+                    }
+
+                    const start = startDate.value;
+                    const end = endDate.value;
+
+                    // If both dates are provided, validate
+                    if (start && end) {
+                        const startDateTime = new Date(start);
+                        const endDateTime = new Date(end);
+
+                        if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+                            alert('Please enter valid dates');
+                            return false;
+                        }
+
+                        if (startDateTime > endDateTime) {
+                            alert('Start date cannot be greater than end date');
+                            return false;
+                        }
+                    }
+
+                    return true;
+                }
+
+                // Add date validation on change
+                if (startDate) {
+                    startDate.addEventListener('change', function() {
+                        if (endDate && endDate.value) {
+                            validateDates();
+                        }
+                    });
+                }
+
+                if (endDate) {
+                    endDate.addEventListener('change', function() {
+                        if (startDate && startDate.value) {
+                            validateDates();
+                        }
+                    });
+                }
+
+                // Clear filter button
+                if (clearFilterBtn) {
+                    clearFilterBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+
+                        if (startDate) startDate.value = '';
+                        if (endDate) endDate.value = '';
+
+                        // Show loading state on clear button
+                        const originalText = clearFilterBtn.innerHTML;
+                        clearFilterBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Clearing...';
+                        clearFilterBtn.disabled = true;
+
+                        // Submit the form
+                        if (reportForm) {
+                            reportForm.submit();
+                        }
+
+                        // Reset button after a delay
+                        setTimeout(function() {
+                            clearFilterBtn.innerHTML = originalText;
+                            clearFilterBtn.disabled = false;
+                        }, 2000);
+                    });
+                }
+
+                // Export to Excel
+                if (exportExcelBtn) {
+                    exportExcelBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (!validateDates()) return;
+
+                        if (!startDate || !endDate) {
+                            alert('Date inputs not found');
+                            return;
+                        }
+
+                        const sDate = startDate.value || '';
+                        const eDate = endDate.value || '';
+
+                        if (!excelStartDate || !excelEndDate) {
+                            alert('Excel form hidden inputs not found');
+                            return;
+                        }
+
+                        if (!excelForm) {
+                            alert('Excel form not found');
+                            return;
+                        }
+
+                        // Show loading state
+                        const originalText = exportExcelBtn.innerHTML;
+                        exportExcelBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                        exportExcelBtn.disabled = true;
+                        exportExcelBtn.style.opacity = '0.8';
+
+                        // Set the date values and submit
+                        excelStartDate.value = sDate;
+                        excelEndDate.value = eDate;
+
+                        console.log('Exporting to Excel with dates:', sDate || 'All', 'to', eDate || 'All');
+                        excelForm.submit();
+
+                        // Reset button after a short delay
+                        setTimeout(function() {
+                            exportExcelBtn.innerHTML = originalText;
+                            exportExcelBtn.disabled = false;
+                            exportExcelBtn.style.opacity = '1';
+                        }, 3000);
+                    });
+                }
+
+                // Export to PDF
+                if (exportPdfBtn) {
+                    exportPdfBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (!validateDates()) return;
+
+                        if (!startDate || !endDate) {
+                            alert('Date inputs not found');
+                            return;
+                        }
+
+                        const sDate = startDate.value || '';
+                        const eDate = endDate.value || '';
+
+                        if (!pdfStartDate || !pdfEndDate) {
+                            alert('PDF form hidden inputs not found');
+                            return;
+                        }
+
+                        if (!pdfForm) {
+                            alert('PDF form not found');
+                            return;
+                        }
+
+                        // Show loading state
+                        const originalText = exportPdfBtn.innerHTML;
+                        exportPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                        exportPdfBtn.disabled = true;
+                        exportPdfBtn.style.opacity = '0.8';
+
+                        // Set the date values and submit
+                        pdfStartDate.value = sDate;
+                        pdfEndDate.value = eDate;
+
+                        console.log('Exporting to PDF with dates:', sDate || 'All', 'to', eDate || 'All');
+                        pdfForm.submit();
+
+                        // Reset button after a short delay
+                        setTimeout(function() {
+                            exportPdfBtn.innerHTML = originalText;
+                            exportPdfBtn.disabled = false;
+                            exportPdfBtn.style.opacity = '1';
+                        }, 3000);
+                    });
+                }
+
+                // Handle report form submission
+                if (reportForm) {
+                    reportForm.addEventListener('submit', function(e) {
+                        if (!validateDates()) {
+                            e.preventDefault();
+                            return false;
+                        }
+                    });
+                }
+
+                // Initialize DataTable if available and data exists
+                @if (hasData)
+                {
+                        <text>
+                        if (membersTable && typeof $.fn !== 'undefined' && $.fn.DataTable) {
+                            try {
+                                $(membersTable).DataTable({
+                                    pageLength: 25,
+                                    ordering: true,
+                                    responsive: true,
+                                    language: {
+                                        search: "Search:",
+                                        lengthMenu: "Show _MENU_ entries",
+                                        info: "Showing _START_ to _END_ of _TOTAL_ entries"
+                                    }
+                                });
+                                console.log('DataTable initialized successfully');
+                            } catch (error) {
+                                console.error('DataTable initialization error:', error);
+                            }
+                        } else {
+                            console.log('DataTable not available or no data');
+                        }
+                        </text>
+                }
+
+                // Add print button enhancement
+                const printBtn = document.querySelector('button[onclick="window.print()"]');
+                if (printBtn && !printBtn.hasAttribute('data-handler-attached')) {
+                    printBtn.setAttribute('data-handler-attached', 'true');
+                    printBtn.addEventListener('click', function(e) {
+                        const originalText = this.innerHTML;
+                        this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Preparing Print...';
+                        this.disabled = true;
+
+                        setTimeout(function() {
+                            window.print();
+                            setTimeout(function() {
+                                printBtn.innerHTML = originalText;
+                                printBtn.disabled = false;
+                            }, 1000);
+                        }, 100);
+                    });
+                }
+
+                // Add placeholder text for empty dates
+                const dateInputs = [startDate, endDate];
+                dateInputs.forEach(input => {
+                    if (input) {
+                        input.addEventListener('focus', function() {
+                            this.style.borderColor = '#80bdff';
+                            this.style.boxShadow = '0 0 0 0.2rem rgba(0,123,255,.25)';
+                        });
+
+                        input.addEventListener('blur', function() {
+                            this.style.borderColor = '';
+                            this.style.boxShadow = '';
+                        });
+                    }
+                });
+            });
+
+            // Global fallback functions - These work even if event listeners fail
+            window.exportWithdrawnMembersToExcel = function() {
+                const startDate = document.getElementById('startDate');
+                const endDate = document.getElementById('endDate');
+                const excelStartDate = document.getElementById('excelStartDate');
+                const excelEndDate = document.getElementById('excelEndDate');
+                const excelForm = document.getElementById('excelForm');
+                const btn = document.getElementById('exportExcelBtn');
+
+                if (!startDate || !endDate || !excelStartDate || !excelEndDate || !excelForm) {
+                    alert('Export form not properly configured. Please refresh the page and try again.');
+                    return false;
+                }
+
+                const sDate = startDate.value || '';
+                const eDate = endDate.value || '';
+
+                // Validate if both dates are provided
+                if (sDate && eDate) {
+                    const startDateTime = new Date(sDate);
+                    const endDateTime = new Date(eDate);
+
+                    if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+                        alert('Please enter valid dates');
+                        return false;
+                    }
+
+                    if (startDateTime > endDateTime) {
+                        alert('Start date cannot be greater than end date');
+                        return false;
+                    }
+                }
+
+                // Show loading state
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                    btn.disabled = true;
+                    btn.style.opacity = '0.8';
+                    btn.setAttribute('data-original-text', originalText);
+                }
+
+                // Set the date values and submit
+                excelStartDate.value = sDate;
+                excelEndDate.value = eDate;
+
+                console.log('Exporting to Excel with dates:', sDate || 'All', 'to', eDate || 'All');
+                excelForm.submit();
+
+                // Reset button after a short delay
+                setTimeout(function() {
+                    if (btn) {
+                        const originalText = btn.getAttribute('data-original-text') || '<i class="fas fa-file-excel me-1"></i>Excel';
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    }
+                }, 3000);
+
+                return false;
+            };
+
+            window.exportWithdrawnMembersToPdf = function() {
+                const startDate = document.getElementById('startDate');
+                const endDate = document.getElementById('endDate');
+                const pdfStartDate = document.getElementById('pdfStartDate');
+                const pdfEndDate = document.getElementById('pdfEndDate');
+                const pdfForm = document.getElementById('pdfForm');
+                const btn = document.getElementById('exportPdfBtn');
+
+                if (!startDate || !endDate || !pdfStartDate || !pdfEndDate || !pdfForm) {
+                    alert('Export form not properly configured. Please refresh the page and try again.');
+                    return false;
+                }
+
+                const sDate = startDate.value || '';
+                const eDate = endDate.value || '';
+
+                // Validate if both dates are provided
+                if (sDate && eDate) {
+                    const startDateTime = new Date(sDate);
+                    const endDateTime = new Date(eDate);
+
+                    if (isNaN(startDateTime.getTime()) || isNaN(endDateTime.getTime())) {
+                        alert('Please enter valid dates');
+                        return false;
+                    }
+
+                    if (startDateTime > endDateTime) {
+                        alert('Start date cannot be greater than end date');
+                        return false;
+                    }
+                }
+
+                // Show loading state
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                    btn.disabled = true;
+                    btn.style.opacity = '0.8';
+                    btn.setAttribute('data-original-text', originalText);
+                }
+
+                // Set the date values and submit
+                pdfStartDate.value = sDate;
+                pdfEndDate.value = eDate;
+
+                console.log('Exporting to PDF with dates:', sDate || 'All', 'to', eDate || 'All');
+                pdfForm.submit();
+
+                // Reset button after a short delay
+                setTimeout(function() {
+                    if (btn) {
+                        const originalText = btn.getAttribute('data-original-text') || '<i class="fas fa-file-pdf me-1"></i>PDF';
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    }
+                }, 3000);
+
+                return false;
+            };
+
+            // Clear filter function
+            window.clearWithdrawnFilter = function() {
+                const startDate = document.getElementById('startDate');
+                const endDate = document.getElementById('endDate');
+                const reportForm = document.getElementById('reportForm');
+                const btn = document.getElementById('clearFilterBtn');
+
+                if (startDate) startDate.value = '';
+                if (endDate) endDate.value = '';
+
+                // Show loading state
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Clearing...';
+                    btn.disabled = true;
+                }
+
+                if (reportForm) {
+                    reportForm.submit();
+                }
+
+                return false;
+            };
+
+            // Set onclick attributes as backup
+            domReady(function() {
+                const excelBtn = document.getElementById('exportExcelBtn');
+                const pdfBtn = document.getElementById('exportPdfBtn');
+                const clearBtn = document.getElementById('clearFilterBtn');
+
+                // Only set onclick if not already set and button exists
+                if (excelBtn && !excelBtn.hasAttribute('onclick')) {
+                    excelBtn.setAttribute('onclick', 'exportWithdrawnMembersToExcel(); return false;');
+                    console.log('Excel button onclick handler set');
+                }
+
+                if (pdfBtn && !pdfBtn.hasAttribute('onclick')) {
+                    pdfBtn.setAttribute('onclick', 'exportWithdrawnMembersToPdf(); return false;');
+                    console.log('PDF button onclick handler set');
+                }
+
+                if (clearBtn && !clearBtn.hasAttribute('onclick')) {
+                    clearBtn.setAttribute('onclick', 'clearWithdrawnFilter(); return false;');
+                    console.log('Clear filter button onclick handler set');
+                }
+
+                // Add keyboard shortcuts (Ctrl+E for Excel, Ctrl+P for PDF)
+                document.addEventListener('keydown', function(e) {
+                    // Check if not typing in an input field
+                    const tag = e.target.tagName.toLowerCase();
+                    if (tag === 'input' || tag === 'textarea' || tag === 'select') {
+                        return;
+                    }
+
+                    if (e.ctrlKey && e.key === 'e') {
+                        e.preventDefault();
+                        console.log('Keyboard shortcut: Ctrl+E');
+                        if (excelBtn) {
+                            excelBtn.click();
+                        }
+                    }
+                    if (e.ctrlKey && e.key === 'p') {
+                        e.preventDefault();
+                        console.log('Keyboard shortcut: Ctrl+P');
+                        if (pdfBtn) {
+                            pdfBtn.click();
+                        }
+                    }
+                });
+            });
+
+            // Add loading indicator CSS if not exists
+            if (!document.getElementById('export-loading-styles')) {
+                const style = document.createElement('style');
+                style.id = 'export-loading-styles';
+                style.textContent = `
+                    .btn-loading {
+                        position: relative;
+                        pointer-events: none;
+                        opacity: 0.8;
+                    }
+
+                    .btn-loading:after {
+                        content: "";
+                        position: absolute;
+                        width: 16px;
+                        height: 16px;
+                        top: 50%;
+                        left: 50%;
+                        margin-left: -8px;
+                        margin-top: -8px;
+                        border: 2px solid rgba(255,255,255,0.3);
+                        border-radius: 50%;
+                        border-top-color: white;
+                        animation: spin 0.6s linear infinite;
+                    }
+
+                    @@keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+
+                    .fa-spinner, .fa-spin {
+                        animation: spin 1s linear infinite;
+                    }
+
+                    button:disabled {
+                        cursor: not-allowed;
+                        opacity: 0.7;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            // Debug helper - log page load
+            domReady(function() {
+                console.log('=================================');
+                console.log('Withdrawn Members Report Page Loaded');
+                console.log('=================================');
+                console.log('Excel button exists:', !!document.getElementById('exportExcelBtn'));
+                console.log('PDF button exists:', !!document.getElementById('exportPdfBtn'));
+                console.log('Clear filter button exists:', !!document.getElementById('clearFilterBtn'));
+                console.log('Start date input exists:', !!document.getElementById('startDate'));
+                console.log('End date input exists:', !!document.getElementById('endDate'));
+                console.log('Excel form exists:', !!document.getElementById('excelForm'));
+                console.log('PDF form exists:', !!document.getElementById('pdfForm'));
+                console.log('=================================');
+            });
+
+            // Prevent double submission
+            domReady(function() {
+                let isSubmitting = false;
+
+                const excelBtn = document.getElementById('exportExcelBtn');
+                const pdfBtn = document.getElementById('exportPdfBtn');
+
+                if (excelBtn) {
+                    excelBtn.addEventListener('click', function(e) {
+                        if (isSubmitting) {
+                            e.preventDefault();
+                            return false;
+                        }
+                        isSubmitting = true;
+                        setTimeout(function() {
+                            isSubmitting = false;
+                        }, 5000);
+                    });
+                }
+
+                if (pdfBtn) {
+                    pdfBtn.addEventListener('click', function(e) {
+                        if (isSubmitting) {
+                            e.preventDefault();
+                            return false;
+                        }
+                        isSubmitting = true;
+                        setTimeout(function() {
+                            isSubmitting = false;
+                        }, 5000);
+                    });
+                }
+            });
+        })();
+    </script>
+}
+
+<style>
+    .small-box {
+        border-radius: 0.25rem;
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+        display: block;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+        .small-box > .inner {
+            padding: 10px;
+        }
+
+        .small-box h3 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 0 0 10px;
+            padding: 0;
+            white-space: nowrap;
+            color: white;
+        }
+
+        .small-box p {
+            color: white;
+            font-size: 1rem;
+        }
+
+        .small-box .icon {
+            color: rgba(0,0,0,0.15);
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            transition: all .3s linear;
+            z-index: 0;
+        }
+
+            .small-box .icon > i {
+                font-size: 70px;
+            }
+
+        .small-box:hover .icon {
+            font-size: 75px;
+        }
+
+    .bg-danger {
+        background-color: #dc3545 !important;
+    }
+
+    @@media (max-width: 767px) {
+        .small-box {
+            text-align: center;
+        }
+
+            .small-box .icon {
+                display: none;
+            }
+    }
+</style>

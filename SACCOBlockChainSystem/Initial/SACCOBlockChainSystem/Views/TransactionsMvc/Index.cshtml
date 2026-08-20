@@ -1,0 +1,182 @@
+﻿@{
+    ViewData["Title"] = "Transactions";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <h2><i class="fas fa-exchange-alt"></i> Transactions</h2>
+            <p class="text-muted">Manage deposits, withdrawals, and view transaction history</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card text-white bg-primary">
+                <div class="card-body text-center">
+                    <h1><i class="fas fa-money-bill-wave"></i></h1>
+                    <h5>Make Deposit</h5>
+                    <p>Add funds to your SACCO account</p>
+                    <a href="@Url.Action("Deposit")" class="btn btn-light">Deposit Now</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card text-white bg-success">
+                <div class="card-body text-center">
+                    <h1><i class="fas fa-hand-holding-usd"></i></h1>
+                    <h5>Withdraw Funds</h5>
+                    <p>Withdraw from your account</p>
+                    <a href="@Url.Action("Withdraw")" class="btn btn-light">Withdraw Now</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-4">
+            <div class="card text-white bg-info">
+                <div class="card-body text-center">
+                    <h1><i class="fas fa-history"></i></h1>
+                    <h5>Transaction History</h5>
+                    <p>View all your transactions</p>
+                    <a href="@Url.Action("History")" class="btn btn-light">View History</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-chart-line"></i> Quick Stats</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <h3 id="currentBalance">Loading...</h3>
+                            <p class="text-muted">Current Balance</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h3 id="totalDeposits">Loading...</h3>
+                            <p class="text-muted">Total Deposits</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h3 id="totalWithdrawals">Loading...</h3>
+                            <p class="text-muted">Total Withdrawals</p>
+                        </div>
+                        <div class="col-md-3">
+                            <h3 id="lastTransaction">--</h3>
+                            <p class="text-muted">Last Transaction</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5><i class="fas fa-list"></i> Recent Transactions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="recentTransactions">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Type</th>
+                                    <th>Amount</th>
+                                    <th>Receipt No</th>
+                                    <th>Blockchain Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Filled by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            loadDashboardStats();
+            loadRecentTransactions();
+        });
+
+        function loadDashboardStats() {
+            $.ajax({
+                url: '/api/Transaction/balance/@User.FindFirst("MemberNo")?.Value',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        $('#currentBalance').text('KES ' + response.data.balance.toLocaleString());
+                    }
+                }
+            });
+
+            // You would need additional endpoints for total deposits/withdrawals
+            // For now, we'll simulate
+            $('#totalDeposits').text('KES 0');
+            $('#totalWithdrawals').text('KES 0');
+            $('#lastTransaction').text('Today');
+        }
+
+        function loadRecentTransactions() {
+            $.ajax({
+                url: '/api/Transaction/member/@User.FindFirst("MemberNo")?.Value',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success && response.data) {
+                        var tbody = $('#recentTransactions tbody');
+                        tbody.empty();
+
+                        response.data.slice(0, 5).forEach(function(tx) {
+                            var row = `
+                                <tr>
+                                    <td>${new Date(tx.transDate).toLocaleDateString()}</td>
+                                    <td>
+                                        ${tx.transDescription.includes('Deposit') ?
+                                            '<span class="badge bg-success">Deposit</span>' :
+                                            '<span class="badge bg-warning">Withdrawal</span>'}
+                                    </td>
+                                    <td>KES ${tx.amount.toLocaleString()}</td>
+                                    <td>${tx.transactionNo || '--'}</td>
+                                    <td>
+                                        ${tx.blockchainTxId ?
+                                            '<span class="badge bg-success"><i class="fas fa-check"></i> Verified</span>' :
+                                            '<span class="badge bg-secondary">Pending</span>'}
+                                    </td>
+                                    <td>
+                                        <button class="btn btn-sm btn-info" onclick="viewTransactionDetails('${tx.transactionNo}')">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            `;
+                            tbody.append(row);
+                        });
+                    }
+                }
+            });
+        }
+
+        function viewTransactionDetails(transactionNo) {
+            // Implement view transaction details
+            alert('View details for: ' + transactionNo);
+        }
+    </script>
+}
+@*
+    For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
+*@
+@{
+}

@@ -1,0 +1,91 @@
+﻿@model IEnumerable<dynamic>
+@{
+    ViewData["Title"] = "Pending Endorsement";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex align-items-center mb-4">
+                <a asp-action="AllLoans" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Back to Dashboard
+                </a>
+                <h2 class="page-title mb-0">
+                    <i class="bi bi-calculator me-2"></i>Loans Pending Endorsement
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center py-5">
+            <i class="bi bi-check-circle fs-1"></i>
+            <h5 class="mt-3">No loans pending endorsement</h5>
+            <p class="mb-0">All approved loans have been endorsed.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-list-check me-2"></i>Loans Ready for Endorsement
+                </h5>
+                <small class="text-muted">These loans have been approved and are ready for deduction/endorsement</small>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Loan No</th>
+                                <th>Member Name</th>
+                                <th>Loan Type</th>
+                                <th>Approved Amount</th>
+                                <th>Application Date</th>
+                                <th>Actions</th>
+                            </thead>
+                            <tbody>
+                                @foreach (var loan in Model)
+                                {
+                                    <tr>
+                                        <td><strong>@loan.LoanNo</strong></td>
+                                        <td>@loan.MemberName</td>
+                                        <td>@loan.LoanType</td>
+                                        <td class="text-end">KES @loan.ApprovedAmount.ToString("N0")</td>
+                                        <td>@loan.ApplicationDate.ToString("dd/MM/yyyy")</td>
+                                        <td>
+                                            <a asp-action="Endorse" asp-route-loanNo="@loan.LoanNo" 
+                                               class="btn btn-sm btn-primary">
+                                                <i class="bi bi-calculator"></i> Endorse
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+    }
+</div>

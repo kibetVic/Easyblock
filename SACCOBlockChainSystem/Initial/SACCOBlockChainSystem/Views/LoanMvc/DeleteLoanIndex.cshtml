@@ -1,0 +1,327 @@
+﻿@{
+    ViewData["Title"] = "Delete Loan";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center">
+                <a asp-action="AllLoans" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Back to Loans
+                </a>
+                <h2 class="page-title mb-0">
+                    <i class="bi bi-trash text-danger me-2"></i> Delete Loan
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8 mx-auto">
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-search me-2"></i> Search Loan to Delete
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Warning:</strong> This action will permanently delete the loan and release all guarantors.
+                        This action cannot be undone.
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="loanNo" class="form-label fw-bold">Loan Number</label>
+                        <div class="input-group">
+                            <input type="text" class="form-control form-control-lg" id="loanNo"
+                                   placeholder="Enter Loan Number (e.g., LO001M2603281926)" />
+                            <button type="button" class="btn btn-primary" onclick="searchLoan()">
+                                <i class="bi bi-search"></i> Search
+                            </button>
+                        </div>
+                        <small class="text-muted">Enter the loan number to view details before deletion</small>
+                    </div>
+
+                    <div id="loanDetails" style="display: none;">
+                        <!-- Loan details will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        async function searchLoan() {
+            const loanNo = document.getElementById('loanNo').value.trim();
+
+            if (!loanNo) {
+                alert('Please enter a loan number');
+                return;
+            }
+
+            // Show loading
+            const loanDetailsDiv = document.getElementById('loanDetails');
+            loanDetailsDiv.style.display = 'block';
+            loanDetailsDiv.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="bi bi-hourglass-split me-2"></i>
+                    Loading loan details...
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`/LoanMvc/GetLoanDetailsForDeletion?loanNo=${loanNo}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    displayLoanDetails(data.loan);
+                } else {
+                    loanDetailsDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <strong>Error:</strong> ${data.message}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                loanDetailsDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        An error occurred while searching for the loan. Please make sure the loan number is correct.
+                    </div>
+                `;
+            }
+        }
+
+        function displayLoanDetails(loan) {
+            const loanDetailsDiv = document.getElementById('loanDetails');
+
+            let statusClass = '';
+            switch(loan.status) {
+                case 'Draft': statusClass = 'bg-secondary'; break;
+                case 'Submitted': statusClass = 'bg-info'; break;
+                case 'UnderAppraisal': statusClass = 'bg-warning'; break;
+                case 'Approved': statusClass = 'bg-primary'; break;
+                case 'Endorsed': statusClass = 'bg-success'; break;
+                case 'Disbursed': statusClass = 'bg-success'; break;
+                default: statusClass = 'bg-secondary';
+            }
+
+            loanDetailsDiv.innerHTML = `
+                <div class="card mt-3">
+                    <div class="card-header bg-light">
+                        <h6 class="mb-0">Loan Details</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <small class="text-muted">Loan Number</small>
+                                <p class="fw-bold mb-0">${loan.loanNo}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted">Status</small>
+                                <p><span class="badge ${statusClass}">${loan.status}</span></p>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <small class="text-muted">Member Number</small>
+                                <p class="fw-bold mb-0">${loan.memberNo}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted">Member Name</small>
+                                <p class="fw-bold mb-0">${loan.memberName || 'N/A'}</p>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <small class="text-muted">Loan Type</small>
+                                <p>${loan.loanType || 'N/A'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted">Principal Amount</small>
+                                <p class="fw-bold text-primary">KES ${(loan.principalAmount || 0).toLocaleString()}</p>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <small class="text-muted">Application Date</small>
+                                <p>${loan.applicationDate || 'N/A'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted">Interest Rate</small>
+                                <p>${loan.interestRate || 0}%</p>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <small class="text-muted">Repayment Period</small>
+                                <p>${loan.repayPeriod || 0} months</p>
+                            </div>
+                            <div class="col-md-6">
+                                <small class="text-muted">Repayment Method</small>
+                                <p>${loan.repayMethod || 'N/A'}</p>
+                            </div>
+                        </div>
+
+                        ${loan.guarantors && loan.guarantors.length > 0 ? `
+                        <div class="mb-3">
+                            <small class="text-muted fw-bold">Guarantors (${loan.guarantors.length})</small>
+                            <div class="table-responsive mt-2">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Member No</th>
+                                            <th>Name</th>
+                                            <th class="text-end">Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${loan.guarantors.map(g => `
+                                            <tr>
+                                                <td>${g.memberNo}</td>
+                                                <td>${g.name || 'N/A'}</td>
+                                                <td class="text-end">KES ${(g.amount || 0).toLocaleString()}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        ` : '<div class="alert alert-secondary">No member guarantors assigned to this loan.</div>'}
+
+                        ${loan.collateralGuarantees && loan.collateralGuarantees.length > 0 ? `
+                        <div class="mb-3">
+                            <small class="text-muted fw-bold">Collateral Guarantees (${loan.collateralGuarantees.length})</small>
+                            <div class="table-responsive mt-2">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Collateral Type</th>
+                                            <th>Document No</th>
+                                            <th class="text-end">Market Value</th>
+                                            <th class="text-end">Guarantee Amount</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${loan.collateralGuarantees.map(c => `
+                                            <tr>
+                                                <td>${c.colCode}</td>
+                                                <td>${c.docNo}</td>
+                                                <td class="text-end">KES ${(c.marketValue || 0).toLocaleString()}</td>
+                                                <td class="text-end">KES ${(c.guaranteeAmount || 0).toLocaleString()}</td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        ` : '<div class="alert alert-secondary">No collateral guarantees assigned to this loan.</div>'}
+
+                        ${loan.hasEndorsement ? `
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            <strong>Note:</strong> This loan has been endorsed/disbursed. Deleting it will also mark the cheque as cancelled.
+                        </div>
+                        ` : ''}
+
+                        <hr />
+
+                        <form id="deleteForm" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="loanNo" id="deleteLoanNo" value="${loan.loanNo}" />
+
+                            <div class="mb-3">
+                                <label for="reason" class="form-label fw-bold text-danger">Reason for Deletion *</label>
+                                <textarea name="reason" id="reason" class="form-control" rows="3" required
+                                          placeholder="Please provide a detailed reason for deleting this loan..."></textarea>
+                                <small class="text-muted">This reason will be recorded in the audit trail</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="confirmCheck" required>
+                                    <label class="form-check-label text-danger" for="confirmCheck">
+                                        I understand that this action will permanently delete the loan and release all guarantors. This cannot be undone.
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2">
+                                <button type="button" class="btn btn-secondary" onclick="clearSearch()">
+                                    <i class="bi bi-x-circle"></i> Clear
+                                </button>
+                                <button type="submit" class="btn btn-danger" id="deleteBtn" disabled>
+                                    <i class="bi bi-trash"></i> Permanently Delete Loan
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+
+            // Set up the form submission
+            const deleteForm = document.getElementById('deleteForm');
+            if (deleteForm) {
+                deleteForm.action = '/LoanMvc/DeleteLoan';
+                
+                deleteForm.onsubmit = function(e) {
+                    const reason = document.getElementById('reason')?.value.trim();
+                    if (!reason) {
+                        alert('Please provide a reason for deleting the loan');
+                        e.preventDefault();
+                        return false;
+                    }
+                    if (!confirm('Are you absolutely sure you want to delete this loan?\n\nThis action cannot be undone and will release all guarantors.')) {
+                        e.preventDefault();
+                        return false;
+                    }
+                    return true;
+                };
+            }
+
+            // Enable delete button when checkbox is checked
+            const confirmCheck = document.getElementById('confirmCheck');
+            const deleteBtn = document.getElementById('deleteBtn');
+            
+            if (confirmCheck && deleteBtn) {
+                confirmCheck.addEventListener('change', function() {
+                    deleteBtn.disabled = !this.checked;
+                });
+            }
+        }
+
+        function clearSearch() {
+            document.getElementById('loanNo').value = '';
+            document.getElementById('loanDetails').style.display = 'none';
+            document.getElementById('loanDetails').innerHTML = '';
+        }
+    </script>
+}

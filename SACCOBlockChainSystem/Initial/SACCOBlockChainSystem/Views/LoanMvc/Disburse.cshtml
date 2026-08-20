@@ -1,0 +1,399 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.LoanDisbursementDTO
+@{
+    ViewData["Title"] = "Loan Disbursement";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var loan = ViewBag.Loan as SACCOBlockChainSystem.Models.Loan;
+    var endorsement = ViewBag.Endorsement as SACCOBlockChainSystem.Models.Endmain;
+    var cheque = ViewBag.Cheque as SACCOBlockChainSystem.Models.Cheque;
+    var approvedAmount = ViewBag.ApprovedAmount as decimal? ?? 0;
+    var netAmount = ViewBag.NetAmount as decimal? ?? 0;  // This is AmountIssued from Cheque
+    var totalDeductions = ViewBag.TotalDeductions as decimal? ?? 0;
+    var banks = ViewBag.Banks as IEnumerable<dynamic> ?? new List<dynamic>();
+    var glAccounts = ViewBag.CashGlAccounts as IEnumerable<dynamic> ?? new List<dynamic>();
+    var member = ViewBag.Member as SACCOBlockChainSystem.Models.Member;
+}
+
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center">
+                <a asp-action="PendingDisbursement" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+                <h2 class="page-title mb-0">
+                    <i class="bi bi-cash-stack me-2"></i>Loan Disbursement
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Left Column - Loan Summary -->
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Loan Summary</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Loan Number:</span>
+                        <strong>@loan?.LoanNo</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Member Number:</span>
+                        <span>@loan?.MemberNo</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Member Name:</span>
+                        <span>@(member?.Surname ?? "") @(member?.OtherNames ?? "")</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Mobile Number:</span>
+                        <span>@(member?.PhoneNo ?? member?.MobileNo ?? "N/A")</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Approved Amount:</span>
+                        <strong class="text-primary">KES @approvedAmount.ToString("N2")</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Total Deductions:</span>
+                        <strong class="text-danger">KES @totalDeductions.ToString("N2")</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted fw-bold">Net Amount to Disburse:</span>
+                        <strong class="text-success fs-5">KES @netAmount.ToString("N2")</strong>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Interest Rate:</span>
+                        <span>@(loan?.Interest?.ToString("N2") ?? "0")% p.a.</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Repayment Period:</span>
+                        <span>@(loan?.RepayPeriod?.ToString() ?? "0") months</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted">Repayment Method:</span>
+                        <span>@loan?.RepayMethod</span>
+                    </div>
+                    @if (cheque != null)
+                    {
+                        <hr>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted">Cheque/Voucher No:</span>
+                            <span>@cheque.Voucherno</span>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Disbursement Form -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Disbursement Details</h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Disburse" method="post" id="disbursementForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" asp-for="LoanNo" />
+                        <input type="hidden" asp-for="CompanyCode" />
+                        <input type="hidden" asp-for="DisbursedBy" />
+                        <input type="hidden" asp-for="AuthorizedBy" />
+                        <input type="hidden" asp-for="DisbursedAmount" value="@netAmount" />
+
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <!-- Disbursement Date (Default today) -->
+                        <div class="row mb-3">
+                            <label asp-for="DisbursementDate" class="col-sm-3 col-form-label fw-bold">Disbursement Date *</label>
+                            <div class="col-sm-9">
+                                <input asp-for="DisbursementDate" class="form-control" type="date"
+                                       value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                                <span asp-validation-for="DisbursementDate" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Bank Selection (Where money comes from) -->
+                        <div class="row mb-3">
+                            <label class="col-sm-3 col-form-label fw-bold">Source Bank *</label>
+                            <div class="col-sm-9">
+                                <select asp-for="BankId" class="form-select" id="bankSelect" required>
+                                    <option value="">-- Select Bank --</option>
+                                    @foreach (var bank in banks)
+                                    {
+                                        <option value="@bank.BankId" data-bank-name="@bank.BankName" data-account-no="@bank.AccountNumber">
+                                            @bank.DisplayText
+                                        </option>
+                                    }
+                                </select>
+                                <small class="text-muted">Select the bank from which funds will be disbursed</small>
+                                <span asp-validation-for="BankId" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- GL Account Selection from GLSETUP -->
+                        <div class="row mb-3">
+                            <label class="col-sm-3 col-form-label fw-bold">GL Account *</label>
+                            <div class="col-sm-9">
+                                <select asp-for="GlAccountNo" class="form-select" id="GlAccountNo" required>
+                                    <option value="">-- Select GL Account --</option>
+                                    @foreach (var account in glAccounts)
+                                    {
+                                        <option value="@account.AccountNo" data-account-name="@account.AccountName">
+                                            @account.DisplayText
+                                        </option>
+                                    }
+                                </select>
+                                <small class="text-muted">Select the GL account for this transaction</small>
+                                <span asp-validation-for="GlAccountNo" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Disbursement Method -->
+                        <div class="row mb-3">
+                            <label asp-for="DisbursementMethod" class="col-sm-3 col-form-label fw-bold">Disbursement Method *</label>
+                            <div class="col-sm-9">
+                                <select asp-for="DisbursementMethod" class="form-select" required id="disbursementMethod">
+                                    <option value="">-- Select Method --</option>
+                                    <option value="MPESA">M-Pesa</option>
+                                    <option value="BANK_TRANSFER">Bank Transfer</option>
+                                    <option value="CHEQUE">Cheque</option>
+                                    <option value="CASH">Cash</option>
+                                </select>
+                                <span asp-validation-for="DisbursementMethod" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- M-Pesa Details -->
+                        <div id="mpesaDetails" style="display: none;">
+                            <div class="row mb-3">
+                                <label class="col-sm-3 col-form-label">Mobile Number</label>
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" id="mobileNumber"
+                                           value="@(member?.PhoneNo ?? member?.MobileNo ?? Model.MobileNo)"
+                                           readonly disabled />
+                                    <small class="text-muted">Funds will be sent to member's registered number</small>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <label class="col-sm-3 col-form-label">Member Name</label>
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control"
+                                           value="@(member?.Surname ?? "") @(member?.OtherNames ?? "")"
+                                           readonly disabled />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bank Transfer Details -->
+                        <div id="bankTransferDetails" style="display: none;">
+                            <div class="row mb-3">
+                                <label class="col-sm-3 col-form-label">Bank Name</label>
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" id="bankNameDisplay" readonly disabled />
+                                    <small class="text-muted">Selected bank will be used for transfer</small>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <label class="col-sm-3 col-form-label">Account Number</label>
+                                <div class="col-sm-9">
+                                    <input type="text" class="form-control" id="accountNoDisplay" readonly disabled />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cheque Details -->
+                        <div id="chequeDetails" style="display: none;">
+                            <div class="row mb-3">
+                                <label asp-for="ChequeNo" class="col-sm-3 col-form-label">Cheque Number *</label>
+                                <div class="col-sm-9">
+                                    <input asp-for="ChequeNo" class="form-control" />
+                                    <span asp-validation-for="ChequeNo" class="text-danger"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Disbursement Summary -->
+                        <div class="row mb-4">
+                            <div class="col-sm-9 offset-sm-3">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <h6 class="card-title">Disbursement Summary</h6>
+                                        <table class="table table-sm table-borderless mb-0">
+                                            <tr>
+                                                <td>Approved Amount:</td>
+                                                <td class="text-end">KES @approvedAmount.ToString("N2")</td>
+                                            </tr>
+                                            <tr class="text-danger">
+                                                <td>Total Deductions:</td>
+                                                <td class="text-end">- KES @totalDeductions.ToString("N2")</td>
+                                            </tr>
+                                            <tr class="border-top">
+                                                <td><strong>Net Amount to Disburse:</strong></td>
+                                                <td class="text-end fw-bold text-success fs-5">KES @netAmount.ToString("N2")</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Source Bank:</td>
+                                                <td class="text-end" id="bankDisplay">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td>GL Account:</td>
+                                                <td class="text-end" id="glAccountDisplay">-</td>
+                                            </tr>
+                                            <tr>
+                                                <td>Disbursement Method:</td>
+                                                <td class="text-end" id="methodDisplay">-</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a asp-action="PendingDisbursement" class="btn btn-secondary">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-success" id="submitBtn">
+                                <i class="bi bi-cash-stack me-2"></i>Confirm Disbursement
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function() {
+            // Store member mobile number
+            var memberMobile = "@(member?.PhoneNo ?? member?.MobileNo ?? Model.MobileNo)";
+            var netAmount = @netAmount;
+
+            // Update bank display when bank is selected
+            $('#bankSelect').on('change', function() {
+                var selectedOption = $(this).find('option:selected');
+                var bankName = selectedOption.data('bank-name') || selectedOption.text().split(' - ')[0] || '-';
+                var accountNo = selectedOption.data('account-no') || '';
+
+                $('#bankNameDisplay').val(bankName);
+                $('#accountNoDisplay').val(accountNo);
+                $('#bankDisplay').text(bankName);
+            });
+
+            // Update GL Account display
+            $('#GlAccountNo').on('change', function() {
+                var selectedOption = $(this).find('option:selected');
+                var glAccountName = selectedOption.data('account-name') || selectedOption.text().split(' - ')[1] || selectedOption.text();
+                $('#glAccountDisplay').text(glAccountName);
+            });
+
+            // Toggle payment method details
+            $('#disbursementMethod').on('change', function() {
+                var method = $(this).val();
+                var methodText = $(this).find('option:selected').text();
+
+                $('#mpesaDetails, #bankTransferDetails, #chequeDetails').hide();
+
+                if (method === 'MPESA') {
+                    $('#mpesaDetails').show();
+                    $('#methodDisplay').text(methodText);
+
+                    if (memberMobile && memberMobile !== '') {
+                        $('#mobileNumber').val(memberMobile);
+                    } else {
+                        $('#mobileNumber').val('No mobile number registered');
+                    }
+                } else if (method === 'BANK_TRANSFER') {
+                    $('#bankTransferDetails').show();
+                    $('#methodDisplay').text(methodText);
+                } else if (method === 'CHEQUE') {
+                    $('#chequeDetails').show();
+                    $('#methodDisplay').text(methodText);
+                } else if (method === 'CASH') {
+                    $('#methodDisplay').text(methodText);
+                } else {
+                    $('#methodDisplay').text('-');
+                }
+            });
+
+            // Trigger initial display
+            $('#bankSelect').trigger('change');
+            $('#GlAccountNo').trigger('change');
+
+            // Form validation
+            $('#disbursementForm').on('submit', function(e) {
+                var method = $('#disbursementMethod').val();
+                var bankId = $('#bankSelect').val();
+                var glAccount = $('#GlAccountNo').val();
+
+                if (!bankId) {
+                    e.preventDefault();
+                    alert('Please select a source bank');
+                    return false;
+                }
+
+                if (!glAccount) {
+                    e.preventDefault();
+                    alert('Please select a GL Account');
+                    return false;
+                }
+
+                if (!method) {
+                    e.preventDefault();
+                    alert('Please select a disbursement method');
+                    return false;
+                }
+
+                if (method === 'CHEQUE') {
+                    if (!$('#ChequeNo').val()) {
+                        e.preventDefault();
+                        alert('Please enter cheque number');
+                        return false;
+                    }
+                }
+
+                if (method === 'MPESA') {
+                    if (!memberMobile || memberMobile === 'No mobile number registered' || memberMobile === '') {
+                        e.preventDefault();
+                        alert('Member does not have a registered mobile number for M-Pesa payment');
+                        return false;
+                    }
+                }
+
+                if (netAmount <= 0) {
+                    e.preventDefault();
+                    alert('Net amount must be greater than zero');
+                    return false;
+                }
+
+                var glAccountName = $('#GlAccountNo option:selected').data('account-name') ||
+                                    $('#GlAccountNo option:selected').text().split(' - ')[1] ||
+                                    $('#GlAccountNo option:selected').text();
+
+                var bankName = $('#bankSelect option:selected').data('bank-name') ||
+                               $('#bankSelect option:selected').text().split(' - ')[0] ||
+                               'Selected Bank';
+
+                return confirm(`Are you sure you want to disburse KES ${netAmount.toLocaleString()} from ${bankName} using GL Account: ${glAccountName} via ${method}?\n\nThis action cannot be undone.`);
+            });
+        });
+    </script>
+}

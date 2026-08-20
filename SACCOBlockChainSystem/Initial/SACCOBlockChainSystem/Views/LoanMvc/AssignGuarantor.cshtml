@@ -1,0 +1,1248 @@
+﻿@model SACCOBlockChainSystem.Models.Loan
+@{
+    ViewData["Title"] = "Guarantor & Collateral Assignment";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var loan = ViewBag.Loan as SACCOBlockChainSystem.Models.Loan;
+    var loanType = ViewBag.LoanType as SACCOBlockChainSystem.Models.DTOs.LoanTypeResponseDTO;
+    var existingGuarantors = ViewBag.ExistingGuarantors as List<SACCOBlockChainSystem.Models.DTOs.GuarantorResponseDTO> ?? new List<SACCOBlockChainSystem.Models.DTOs.GuarantorResponseDTO>();
+    var existingCollateralGuarantees = ViewBag.ExistingCollateralGuarantees as List<SACCOBlockChainSystem.Models.DTOs.CollateralGuaranteeResponseDTO> ?? new List<SACCOBlockChainSystem.Models.DTOs.CollateralGuaranteeResponseDTO>();
+    var collateralTypes = ViewBag.CollateralTypes as List<SACCOBlockChainSystem.Models.Collateral> ?? new List<SACCOBlockChainSystem.Models.Collateral>();
+
+    var totalMemberGuarantee = existingGuarantors.Sum(g => g.GuaranteeAmount);
+    var totalCollateralGuarantee = existingCollateralGuarantees.Sum(g => g.GuaranteeAmount);
+    var totalGuarantee = totalMemberGuarantee + totalCollateralGuarantee;
+    var remainingAmount = (loan?.LoanAmt ?? 0) - totalGuarantee;
+    var isFullyGuaranteed = remainingAmount <= 0;
+    var isSelfGuarantee = ViewBag.IsSelfGuarantee as bool? ?? false;
+    var maxGuarantors = ViewBag.MaxGuarantors as int? ?? 5;
+    var companyCode = ViewBag.CompanyCode as string ?? "";
+
+    var isApplicantGuarantor = existingGuarantors.Any(g => g.GuarantorMemberNo == loan?.MemberNo);
+    var assignedCount = existingGuarantors.Count;
+    var canAddMoreMemberGuarantors = assignedCount < maxGuarantors;
+
+    // Serialize data for JavaScript
+    var existingGuarantorsJson = Newtonsoft.Json.JsonConvert.SerializeObject(existingGuarantors.Select(g => new { g.GuarantorMemberNo }));
+}
+
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12 mb-4">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <a asp-action="Details" asp-route-loanNo="@loan?.LoanNo" class="btn btn-outline-secondary me-3">
+                        <i class="bi bi-arrow-left"></i> Back to Loan Details
+                    </a>
+                    <h2 class="page-title mb-0">
+                        <i class="bi bi-shield-lock me-2"></i>Guarantor & Collateral Assignment
+                    </h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Guarantee Progress Card -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-calculator me-2"></i>Guarantee Progress
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row text-center">
+                <div class="col-md-3">
+                    <div class="bg-light p-3 rounded">
+                        <small class="text-muted">Loan Amount</small>
+                        <h3 class="text-primary mb-0">KES @((loan?.LoanAmt ?? 0).ToString("N0"))</h3>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="bg-light p-3 rounded">
+                        <small class="text-muted">Member Guarantees</small>
+                        <h3 class="text-info mb-0">KES @totalMemberGuarantee.ToString("N0")</h3>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="bg-light p-3 rounded">
+                        <small class="text-muted">Collateral Guarantees</small>
+                        <h3 class="text-success mb-0">KES @totalCollateralGuarantee.ToString("N0")</h3>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="bg-light p-3 rounded">
+                        <small class="text-muted">Remaining</small>
+                        <h3 class="text-warning mb-0">KES @(remainingAmount > 0 ? remainingAmount.ToString("N0") : "0")</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <div class="progress" style="height: 30px;">
+                    @{
+                        var percentage = (loan?.LoanAmt ?? 0) > 0 ? (totalGuarantee / (loan?.LoanAmt ?? 1) * 100) : 0;
+                    }
+                    <div class="progress-bar @(percentage >= 100 ? "bg-success" : "bg-info")"
+                         id="guaranteeProgressBar"
+                         role="progressbar"
+                         style="width: @(Math.Min(percentage, 100))%;"
+                         aria-valuenow="@percentage"
+                         aria-valuemin="0"
+                         aria-valuemax="100">
+                        <span id="progressPercentage">@percentage.ToString("N0")</span>% Guaranteed
+                    </div>
+                </div>
+                @if (isFullyGuaranteed)
+                {
+                    <div class="alert alert-success mt-3 mb-0">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        <strong>Fully Guaranteed!</strong> The loan is now fully guaranteed and ready for appraisal.
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <strong>Remaining to Guarantee:</strong> KES @remainingAmount.ToString("N0")
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Toggle Buttons -->
+    <div class="mb-4">
+        <div class="btn-group w-100" role="group">
+            <button type="button" class="btn btn-outline-primary active" id="showMemberGuarantorBtn" onclick="showSection('memberGuarantor')">
+                <i class="bi bi-people me-2"></i>Add Member Guarantor
+            </button>
+            <button type="button" class="btn btn-outline-success" id="showCollateralBtn" onclick="showSection('collateral')">
+                <i class="bi bi-building me-2"></i>Add Collateral Guarantee
+            </button>
+        </div>
+    </div>
+
+    <!-- ==================== MEMBER GUARANTOR SECTION ==================== -->
+    <div id="memberGuarantorSection" class="section-container">
+        <div class="row">
+            <div class="col-md-12">
+                <!-- Add Member Guarantor Form with Enhanced Search -->
+                @if (canAddMoreMemberGuarantors && !isFullyGuaranteed)
+                {
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-person-plus me-2"></i>Add Member Guarantor
+                            </h5>
+                            <small class="text-muted">Maximum @maxGuarantors guarantor(s) allowed per loan</small>
+                            @if (isSelfGuarantee && !isApplicantGuarantor)
+                            {
+                                <small class="text-success mt-1 d-block">
+                                    <i class="bi bi-info-circle"></i> Self guarantee is enabled. You can add yourself as a guarantor.
+                                </small>
+                            }
+                        </div>
+                        <div class="card-body">
+                            <!-- Enhanced Search Section -->
+                            <div class="card border-primary mb-4">
+                                <div class="card-header bg-primary text-white">
+                                    <h6 class="mb-0">
+                                        <i class="bi bi-search"></i> Search Guarantor Member
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <div class="form-group mb-3">
+                                                <label>Search Member By:</label>
+                                                <div class="input-group">
+                                                    <input type="text" id="searchMemberInput" class="form-control"
+                                                           placeholder="Search by Member Number, Name, ID Number, or Phone Number..." />
+                                                    <button type="button" class="btn btn-primary" onclick="searchMembersForGuarantor()">
+                                                        <i class="bi bi-search"></i> Search
+                                                    </button>
+                                                    <button type="button" class="btn btn-secondary" onclick="clearMemberSearch()">
+                                                        <i class="bi bi-x-circle"></i> Clear
+                                                    </button>
+                                                </div>
+                                                <small class="text-muted">Enter at least 3 characters to search</small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Search Results Table -->
+                                    <div id="memberSearchResults" style="display: none;">
+                                        <div class="table-responsive">
+                                            <table class="table table-bordered table-hover">
+                                                <thead class="table-light">
+                                                    <tr>
+                                                        <th>Select</th>
+                                                        <th>Member No</th>
+                                                        <th>Full Name</th>
+                                                        <th>ID Number</th>
+                                                        <th>Phone Number</th>
+                                                        <th>Available Deposits</th>
+                                                        <th>Status</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="memberSearchResultsBody">
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+
+                                    <!-- Loading Indicator -->
+                                    <div id="memberSearchLoading" style="display: none;" class="text-center p-3">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <p>Searching for members...</p>
+                                    </div>
+
+                                    <!-- Selected Guarantor Display -->
+                                    <div id="selectedGuarantorCard" style="display: none;" class="mt-3">
+                                        <div class="alert alert-success">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <i class="bi bi-person-check-fill"></i>
+                                                    <strong>Selected Guarantor:</strong>
+                                                    <span id="selectedGuarantorName"></span>
+                                                    <br />
+                                                    <small>
+                                                        Member No: <span id="selectedGuarantorMemberNo"></span> |
+                                                        Available Deposits: <span id="selectedGuarantorDeposits"></span>
+                                                    </small>
+                                                </div>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearSelectedGuarantor()">
+                                                    <i class="bi bi-trash"></i> Change
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Guarantee Amount Section -->
+                            <div id="guaranteeAmountSection" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Guarantee Amount (KES) *</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">KES</span>
+                                            <input type="number" id="guaranteeAmount" class="form-control" step="1000" min="1" />
+                                        </div>
+                                        <div id="amountHint" class="form-text text-info"></div>
+                                        <div id="amountValidation" class="text-danger mt-1"></div>
+                                    </div>
+
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Remarks (Optional)</label>
+                                        <input type="text" id="remarks" class="form-control" placeholder="Any additional information about this guarantor" />
+                                    </div>
+                                </div>
+
+                                <div class="text-end">
+                                    <button type="button" class="btn btn-primary" id="addToPendingBtn" onclick="addToPendingList()" disabled>
+                                        <i class="bi bi-plus-circle"></i> Add to List
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Pending Member Guarantors List -->
+                <div class="card shadow-sm mb-4" id="pendingGuarantorsCard" style="display: none;">
+                    <div class="card-header bg-warning">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-clock-history me-2"></i>Pending Guarantors (<span id="pendingGuarantorsCount">0</span>)
+                        </h5>
+                        <small>These guarantors will be saved when you click "Save All Guarantors"</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm" id="pendingGuarantorsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Member No</th>
+                                        <th>Name</th>
+                                        <th>Guarantee Amount</th>
+                                        <th>Available Deposits</th>
+                                        <th>Remarks</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pendingGuarantorsBody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Saved Member Guarantors List -->
+                @if (existingGuarantors.Any())
+                {
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-check-circle-fill me-2"></i>Saved Guarantors (@assignedCount of @maxGuarantors)
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Guarantor Name</th>
+                                            <th>Member No</th>
+                                            <th>Guarantee Amount</th>
+                                            <th>Available Deposits</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var guarantor in existingGuarantors)
+                                        {
+                                            <tr id="savedGuarantor_@guarantor.Id">
+                                                <td>@guarantor.Id</td>
+                                                <td>
+                                                    @guarantor.GuarantorName
+                                                    @if (guarantor.GuarantorMemberNo == loan?.MemberNo)
+                                                    {
+                                                        <span class="badge bg-primary ms-1">Self</span>
+                                                    }
+                                                </td>
+                                                <td>@guarantor.GuarantorMemberNo</td>
+                                                <td class="text-end fw-bold">KES @guarantor.GuaranteeAmount.ToString("N0")</td>
+                                                <td class="text-end">KES @guarantor.AvailableShares.ToString("N0")</td>
+                                                <td>
+                                                    @if (guarantor.Status == "Approved")
+                                                    {
+                                                        <span class="badge bg-success">✓ Approved</span>
+                                                    }
+                                                    else if (guarantor.Status == "Pending")
+                                                    {
+                                                        <span class="badge bg-warning">⏳ Pending</span>
+                                                    }
+                                                    else
+                                                    {
+                                                        <span class="badge bg-danger">✗ Rejected</span>
+                                                    }
+                                                </td>
+                                                <td>
+                                                    @if (guarantor.Status == "Pending")
+                                                    {
+                                                        <button type="button" class="btn btn-sm btn-danger" onclick="removeSavedGuarantor(@guarantor.Id)">
+                                                            <i class="bi bi-trash"></i> Remove
+                                                        </button>
+                                                    }
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== COLLATERAL GUARANTEE SECTION ==================== -->
+    <div id="collateralSection" class="section-container" style="display: none;">
+        <div class="row">
+            <div class="col-md-12">
+                <!-- Add Collateral Guarantee Form with Enhanced Document Search -->
+                @if (!isFullyGuaranteed)
+                {
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-light">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-plus-circle me-2"></i>Add Collateral Guarantee
+                            </h5>
+                            <small class="text-muted">Select collateral type and enter document details</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Collateral Type *</label>
+                                    <select id="colCode" class="form-select" onchange="onCollateralChange()">
+                                        <option value="">-- Select Collateral Type --</option>
+                                        @foreach (var collateral in collateralTypes)
+                                        {
+                                            <option value="@collateral.ColCode"
+                                                    data-percentage="@collateral.Percentage"
+                                                    data-description="@collateral.Coldescription">
+                                                @collateral.ColCode - @collateral.Coldescription (@collateral.Percentage% of value)
+                                            </option>
+                                        }
+                                    </select>
+
+                                    @if (!collateralTypes.Any())
+                                    {
+                                        <div class="text-danger mt-1">
+                                            <small>No collateral types available. Please contact administrator to add collateral types.</small>
+                                        </div>
+                                    }
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Document Number *</label>
+                                    <div class="input-group">
+                                        <input type="text" id="docNo" class="form-control" placeholder="Title Deed No., Logbook No., etc." />
+                                        <button type="button" class="btn btn-outline-secondary" onclick="searchDocument()">
+                                            <i class="bi bi-search"></i> Validate
+                                        </button>
+                                    </div>
+                                    <div id="documentInfo" class="mt-1"></div>
+                                    <small class="form-text text-muted">Unique document identifier - will be checked for duplicates</small>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Market Value (KES) *</label>
+                                    <input type="number" id="marketValue" class="form-control" step="1000" min="0" oninput="calculateMaxGuarantee()" />
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label fw-bold">Guarantee Amount (KES) *</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text">KES</span>
+                                        <input type="number" id="collateralGuaranteeAmount" class="form-control" step="1000" min="0" />
+                                    </div>
+                                    <div id="collateralAmountHint" class="form-text text-info"></div>
+                                    <div id="collateralAmountValidation" class="text-danger mt-1"></div>
+                                </div>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-12 mb-3">
+                                    <label class="form-label">Remarks (Optional)</label>
+                                    <input type="text" id="collateralRemarks" class="form-control" placeholder="Additional information about this collateral" />
+                                </div>
+                            </div>
+
+                            <div class="text-end">
+                                <button type="button" class="btn btn-success" id="addCollateralBtn" onclick="addCollateralGuarantee()" disabled>
+                                    <i class="bi bi-save"></i> Add Collateral Guarantee
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+
+                <!-- Existing Collateral Guarantees List -->
+                @if (existingCollateralGuarantees.Any())
+                {
+                    <div class="card shadow-sm">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-check-circle-fill me-2"></i>Assigned Collateral Guarantees (@existingCollateralGuarantees.Count)
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Collateral</th>
+                                            <th>Document No</th>
+                                            <th>Market Value</th>
+                                            <th>Guarantee Amount</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var guarantee in existingCollateralGuarantees)
+                                        {
+                                            <tr id="collateralGuarantee_@guarantee.Id">
+                                                <td>
+                                                    <strong>@guarantee.ColCode</strong><br />
+                                                    <small class="text-muted">@guarantee.Coldescription</small>
+                                                </td>
+                                                <td><code>@guarantee.DocNo</code></td>
+                                                <td class="text-end">KES @guarantee.MarketValue.ToString("N0")</td>
+                                                <td class="text-end fw-bold text-success">KES @guarantee.GuaranteeAmount.ToString("N0")</td>
+                                                <td>
+                                                    <span class="badge bg-success">✓ Active</span>
+                                                </td>
+                                                <td>
+                                                    <button type="button" class="btn btn-sm btn-danger" onclick="removeCollateralGuarantee(@guarantee.Id)">
+                                                        <i class="bi bi-trash"></i> Release
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                    <tfoot class="table-secondary">
+                                        <tr>
+                                            <td colspan="3" class="text-end fw-bold">Total:</td>
+                                            <td class="text-end fw-bold">KES @existingCollateralGuarantees.Sum(g => g.GuaranteeAmount).ToString("N0")</td>
+                                            <td colspan="2"></td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                }
+                else
+                {
+                    <div class="card shadow-sm">
+                        <div class="card-body text-center text-muted py-5">
+                            <i class="bi bi-building fs-1"></i>
+                            <p class="mt-2">No collateral guarantees assigned yet.</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons (Common for both sections) -->
+    <div class="mt-4 d-flex gap-3">
+        <button type="button" class="btn btn-success btn-lg" id="saveAllGuarantorsBtn" onclick="saveAllGuarantors()" style="display: none;">
+            <i class="bi bi-save-all"></i> Save All Guarantors
+        </button>
+
+        @if (isFullyGuaranteed)
+        {
+            <form asp-action="SubmitToAppraisal" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="loanNo" value="@loan?.LoanNo" />
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-check-circle"></i> Submit to Appraisal
+                </button>
+            </form>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // ==================== SECTION TOGGLING ====================
+        function showSection(section) {
+            const memberSection = document.getElementById('memberGuarantorSection');
+            const collateralSection = document.getElementById('collateralSection');
+            const memberBtn = document.getElementById('showMemberGuarantorBtn');
+            const collateralBtn = document.getElementById('showCollateralBtn');
+
+            if (section === 'memberGuarantor') {
+                memberSection.style.display = 'block';
+                collateralSection.style.display = 'none';
+                memberBtn.classList.add('active');
+                memberBtn.classList.remove('btn-outline-primary');
+                memberBtn.classList.add('btn-primary');
+                collateralBtn.classList.remove('active');
+                collateralBtn.classList.remove('btn-success');
+                collateralBtn.classList.add('btn-outline-success');
+            } else {
+                memberSection.style.display = 'none';
+                collateralSection.style.display = 'block';
+                collateralBtn.classList.add('active');
+                collateralBtn.classList.remove('btn-outline-success');
+                collateralBtn.classList.add('btn-success');
+                memberBtn.classList.remove('active');
+                memberBtn.classList.remove('btn-primary');
+                memberBtn.classList.add('btn-outline-primary');
+            }
+        }
+
+        // ==================== MEMBER GUARANTOR VARIABLES ====================
+        let pendingGuarantors = [];
+        let selectedGuarantorData = null;
+        let isAmountValid = false;
+        let isGuarantorSelected = false;
+
+        var isSelfGuarantee = @(isSelfGuarantee.ToString().ToLower());
+        var loanAmount = @((loan?.LoanAmt ?? 0));
+        var currentGuarantee = @totalGuarantee;
+        var applicantMemberNo = '@loan?.MemberNo';
+        var isApplicantGuarantor = @(isApplicantGuarantor.ToString().ToLower());
+        var maxGuarantors = @maxGuarantors;
+        var assignedCount = @assignedCount;
+        var loanNo = '@loan?.LoanNo';
+        var companyCode = '@companyCode';
+        var remainingAmount = @remainingAmount;
+        var existingGuarantorsList = @Html.Raw(existingGuarantorsJson);
+
+        // ==================== ENHANCED MEMBER SEARCH ====================
+        async function searchMembersForGuarantor() {
+            const searchTerm = document.getElementById('searchMemberInput').value.trim();
+
+            if (searchTerm.length < 3) {
+                Swal.fire('Warning', 'Please enter at least 3 characters to search', 'warning');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('memberSearchLoading').style.display = 'block';
+            document.getElementById('memberSearchResults').style.display = 'none';
+            document.getElementById('memberSearchResultsBody').innerHTML = '';
+
+            try {
+                const response = await fetch(`/api/Member/search?searchTerm=${encodeURIComponent(searchTerm)}&companyCode=${companyCode}`);
+
+                if (response.ok) {
+                    const data = await response.json();
+
+                    if (data.success && data.data && data.data.length > 0) {
+                        displayMemberSearchResults(data.data);
+                    } else {
+                        document.getElementById('memberSearchResultsBody').innerHTML =
+                            '<tr><td colspan="7" class="text-center text-danger">No members found matching your search</td></tr>';
+                        document.getElementById('memberSearchResults').style.display = 'block';
+                        Swal.fire('Info', 'No members found matching your search', 'info');
+                    }
+                } else {
+                    throw new Error('Search failed');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('memberSearchResultsBody').innerHTML =
+                    '<tr><td colspan="7" class="text-center text-danger">Error searching members. Please try again.</td></tr>';
+                document.getElementById('memberSearchResults').style.display = 'block';
+                Swal.fire('Error', 'Error searching members', 'error');
+            } finally {
+                document.getElementById('memberSearchLoading').style.display = 'none';
+            }
+        }
+
+        function displayMemberSearchResults(members) {
+            const tbody = document.getElementById('memberSearchResultsBody');
+            tbody.innerHTML = '';
+
+            members.forEach(member => {
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-success" onclick="selectGuarantor('${member.memberNo}')">
+                            <i class="bi bi-check"></i> Select
+                        </button>
+                    </td>
+                    <td><strong>${escapeHtml(member.memberNo)}</strong></td>
+                    <td>${escapeHtml(member.surname)} ${escapeHtml(member.otherNames)}</td>
+                    <td>${escapeHtml(member.idno || 'N/A')}</td>
+                    <td>${escapeHtml(member.phoneNo || member.phone || 'N/A')}</td>
+                    <td class="text-end">KES ${(member.availableDeposits || 0).toLocaleString()}</td>
+                    <td>
+                        <span class="badge ${member.status == 1 ? 'bg-success' : 'bg-danger'}">
+                            ${member.status == 1 ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
+                `;
+            });
+
+            document.getElementById('memberSearchResults').style.display = 'block';
+        }
+
+        async function selectGuarantor(memberNo) {
+            try {
+                // Check if already in pending list
+                const existingInPending = pendingGuarantors.find(g => g.memberNo === memberNo);
+                if (existingInPending) {
+                    Swal.fire('Warning', 'This member is already in the pending list', 'warning');
+                    return;
+                }
+
+                // Check if already saved
+                if (existingGuarantorsList.some(g => g.guarantorMemberNo === memberNo)) {
+                    Swal.fire('Warning', 'This member is already a saved guarantor', 'warning');
+                    return;
+                }
+
+                // Check self guarantee
+                if (memberNo === applicantMemberNo) {
+                    if (!isSelfGuarantee) {
+                        Swal.fire('Error', 'Self guarantee is not allowed for this loan type', 'error');
+                        return;
+                    }
+                    if (isApplicantGuarantor) {
+                        Swal.fire('Warning', 'You are already a guarantor for this loan', 'warning');
+                        return;
+                    }
+                }
+
+                // Validate guarantor eligibility
+                Swal.fire({
+                    title: 'Validating...',
+                    text: 'Please wait while we check eligibility',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                const response = await fetch(`/api/LoanApi/validate-guarantor?memberNo=${memberNo}&loanNo=${loanNo}&companyCode=${companyCode}`);
+                const data = await response.json();
+
+                Swal.close();
+
+                if (data.success) {
+                    selectedGuarantorData = data.data;
+                    selectedGuarantorData.memberNo = memberNo;
+                    isGuarantorSelected = true;
+
+                    // Update selected member card
+                    document.getElementById('selectedGuarantorName').innerHTML = `<strong>${selectedGuarantorData.name}</strong>`;
+                    document.getElementById('selectedGuarantorMemberNo').innerHTML = memberNo;
+                    document.getElementById('selectedGuarantorDeposits').innerHTML = `KES ${selectedGuarantorData.availableAmount.toLocaleString()}`;
+                    document.getElementById('selectedGuarantorCard').style.display = 'block';
+
+                    // Show guarantee amount section
+                    document.getElementById('guaranteeAmountSection').style.display = 'block';
+
+                    // Set up amount validation
+                    const currentTotalGuarantee = currentGuarantee + getPendingTotal();
+                    const maxGuarantee = Math.min(selectedGuarantorData.availableAmount, loanAmount - currentTotalGuarantee);
+
+                    const guaranteeInput = document.getElementById('guaranteeAmount');
+                    guaranteeInput.value = '';
+                    guaranteeInput.setAttribute('max', maxGuarantee);
+                    guaranteeInput.setAttribute('min', 1000);
+                    document.getElementById('amountHint').innerHTML = `Maximum guarantee: KES ${maxGuarantee.toLocaleString()}`;
+
+                    // Hide search results
+                    document.getElementById('memberSearchResults').style.display = 'none';
+                    document.getElementById('searchMemberInput').value = '';
+
+                    Swal.fire('Success', `${selectedGuarantorData.name} is eligible to be a guarantor!`, 'success');
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.close();
+                Swal.fire('Error', 'Error validating guarantor', 'error');
+            }
+        }
+
+        function clearSelectedGuarantor() {
+            selectedGuarantorData = null;
+            isGuarantorSelected = false;
+            isAmountValid = false;
+            document.getElementById('selectedGuarantorCard').style.display = 'none';
+            document.getElementById('guaranteeAmountSection').style.display = 'none';
+            document.getElementById('guaranteeAmount').value = '';
+            document.getElementById('remarks').value = '';
+            document.getElementById('amountValidation').innerHTML = '';
+            document.getElementById('addToPendingBtn').disabled = true;
+        }
+
+        function clearMemberSearch() {
+            document.getElementById('searchMemberInput').value = '';
+            document.getElementById('memberSearchResults').style.display = 'none';
+            document.getElementById('memberSearchResultsBody').innerHTML = '';
+        }
+
+        // ==================== GUARANTEE AMOUNT VALIDATION ====================
+        function validateGuaranteeAmount() {
+            const amountInput = document.getElementById('guaranteeAmount');
+            const amount = parseFloat(amountInput.value) || 0;
+            const maxAmount = parseFloat(amountInput.getAttribute('max')) || 0;
+           // const minAmount = parseFloat(amountInput.getAttribute('min')) || 1000;
+            const validationDiv = document.getElementById('amountValidation');
+
+            if (!isGuarantorSelected) {
+                validationDiv.innerHTML = '<i class="bi bi-info-circle"></i> Please select a guarantor first';
+                isAmountValid = false;
+                document.getElementById('addToPendingBtn').disabled = true;
+                return false;
+            }
+
+            if (amount <= 0) {
+                validationDiv.innerHTML = '';
+                isAmountValid = false;
+                document.getElementById('addToPendingBtn').disabled = true;
+                return false;
+            }
+
+            // if (amount < minAmount) {
+            //     validationDiv.innerHTML = `<i class="bi bi-exclamation-triangle"></i> Amount cannot be less than KES ${minAmount.toLocaleString()}`;
+            //     isAmountValid = false;
+            //     document.getElementById('addToPendingBtn').disabled = true;
+            //     return false;
+            // }
+
+            if (amount > maxAmount) {
+                validationDiv.innerHTML = `<i class="bi bi-exclamation-triangle"></i> Amount cannot exceed KES ${maxAmount.toLocaleString()}`;
+                isAmountValid = false;
+                document.getElementById('addToPendingBtn').disabled = true;
+                return false;
+            }
+
+            validationDiv.innerHTML = '<i class="bi bi-check-circle text-success"></i> Amount is valid';
+            isAmountValid = true;
+            document.getElementById('addToPendingBtn').disabled = false;
+
+            setTimeout(() => {
+                if (validationDiv.innerHTML.includes('valid')) {
+                    validationDiv.innerHTML = '';
+                }
+            }, 3000);
+
+            return true;
+        }
+
+        // Amount input event listener
+        document.getElementById('guaranteeAmount')?.addEventListener('input', function() {
+            validateGuaranteeAmount();
+        });
+
+        // ==================== PENDING LIST FUNCTIONS ====================
+        function addToPendingList() {
+            if (!validateGuaranteeAmount()) return;
+
+            const amount = parseFloat(document.getElementById('guaranteeAmount').value) || 0;
+            const remarks = document.getElementById('remarks').value;
+
+            const totalGuarantorsCount = assignedCount + pendingGuarantors.length;
+            if (totalGuarantorsCount >= maxGuarantors) {
+                Swal.fire('Warning', `Maximum number of guarantors (${maxGuarantors}) reached.`, 'warning');
+                return;
+            }
+
+            pendingGuarantors.push({
+                memberNo: selectedGuarantorData.memberNo,
+                name: selectedGuarantorData.name,
+                amount: amount,
+                availableDeposits: selectedGuarantorData.availableAmount,
+                remarks: remarks
+            });
+
+            updatePendingList();
+            updateGuaranteeProgress();
+
+            // Reset form
+            clearSelectedGuarantor();
+            document.getElementById('saveAllGuarantorsBtn').style.display = 'inline-block';
+
+            Swal.fire('Success', 'Guarantor added to pending list', 'success');
+        }
+
+        function removeFromPendingList(index) {
+            Swal.fire({
+                title: 'Remove Guarantor?',
+                text: 'Are you sure you want to remove this guarantor?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Yes, remove'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    pendingGuarantors.splice(index, 1);
+                    updatePendingList();
+                    updateGuaranteeProgress();
+                    if (pendingGuarantors.length === 0) {
+                        document.getElementById('saveAllGuarantorsBtn').style.display = 'none';
+                    }
+                    Swal.fire('Removed', 'Guarantor has been removed', 'success');
+                }
+            });
+        }
+
+        function updatePendingList() {
+            const tbody = document.getElementById('pendingGuarantorsBody');
+            const card = document.getElementById('pendingGuarantorsCard');
+            const countSpan = document.getElementById('pendingGuarantorsCount');
+
+            if (pendingGuarantors.length === 0) {
+                card.style.display = 'none';
+                return;
+            }
+
+            card.style.display = 'block';
+            countSpan.innerText = pendingGuarantors.length;
+            tbody.innerHTML = '';
+
+            pendingGuarantors.forEach((g, index) => {
+                const row = tbody.insertRow();
+                row.insertCell(0).innerHTML = `<code>${escapeHtml(g.memberNo)}</code>`;
+                row.insertCell(1).innerHTML = `<strong>${escapeHtml(g.name)}</strong>`;
+                row.insertCell(2).innerHTML = `<span class="fw-bold text-success">KES ${g.amount.toLocaleString()}</span>`;
+                row.insertCell(3).innerHTML = `<span class="text-info">KES ${g.availableDeposits.toLocaleString()}</span>`;
+                row.insertCell(4).innerHTML = escapeHtml(g.remarks) || '-';
+                row.insertCell(5).innerHTML = `<button type="button" class="btn btn-sm btn-danger" onclick="removeFromPendingList(${index})"><i class="bi bi-trash"></i> Remove</button>`;
+            });
+        }
+
+        function getPendingTotal() {
+            return pendingGuarantors.reduce((sum, g) => sum + g.amount, 0);
+        }
+
+        function updateGuaranteeProgress() {
+            const pendingTotal = getPendingTotal();
+            const newTotalGuarantee = currentGuarantee + pendingTotal;
+            const newRemaining = loanAmount - newTotalGuarantee;
+            const percentage = loanAmount > 0 ? (newTotalGuarantee / loanAmount * 100) : 0;
+
+            document.getElementById('guaranteeProgressBar').style.width = `${Math.min(percentage, 100)}%`;
+            document.getElementById('progressPercentage').innerHTML = percentage.toFixed(0);
+        }
+
+        async function saveAllGuarantors() {
+            if (pendingGuarantors.length === 0) {
+                Swal.fire('Info', 'No guarantors to save', 'info');
+                return;
+            }
+
+            const saveBtn = document.getElementById('saveAllGuarantorsBtn');
+            const originalHtml = saveBtn.innerHTML;
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
+
+            let successCount = 0;
+            let errorMessages = [];
+
+            try {
+                for (const guarantor of pendingGuarantors) {
+                    const formData = new FormData();
+                    formData.append('loanNo', loanNo);
+                    formData.append('guarantorMemberNo', guarantor.memberNo);
+                    formData.append('guaranteeAmount', guarantor.amount);
+                    formData.append('remarks', guarantor.remarks);
+
+                    const response = await fetch('/LoanMvc/AddGuarantor', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                        }
+                    });
+
+                    const data = await response.json();
+                    if (data.success) {
+                        successCount++;
+                    } else {
+                        errorMessages.push(`${guarantor.name}: ${data.message}`);
+                    }
+                }
+
+                if (successCount > 0) {
+                    Swal.fire('Success', `${successCount} guarantor(s) added successfully!`, 'success')
+                        .then(() => window.location.reload());
+                } else {
+                    Swal.fire('Error', `Failed to save guarantors:\n${errorMessages.join('\n')}`, 'error');
+                    saveBtn.disabled = false;
+                    saveBtn.innerHTML = originalHtml;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire('Error', 'An error occurred while saving guarantors', 'error');
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = originalHtml;
+            }
+        }
+
+        async function removeSavedGuarantor(guarantorId) {
+            Swal.fire({
+                title: 'Remove Guarantor?',
+                text: 'Are you sure you want to remove this guarantor?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Yes, remove'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    const formData = new FormData();
+                    formData.append('guarantorId', guarantorId);
+                    formData.append('loanNo', loanNo);
+
+                    const response = await fetch('/LoanMvc/RejectGuarantor', {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value }
+                    });
+
+                    if (response.ok) {
+                        Swal.fire('Removed', 'Guarantor has been removed', 'success')
+                            .then(() => window.location.reload());
+                    } else {
+                        Swal.fire('Error', 'Failed to remove guarantor', 'error');
+                    }
+                }
+            });
+        }
+
+        // ==================== COLLATERAL FUNCTIONS ====================
+        let selectedCollateralPercentage = 0;
+        let isDocumentValid = false;
+        let documentData = null;
+
+        async function searchDocument() {
+            const colCode = document.getElementById('colCode').value;
+            const docNo = document.getElementById('docNo').value.trim();
+
+            if (!colCode) {
+                Swal.fire('Warning', 'Please select a collateral type first', 'warning');
+                return;
+            }
+
+            if (!docNo) {
+                Swal.fire('Warning', 'Please enter a document number', 'warning');
+                return;
+            }
+
+            const docInfo = document.getElementById('documentInfo');
+            docInfo.innerHTML = '<div class="alert alert-info"><i class="bi bi-hourglass-split"></i> Checking document...</div>';
+
+            try {
+                const response = await fetch(`/api/CollateralGuaranteeApi/check-document?colCode=${colCode}&docNo=${encodeURIComponent(docNo)}&companyCode=${companyCode}`);
+                const data = await response.json();
+
+                if (data.exists) {
+                    docInfo.innerHTML = `<div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        This document is already used as collateral for loan ${data.loanNo || 'another loan'}.
+                        Please use a different document.
+                    </div>`;
+                    isDocumentValid = false;
+                    document.getElementById('addCollateralBtn').disabled = true;
+                } else {
+                    docInfo.innerHTML = `<div class="alert alert-success">
+                        <i class="bi bi-check-circle-fill"></i>
+                        Document is available and valid.
+                    </div>`;
+                    isDocumentValid = true;
+                    documentData = { colCode, docNo };
+                    calculateMaxGuarantee();
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                docInfo.innerHTML = '<div class="alert alert-danger">Error checking document. Please try again.</div>';
+                isDocumentValid = false;
+                document.getElementById('addCollateralBtn').disabled = true;
+            }
+        }
+
+        function onCollateralChange() {
+            const select = document.getElementById('colCode');
+            const selectedOption = select.options[select.selectedIndex];
+
+            if (selectedOption && selectedOption.value) {
+                selectedCollateralPercentage = parseFloat(selectedOption.getAttribute('data-percentage')) || 0;
+                document.getElementById('collateralAmountHint').innerHTML = `This collateral can guarantee up to ${selectedCollateralPercentage}% of its market value`;
+                calculateMaxGuarantee();
+                // Reset document validation when collateral changes
+                isDocumentValid = false;
+                document.getElementById('documentInfo').innerHTML = '';
+            } else {
+                selectedCollateralPercentage = 0;
+                document.getElementById('collateralAmountHint').innerHTML = '';
+            }
+        }
+
+        function calculateMaxGuarantee() {
+            const marketValue = parseFloat(document.getElementById('marketValue').value) || 0;
+            const maxGuaranteeFromCollateral = marketValue * (selectedCollateralPercentage / 100);
+            const maxGuarantee = Math.min(maxGuaranteeFromCollateral, remainingAmount);
+
+            const guaranteeInput = document.getElementById('collateralGuaranteeAmount');
+            guaranteeInput.setAttribute('max', maxGuarantee);
+            guaranteeInput.setAttribute('min', 1000);
+
+            const addBtn = document.getElementById('addCollateralBtn');
+
+            if (maxGuarantee > 0 && selectedCollateralPercentage > 0 && isDocumentValid) {
+                addBtn.disabled = false;
+                document.getElementById('collateralAmountHint').innerHTML = `Maximum guarantee: KES ${maxGuarantee.toLocaleString()} (${selectedCollateralPercentage}% of KES ${marketValue.toLocaleString()})`;
+                validateCollateralAmount();
+            } else {
+                addBtn.disabled = true;
+                if (remainingAmount <= 0) {
+                    document.getElementById('collateralAmountHint').innerHTML = 'Loan is already fully guaranteed';
+                } else if (!isDocumentValid && document.getElementById('docNo').value) {
+                    document.getElementById('collateralAmountHint').innerHTML = 'Please validate the document first';
+                } else if (marketValue > 0 && selectedCollateralPercentage > 0 && maxGuaranteeFromCollateral <= 0) {
+                    document.getElementById('collateralAmountHint').innerHTML = `Market value too low. Minimum: KES ${(1000 / (selectedCollateralPercentage / 100)).toLocaleString()}`;
+                }
+            }
+        }
+
+        function validateCollateralAmount() {
+            const amountInput = document.getElementById('collateralGuaranteeAmount');
+            const amount = parseFloat(amountInput.value) || 0;
+            const maxAmount = parseFloat(amountInput.getAttribute('max')) || 0;
+            //const minAmount = parseFloat(amountInput.getAttribute('min')) || 1000;
+            const validationDiv = document.getElementById('collateralAmountValidation');
+
+            if (amount <= 0) {
+                validationDiv.innerHTML = '';
+                return false;
+            }
+
+            // if (amount < minAmount) {
+            //     validationDiv.innerHTML = `<i class="bi bi-exclamation-triangle"></i> Amount cannot be less than KES ${minAmount.toLocaleString()}`;
+            //     return false;
+            // }
+
+            if (amount > maxAmount) {
+                validationDiv.innerHTML = `<i class="bi bi-exclamation-triangle"></i> Amount cannot exceed KES ${maxAmount.toLocaleString()}`;
+                return false;
+            }
+
+            validationDiv.innerHTML = '<i class="bi bi-check-circle text-success"></i> Amount is valid';
+            setTimeout(() => {
+                if (validationDiv.innerHTML.includes('valid')) {
+                    validationDiv.innerHTML = '';
+                }
+            }, 3000);
+
+            return true;
+        }
+
+        document.getElementById('collateralGuaranteeAmount')?.addEventListener('input', validateCollateralAmount);
+        document.getElementById('marketValue')?.addEventListener('input', calculateMaxGuarantee);
+
+        async function addCollateralGuarantee() {
+            const colCode = document.getElementById('colCode').value;
+            const docNo = document.getElementById('docNo').value.trim();
+            const marketValue = parseFloat(document.getElementById('marketValue').value) || 0;
+            const guaranteeAmount = parseFloat(document.getElementById('collateralGuaranteeAmount').value) || 0;
+            const remarks = document.getElementById('collateralRemarks').value;
+
+            if (!colCode) { Swal.fire('Error', 'Please select a collateral type', 'error'); return; }
+            if (!docNo) { Swal.fire('Error', 'Please enter the document number', 'error'); return; }
+            if (!isDocumentValid) { Swal.fire('Error', 'Please validate the document first', 'error'); return; }
+            if (marketValue <= 0) { Swal.fire('Error', 'Please enter a valid market value', 'error'); return; }
+
+            if (!validateCollateralAmount()) {
+                Swal.fire('Error', 'Please enter a valid guarantee amount', 'error');
+                return;
+            }
+
+            const addBtn = document.getElementById('addCollateralBtn');
+            const originalHtml = addBtn.innerHTML;
+            addBtn.disabled = true;
+            addBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Processing...';
+
+            try {
+                const formData = {
+                    loanNo: loanNo,
+                    memberNo: applicantMemberNo,
+                    colCode: colCode,
+                    docNo: docNo,
+                    marketValue: marketValue,
+                    guaranteeAmount: guaranteeAmount,
+                    remarks: remarks,
+                    companyCode: companyCode
+                };
+
+                const response = await fetch('/api/CollateralGuaranteeApi/assign', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    Swal.fire('Success', 'Collateral guarantee added successfully!', 'success')
+                        .then(() => window.location.reload());
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                    addBtn.disabled = false;
+                    addBtn.innerHTML = originalHtml;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire('Error', 'An error occurred. Please try again.', 'error');
+                addBtn.disabled = false;
+                addBtn.innerHTML = originalHtml;
+            }
+        }
+
+        async function removeCollateralGuarantee(id) {
+            Swal.fire({
+                title: 'Release Collateral?',
+                text: 'Please provide a reason for releasing this collateral:',
+                icon: 'warning',
+                input: 'textarea',
+                inputPlaceholder: 'Enter reason for release...',
+                inputAttributes: { required: true },
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Yes, release',
+                preConfirm: (reason) => {
+                    if (!reason) {
+                        Swal.showValidationMessage('Please provide a reason');
+                        return false;
+                    }
+                    return reason;
+                }
+            }).then(async (result) => {
+                if (result.isConfirmed && result.value) {
+                    const formData = new FormData();
+                    formData.append('collateralGuaranteeId', id);
+                    formData.append('loanNo', loanNo);
+                    formData.append('reason', result.value);
+
+                    const response = await fetch('/LoanMvc/RemoveCollateralGuarantee', {
+                        method: 'POST',
+                        body: formData,
+                        headers: { 'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value }
+                    });
+
+                    if (response.ok) {
+                        Swal.fire('Released', 'Collateral guarantee has been released', 'success')
+                            .then(() => window.location.reload());
+                    } else {
+                        Swal.fire('Error', 'Failed to release collateral', 'error');
+                    }
+                }
+            });
+        }
+
+        // Helper functions
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Enter key to search
+        document.getElementById('searchMemberInput')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchMembersForGuarantor();
+            }
+        });
+
+        document.getElementById('docNo')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchDocument();
+            }
+        });
+
+        // Auto-focus on search field
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('searchMemberInput')?.focus();
+        });
+    </script>
+}

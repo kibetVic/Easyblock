@@ -1,0 +1,255 @@
+@model SACCOBlockChainSystem.Models.ViewModels.LoanDueIndexViewModel
+@{
+    ViewData["Title"] = "Loans Due Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .overdue-row {
+        background-color: #ffe6e6 !important;
+    }
+
+    .overdue-badge {
+        background-color: #dc3545;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: bold;
+    }
+
+    .on-time-badge {
+        background-color: #28a745;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: bold;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>Loans Due Report</h4>
+        </div>
+        <div class="card-body">
+            <!-- Filter Form -->
+            <form method="post" class="mb-4">
+                <div class="row align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Start Date</label>
+                        <input type="date" name="startDate" class="form-control" value="@Model.StartDate.ToString("yyyy-MM-dd")" required />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">End Date</label>
+                        <input type="date" name="endDate" class="form-control" value="@Model.EndDate.ToString("yyyy-MM-dd")" required />
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary me-2">
+                            <i class="fas fa-search me-1"></i>Generate Report
+                        </button>
+                        <button type="button" id="exportExcelBtn" class="btn btn-success me-2">
+                            <i class="fas fa-file-excel me-1"></i>Export to Excel
+                        </button>
+                        <button type="button" id="exportPdfBtn" class="btn btn-danger">
+                            <i class="fas fa-file-pdf me-1"></i>Export to PDF
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            @if (Model.HasData)
+            {
+                <!-- Report Header -->
+                <div class="text-center mb-4">
+                    <h4>@Model.CompanyName.ToUpper()</h4>
+                    <h5>LOANS DUE REPORT</h5>
+                    <p>Period: @Model.StartDate.ToString("dd/MM/yyyy") - @Model.EndDate.ToString("dd/MM/yyyy")</p>
+                    <p>Printed By: @Model.PrintedBy On: @Model.GeneratedOn.ToString("dd-MMM-yyyy HH:mm")</p>
+                </div>
+
+                <!-- Statistics Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-hand-holding-usd"></i> Total Loans Due</h5>
+                                <h3>@Model.TotalLoans.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-exclamation-triangle"></i> Overdue Loans</h5>
+                                <h3>@Model.OverdueLoansCount.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-money-bill-wave"></i> Total Due Amount</h5>
+                                <h3>@Model.TotalAmount.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-secondary text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-chart-line"></i> Total Loan Balance</h5>
+                                <h3>@Model.TotalLoanBalance.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="table-responsive">
+                    <table id="loansDueTable" class="table table-bordered table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Member No</th>
+                                <th>Loan No</th>
+                                <th>Names</th>
+                                <th class="text-end">RepayRate</th>
+                                <th class="text-end">IntrOwed</th>
+                                <th class="text-end">Total</th>
+                                <th class="text-center">Due Date</th>
+                                <th class="text-end">Loan Balance</th>
+                                <th>Loan Name</th>
+                                <th class="text-center">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var loan in Model.Loans)
+                            {
+                                var isOverdue = loan.DaysOverdue > 0;
+                                <tr class="@(isOverdue ? "overdue-row" : "")">
+                                    <td>@loan.MemberNo</td>
+                                    <td>@loan.LoanNo</td>
+                                    <td>@loan.Names</td>
+                                    <td class="text-end">@loan.RepayRate.ToString("N2")</td>
+                                    <td class="text-end">@loan.IntrOwed.ToString("N2")</td>
+                                    <td class="text-end fw-bold">@loan.Total.ToString("N2")</td>
+                                    <td class="text-center">
+                                        @loan.DueDate.ToString("dd/MM/yyyy")
+                                        @if (isOverdue)
+                                        {
+                                            <br />
+                                            <small class="text-danger">(@loan.DaysOverdue days overdue)</small>
+                                        }
+                                    </td>
+                                    <td class="text-end">@loan.LoanBalance.ToString("N2")</td>
+                                    <td>@loan.LoanName</td>
+                                    <td class="text-center">
+                                        @if (isOverdue)
+                                        {
+                                            <span class="overdue-badge">OVERDUE</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="on-time-badge">ON TIME</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-secondary fw-bold">
+                            <tr>
+                                <td colspan="3" class="text-end">GRAND TOTAL:</td>
+                                <td class="text-end">@Model.TotalRepayRate.ToString("N2")</td>
+                                <td class="text-end">@Model.TotalIntrOwed.ToString("N2")</td>
+                                <td class="text-end">@Model.TotalAmount.ToString("N2")</td>
+                                <td></td>
+                                <td class="text-end">@Model.TotalLoanBalance.ToString("N2")</td>
+                                <td colspan="2"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    @(ViewBag.Message ?? "No loans due found for the selected date range. Please select a date range and click 'Generate Report'.")
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
+
+    <script>
+        $(document).ready(function() {
+            $('#loansDueTable').DataTable({
+                pageLength: 25,
+                order: [[6, 'asc']], // Sort by Due Date
+                language: {
+                    search: "Search:",
+                    lengthMenu: "Show _MENU_ entries per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ loans due"
+                },
+                columnDefs: [
+                    { orderable: false, targets: 9 } // Disable sorting on Status column
+                ]
+            });
+
+            // Export to Excel
+            $('#exportExcelBtn').click(function() {
+                var startDate = $('input[name="startDate"]').val();
+                var endDate = $('input[name="endDate"]').val();
+                if (!startDate || !endDate) {
+                    alert('Please select both start and end dates first');
+                    return;
+                }
+                var form = $('<form>', {
+                    'method': 'post',
+                    'action': '@Url.Action("ExportLoansDueToExcel", "LoanReport")'
+                });
+                form.append($('<input>', {
+                    'type': 'hidden',
+                    'name': 'startDate',
+                    'value': startDate
+                }));
+                form.append($('<input>', {
+                    'type': 'hidden',
+                    'name': 'endDate',
+                    'value': endDate
+                }));
+                form.appendTo('body').submit();
+            });
+
+            // Export to PDF
+            $('#exportPdfBtn').click(function() {
+                var startDate = $('input[name="startDate"]').val();
+                var endDate = $('input[name="endDate"]').val();
+                if (!startDate || !endDate) {
+                    alert('Please select both start and end dates first');
+                    return;
+                }
+                var form = $('<form>', {
+                    'method': 'post',
+                    'action': '@Url.Action("ExportLoansDueToPdf", "LoanReport")'
+                });
+                form.append($('<input>', {
+                    'type': 'hidden',
+                    'name': 'startDate',
+                    'value': startDate
+                }));
+                form.append($('<input>', {
+                    'type': 'hidden',
+                    'name': 'endDate',
+                    'value': endDate
+                }));
+                form.appendTo('body').submit();
+            });
+        });
+    </script>
+}

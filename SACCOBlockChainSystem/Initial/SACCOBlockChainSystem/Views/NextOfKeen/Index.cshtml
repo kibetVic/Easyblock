@@ -1,0 +1,755 @@
+﻿@model List<SACCOBlockChainSystem.Models.DTOs.NextOfKeenResponseDTO>
+@{
+    ViewData["Title"] = "Next of Kin Management";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var totalPercentage = ViewBag.TotalPercentage as decimal? ?? 0;
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <a asp-controller="MemberMvc" asp-action="Index" class="btn btn-outline-secondary me-3">
+                        <i class="bi bi-arrow-left"></i> Back to Members
+                    </a>
+                    <h2 class="page-title d-inline-block mb-0">
+                        <i class="bi bi-people-fill me-2"></i>Next of Kin Management
+                    </h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success/Error Messages -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Search Card -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-search me-2"></i>Search Member
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row align-items-end">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="fw-bold">Search By</label>
+                        <select id="searchType" class="form-select">
+                            <option value="memberNo">Member Number</option>
+                            <option value="idNo">ID Number</option>
+                            <option value="fullName">Full Name</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="fw-bold" id="searchLabel">Member Number</label>
+                        <div class="input-group">
+                            <input type="text" id="searchValue" class="form-control"
+                                   placeholder="Enter member number..." />
+                            <button type="button" class="btn btn-primary" onclick="performSearch()">
+                                <i class="bi bi-search"></i> Search
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button type="button" class="btn btn-outline-secondary w-100" onclick="resetSearch()">
+                            <i class="bi bi-eraser"></i> Clear Search
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Member Information Card -->
+    <div id="memberInfoCard" class="card shadow-sm mb-4" style="display: none;">
+        <div class="card-header bg-success text-white">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-person-badge me-2"></i>Selected Member Information
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="text-muted">Member Number:</label>
+                    <p class="fw-bold mb-0" id="displayMemberNo">-</p>
+                </div>
+                <div class="col-md-3">
+                    <label class="text-muted">Full Name:</label>
+                    <p class="fw-bold mb-0" id="displayMemberName">-</p>
+                </div>
+                <div class="col-md-3">
+                    <label class="text-muted">ID Number:</label>
+                    <p class="fw-bold mb-0" id="displayMemberIdNo">-</p>
+                </div>
+                <div class="col-md-3">
+                    <label class="text-muted">Phone:</label>
+                    <p class="fw-bold mb-0" id="displayMemberPhone">-</p>
+                </div>
+            </div>
+            <hr />
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">
+                            <i class="bi bi-person-lines-fill me-2"></i>Next of Kin Records
+                            <span class="badge bg-secondary ms-2" id="totalCount">0</span>
+                        </h6>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="openAddModal()">
+                            <i class="bi bi-plus-circle me-1"></i>Add Next of Kin
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Benefit Percentage Summary -->
+    <div id="benefitSummaryCard" class="card shadow-sm mb-4" style="display: none;">
+        <div class="card-header bg-warning">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-percent me-2"></i>Benefit Distribution Summary
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="progress" style="height: 30px;">
+                        <div id="benefitProgressBar" class="progress-bar" role="progressbar"
+                             style="width: 0%;"
+                             aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+                            <span id="benefitPercentageText">0%</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div id="benefitWarning" class="alert alert-danger small mb-0" style="display: none;">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        Total benefit percentage exceeds 100%. Please adjust.
+                    </div>
+                    <div id="benefitSuccess" class="alert alert-success small mb-0" style="display: none;">
+                        <i class="bi bi-check-circle-fill me-2"></i>
+                        Total benefit percentage is within limit.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Next of Kin List Table -->
+    <div id="nextOfKinTableCard" class="card shadow-sm" style="display: none;">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-table me-2"></i>Next of Kin Records
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="nextOfKinTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Full Name</th>
+                            <th>Relationship</th>
+                            <th>Phone Number</th>
+                            <th>Email</th>
+                            <th>Benefit %</th>
+                            <th>Priority</th>
+                            <th>Primary</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="nextOfKinTableBody">
+                        <tr>
+                            <td colspan="9" class="text-center text-muted py-4">
+                                <i class="bi bi-info-circle me-2"></i>Search for a member to view next of kin records
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Next of Kin Modal -->
+<div class="modal fade" id="nextOfKinModal" tabindex="-1" aria-labelledby="nextOfKinModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="nextOfKinModalLabel">
+                    <i class="bi bi-person-plus me-2"></i>Add Next of Kin
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="nextOfKinForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="nextOfKinId" name="Id" value="0" />
+                <!-- IMPORTANT: This hidden field must be populated with the member number -->
+                <input type="hidden" id="MemberNo" name="MemberNo" />
+
+                <div class="modal-body">
+                    <!-- Display Selected Member Info -->
+                    <div class="alert alert-info mb-3" id="modalMemberInfo" style="display: none;">
+                        <i class="bi bi-person-circle me-2"></i>
+                        <strong>Adding Next of Kin for Member:</strong><br />
+                        <span id="modalMemberNo"></span> - <span id="modalMemberName"></span>
+                    </div>
+
+                    <!-- Visible Member Number Field (Readonly) -->
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-bold">Member Number</label>
+                            <input type="text" id="displayMemberNoField" class="form-control" readonly style="background-color: #e9ecef;" />
+                            <small class="text-muted">The member number this next of kin belongs to</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="fullName" class="form-label fw-bold">Full Name *</label>
+                            <input type="text" class="form-control" id="fullName" name="FullName" required maxlength="100" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="relationship" class="form-label fw-bold">Relationship *</label>
+                            <select class="form-select" id="relationship" name="Relationship" required>
+                                <option value="">-- Select Relationship --</option>
+                                <option value="Spouse">Spouse</option>
+                                <option value="Child">Child</option>
+                                <option value="Parent">Parent</option>
+                                <option value="Sibling">Sibling</option>
+                                <option value="Relative">Relative</option>
+                                <option value="Friend">Friend</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="phoneNo" class="form-label fw-bold">Phone Number *</label>
+                            <input type="tel" class="form-control" id="phoneNo" name="PhoneNo" required maxlength="20" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email Address</label>
+                            <input type="email" class="form-control" id="email" name="Email" maxlength="100" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="physicalAddress" class="form-label">Physical Address</label>
+                            <textarea class="form-control" id="physicalAddress" name="PhysicalAddress" rows="2" maxlength="200"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="idNumber" class="form-label">ID Number</label>
+                            <input type="text" class="form-control" id="idNumber" name="IdNumber" maxlength="20" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="passportNumber" class="form-label">Passport Number</label>
+                            <input type="text" class="form-control" id="passportNumber" name="PassportNumber" maxlength="50" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="employer" class="form-label">Employer</label>
+                            <input type="text" class="form-control" id="employer" name="Employer" maxlength="200" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="occupation" class="form-label">Occupation</label>
+                            <input type="text" class="form-control" id="occupation" name="Occupation" maxlength="100" />
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="benefitPercentage" class="form-label">Benefit Percentage (%)</label>
+                            <input type="number" class="form-control" id="benefitPercentage" name="BenefitPercentage"
+                                   step="0.01" min="0" max="100" value="0" />
+                            <small class="text-muted">Percentage of benefits to allocate (0-100%)</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="priorityOrder" class="form-label">Priority Order</label>
+                            <input type="number" class="form-control" id="priorityOrder" name="PriorityOrder"
+                                   min="1" value="1" />
+                            <small class="text-muted">Lower number = higher priority</small>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check mt-4">
+                                <input type="checkbox" class="form-check-input" id="isPrimary" name="IsPrimary" value="true" />
+                                <label class="form-check-label fw-bold" for="isPrimary">
+                                    Is Primary Next of Kin
+                                </label>
+                                <br />
+                                <small class="text-muted">Only one primary is allowed</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="notes" name="Notes" rows="2" maxlength="500"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Next of Kin</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        let currentMemberNo = null;
+        let currentMemberData = null;
+        let nextOfKinData = [];
+
+        $(document).ready(function() {
+            // Update search label based on selection
+            $('#searchType').on('change', function() {
+                const searchType = $(this).val();
+                const searchLabel = $('#searchLabel');
+                const searchInput = $('#searchValue');
+
+                if (searchType === 'memberNo') {
+                    searchLabel.text('Member Number');
+                    searchInput.attr('placeholder', 'Enter member number...');
+                } else if (searchType === 'idNo') {
+                    searchLabel.text('ID Number');
+                    searchInput.attr('placeholder', 'Enter ID number...');
+                } else {
+                    searchLabel.text('Full Name');
+                    searchInput.attr('placeholder', 'Enter full name...');
+                }
+
+                searchInput.val('');
+            });
+
+            // Allow Enter key to search
+            $('#searchValue').on('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+        });
+
+        async function performSearch() {
+            const searchType = $('#searchType').val();
+            const searchValue = $('#searchValue').val().trim();
+
+            if (!searchValue) {
+                alert('Please enter a ' + $('#searchLabel').text());
+                return;
+            }
+
+            let url = '';
+            let params = {};
+
+            if (searchType === 'memberNo') {
+                url = '/MemberMvc/SearchMember';
+                params = { memberNo: searchValue };
+            } else if (searchType === 'idNo') {
+                url = '/MemberMvc/SearchMember';
+                params = { idNo: searchValue };
+            } else {
+                url = '/MemberMvc/SearchMember';
+                params = { fullName: searchValue };
+            }
+
+            const queryString = new URLSearchParams(params).toString();
+            url = `${url}?${queryString}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success && data.member) {
+                    currentMemberData = data.member;
+                    currentMemberNo = data.member.memberNo;
+                    displayMemberInfo(data.member);
+                    await loadNextOfKin();
+                    $('#memberInfoCard').show();
+                    $('#benefitSummaryCard').show();
+                    $('#nextOfKinTableCard').show();
+                } else {
+                    alert(data.message || 'Member not found');
+                    resetSearch();
+                }
+            } catch (error) {
+                console.error('Error searching member:', error);
+                alert('Error searching for member. Please try again.');
+            }
+        }
+
+        function displayMemberInfo(member) {
+            $('#displayMemberNo').text(member.memberNo);
+            $('#displayMemberName').text(member.fullName);
+            $('#displayMemberIdNo').text(member.idNo || 'N/A');
+            $('#displayMemberPhone').text(member.phoneNo || 'N/A');
+
+            // CRITICAL: Set the hidden field with the member number (Uppercase ID to match form field)
+            $('#MemberNo').val(member.memberNo);
+            $('#displayMemberNoField').val(member.memberNo);
+
+            console.log('Member set - MemberNo:', member.memberNo);
+        }
+
+        async function loadNextOfKin() {
+            if (!currentMemberNo) return;
+
+            try {
+                const response = await fetch(`/NextOfKeen/GetByMember?memberNo=${currentMemberNo}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    nextOfKinData = data.data;
+                    renderNextOfKinTable(data.data);
+                    updateBenefitSummary(data.data);
+                    $('#totalCount').text(data.data.length);
+                }
+            } catch (error) {
+                console.error('Error loading next of kin:', error);
+            }
+        }
+
+        function renderNextOfKinTable(records) {
+            const tbody = $('#nextOfKinTableBody');
+            tbody.empty();
+
+            if (!records || records.length === 0) {
+                tbody.html('<tr><td colspan="9" class="text-center text-muted py-4">No next of kin records found for this member</td></tr>');
+                return;
+            }
+
+            records.forEach(record => {
+                const row = `
+                    <tr>
+                        <td><strong>${escapeHtml(record.fullName)}</strong></td>
+                        <td>${escapeHtml(record.relationship)}</td>
+                        <td>${escapeHtml(record.phoneNo)}</td>
+                        <td>${escapeHtml(record.email || '-')}</td>
+                        <td class="text-end">${record.benefitPercentage ? record.benefitPercentage.toFixed(2) + '%' : '0%'}</td>
+                        <td class="text-center">${record.priorityOrder || '-'}</td>
+                        <td class="text-center">
+                            ${record.isPrimary ? '<span class="badge bg-success"><i class="bi bi-star-fill"></i> Primary</span>' :
+                                                  '<button class="btn btn-sm btn-outline-primary" onclick="setPrimary(' + record.id + ')">Set as Primary</button>'}
+                        </td>
+                        <td>
+                            <span class="badge ${record.status === 'Active' ? 'bg-success' : 'bg-secondary'}">
+                                ${record.status}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-info me-1" onclick="viewDetails(${record.id})" title="View Details">
+                                <i class="bi bi-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-warning me-1" onclick="editRecord(${record.id})" title="Edit">
+                                <i class="bi bi-pencil"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteRecord(${record.id}, '${escapeHtml(record.fullName)}')" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+        }
+
+        function updateBenefitSummary(records) {
+            const totalPercentage = records.reduce((sum, r) => sum + (r.benefitPercentage || 0), 0);
+            const isOver100 = totalPercentage > 100;
+
+            $('#benefitProgressBar').css('width', Math.min(totalPercentage, 100) + '%');
+            $('#benefitProgressBar').css('background-color', isOver100 ? '#dc3545' : '#28a745');
+            $('#benefitPercentageText').text(totalPercentage.toFixed(2) + '%');
+
+            if (isOver100) {
+                $('#benefitWarning').show();
+                $('#benefitSuccess').hide();
+            } else {
+                $('#benefitWarning').hide();
+                if (totalPercentage > 0) {
+                    $('#benefitSuccess').show();
+                } else {
+                    $('#benefitSuccess').hide();
+                }
+            }
+        }
+
+        function openAddModal() {
+            if (!currentMemberNo) {
+                alert('Please search and select a member first');
+                return;
+            }
+
+            console.log('Opening add modal for member:', currentMemberNo);
+            console.log('Current MemberNo value in hidden field before reset:', $('#MemberNo').val());
+
+            // Reset form
+            $('#nextOfKinForm')[0].reset();
+            $('#nextOfKinId').val('0');
+
+            // CRITICAL: Set the member number in the hidden field (Uppercase ID)
+            $('#MemberNo').val(currentMemberNo);
+            $('#displayMemberNoField').val(currentMemberNo);
+
+            console.log('After setting, MemberNo value:', $('#MemberNo').val());
+
+            // Show member info in modal
+            $('#modalMemberNo').text(currentMemberNo);
+            $('#modalMemberName').text(currentMemberData.fullName);
+            $('#modalMemberInfo').show();
+
+            $('#nextOfKinModalLabel').html('<i class="bi bi-person-plus me-2"></i>Add Next of Kin');
+            $('#nextOfKinModal').modal('show');
+        }
+
+        async function editRecord(id) {
+            const record = nextOfKinData.find(r => r.id === id);
+            if (!record) return;
+
+            $('#nextOfKinId').val(record.id);
+            $('#MemberNo').val(currentMemberNo);
+            $('#displayMemberNoField').val(currentMemberNo);
+            $('#fullName').val(record.fullName);
+            $('#relationship').val(record.relationship);
+            $('#phoneNo').val(record.phoneNo);
+            $('#email').val(record.email || '');
+            $('#physicalAddress').val(record.physicalAddress || '');
+            $('#idNumber').val(record.idNumber || '');
+            $('#passportNumber').val(record.passportNumber || '');
+            $('#employer').val(record.employer || '');
+            $('#occupation').val(record.occupation || '');
+            $('#benefitPercentage').val(record.benefitPercentage || 0);
+            $('#priorityOrder').val(record.priorityOrder || 1);
+            $('#isPrimary').prop('checked', record.isPrimary);
+            $('#notes').val(record.notes || '');
+
+            $('#modalMemberNo').text(currentMemberNo);
+            $('#modalMemberName').text(currentMemberData.fullName);
+            $('#modalMemberInfo').show();
+
+            $('#nextOfKinModalLabel').html('<i class="bi bi-pencil-square me-2"></i>Edit Next of Kin');
+            $('#nextOfKinModal').modal('show');
+        }
+
+        function viewDetails(id) {
+            const record = nextOfKinData.find(r => r.id === id);
+            if (!record) return;
+
+            let details = `Full Name: ${record.fullName}\n`;
+            details += `Relationship: ${record.relationship}\n`;
+            details += `Phone: ${record.phoneNo}\n`;
+            details += `Email: ${record.email || 'N/A'}\n`;
+            details += `Address: ${record.physicalAddress || 'N/A'}\n`;
+            details += `ID Number: ${record.idNumber || 'N/A'}\n`;
+            details += `Passport: ${record.passportNumber || 'N/A'}\n`;
+            details += `Employer: ${record.employer || 'N/A'}\n`;
+            details += `Occupation: ${record.occupation || 'N/A'}\n`;
+            details += `Benefit %: ${record.benefitPercentage ? record.benefitPercentage + '%' : '0%'}\n`;
+            details += `Priority: ${record.priorityOrder || 'N/A'}\n`;
+            details += `Primary: ${record.isPrimary ? 'Yes' : 'No'}\n`;
+            details += `Status: ${record.status}\n`;
+            details += `Notes: ${record.notes || 'N/A'}`;
+
+            alert(details);
+        }
+
+        async function deleteRecord(id, fullName) {
+            if (!confirm(`Are you sure you want to delete "${fullName}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/NextOfKeen/Delete/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    await loadNextOfKin();
+                    showToast('success', data.message);
+                } else {
+                    showToast('error', data.message);
+                }
+            } catch (error) {
+                console.error('Error deleting record:', error);
+                showToast('error', 'Error deleting record');
+            }
+        }
+
+        async function setPrimary(id) {
+            try {
+                const response = await fetch(`/NextOfKeen/SetPrimary/${id}?memberNo=${currentMemberNo}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    await loadNextOfKin();
+                    showToast('success', data.message);
+                } else {
+                    showToast('error', data.message);
+                }
+            } catch (error) {
+                console.error('Error setting primary:', error);
+                showToast('error', 'Error setting primary next of kin');
+            }
+        }
+
+
+        $('#nextOfKinForm').on('submit', async function(e) {
+            e.preventDefault();
+
+            // Get the member number from the hidden field (Uppercase ID)
+            const memberNo = $('#MemberNo').val();
+
+            console.log('SUBMIT - MemberNo from hidden field:', memberNo);
+
+            if (!memberNo) {
+                showToast('error', 'Please select a member first');
+                return;
+            }
+
+            const formData = {
+                Id: parseInt($('#nextOfKinId').val()) || 0,
+                MemberNo: memberNo,
+                FullName: $('#fullName').val(),
+                Relationship: $('#relationship').val(),
+                PhoneNo: $('#phoneNo').val(),
+                Email: $('#email').val(),
+                PhysicalAddress: $('#physicalAddress').val(),
+                IdNumber: $('#idNumber').val(),
+                PassportNumber: $('#passportNumber').val(),
+                Employer: $('#employer').val(),
+                Occupation: $('#occupation').val(),
+                BenefitPercentage: parseFloat($('#benefitPercentage').val()) || 0,
+                PriorityOrder: parseInt($('#priorityOrder').val()) || 1,
+                IsPrimary: $('#isPrimary').is(':checked'),
+                Notes: $('#notes').val()
+            };
+
+            console.log('Form data being sent:', formData);
+
+            if (!formData.FullName) {
+                showToast('error', 'Full Name is required');
+                return;
+            }
+            if (!formData.Relationship) {
+                showToast('error', 'Relationship is required');
+                return;
+            }
+            if (!formData.PhoneNo) {
+                showToast('error', 'Phone Number is required');
+                return;
+            }
+
+            const isEdit = formData.Id > 0;
+            const url = isEdit ? `/NextOfKeen/Edit/${formData.Id}` : `/NextOfKeen/Create/${memberNo}`;
+
+            console.log('Saving to URL:', url);
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                const data = await response.json();
+                console.log('Response from server:', data);
+
+                if (data.success) {
+                    $('#nextOfKinModal').modal('hide');
+                    await loadNextOfKin();
+                    showToast('success', data.message);
+                } else {
+                    showToast('error', data.message);
+                }
+            } catch (error) {
+                console.error('Error saving record:', error);
+                showToast('error', 'Error saving next of kin: ' + error.message);
+            }
+        });
+
+        function resetSearch() {
+            $('#searchValue').val('');
+            currentMemberNo = null;
+            currentMemberData = null;
+            $('#memberInfoCard').hide();
+            $('#benefitSummaryCard').hide();
+            $('#nextOfKinTableCard').hide();
+            $('#MemberNo').val('');
+            $('#displayMemberNoField').val('');
+        }
+
+        function showToast(type, message) {
+            const toastHtml = `
+                <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0 position-fixed bottom-0 end-0 m-3" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            $('body').append(toastHtml);
+            const toast = $('.toast').last();
+            const bsToast = new bootstrap.Toast(toast[0]);
+            bsToast.show();
+            toast.on('hidden.bs.toast', function() { $(this).remove(); });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+    </script>
+}

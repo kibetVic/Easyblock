@@ -1,0 +1,131 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.MemberSearchDTO
+
+@{
+    ViewData["Title"] = "Member Search";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="bi bi-search"></i> Search Members
+        </h3>
+        <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="bi bi-dash"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <form asp-action="MemberInquiry" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label asp-for="MemberNo" class="control-label"></label>
+                        <input asp-for="MemberNo" class="form-control" placeholder="Enter Member Number" />
+                        <span asp-validation-for="MemberNo" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label asp-for="FullName" class="control-label"></label>
+                        <input asp-for="FullName" class="form-control" placeholder="Enter Full Name" />
+                        <span asp-validation-for="FullName" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label asp-for="IdNo" class="control-label"></label>
+                        <input asp-for="IdNo" class="form-control" placeholder="Enter ID Number" />
+                        <span asp-validation-for="IdNo" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label asp-for="PhoneNo" class="control-label"></label>
+                        <input asp-for="PhoneNo" class="form-control" placeholder="Enter Phone Number" />
+                        <span asp-validation-for="PhoneNo" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label asp-for="Email" class="control-label"></label>
+                        <input asp-for="Email" class="form-control" placeholder="Enter Email" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label asp-for="Department" class="control-label"></label>
+                        <input asp-for="Department" class="form-control" placeholder="Enter Department" />
+                        <span asp-validation-for="Department" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label asp-for="Station" class="control-label"></label>
+                        <input asp-for="Station" class="form-control" placeholder="Enter Station/County" />
+                        <span asp-validation-for="Station" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label asp-for="FromDate" class="control-label"></label>
+                        <input asp-for="FromDate" type="date" class="form-control" />
+                        <span asp-validation-for="FromDate" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label asp-for="ToDate" class="control-label"></label>
+                        <input asp-for="ToDate" type="date" class="form-control" />
+                        <span asp-validation-for="ToDate" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <div class="form-group">
+                        <label asp-for="Status" class="control-label"></label>
+                        <select asp-for="Status" class="form-control">
+                            <option value="">-- All --</option>
+                            <option value="1">Active</option>
+                            <option value="0">Inactive</option>
+                        </select>
+                        <span asp-validation-for="Status" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-3">
+                <div class="col-12">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                    <button type="reset" class="btn btn-secondary">
+                        <i class="bi bi-eraser"></i> Clear
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

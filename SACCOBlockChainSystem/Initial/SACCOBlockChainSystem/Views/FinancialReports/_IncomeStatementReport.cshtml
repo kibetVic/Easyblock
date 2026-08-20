@@ -1,0 +1,93 @@
+﻿@model SACCOBlockChainSystem.Models.ViewModels.FinancialReportViewModel
+
+<div class="card shadow-sm mt-4" style="border: none; border-radius: 10px;">
+    <div class="card-header bg-white py-3" style="border-bottom: 2px solid #3f2b96;">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0" style="color: #3f2b96; font-weight: 600;">
+                <i class="fas fa-chart-line me-2"></i> INCOME STATEMENT
+            </h5>
+            <span class="badge bg-info p-2">
+                <i class="fas fa-calendar me-1"></i> @Model.StartDate.ToString("dd/MM/yyyy") - @Model.EndDate.ToString("dd/MM/yyyy")
+            </span>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" style="border-collapse: collapse;">
+                <thead style="background-color: #3f2b96; color: white;">
+                    <tr>
+                        <th style="padding: 12px;">GLAccMainGroup</th>
+                        <th style="padding: 12px;">AccNo</th>
+                        <th style="padding: 12px;">AccName</th>
+                        <th style="padding: 12px; text-align: right;">IncomeAmount</th>
+                        <th style="padding: 12px; text-align: right;">ExpenseAmount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.IncomeStatement.Revenue)
+                    {
+                        <tr>
+                            <td style="padding: 10px;">INCOME</td>
+                            <td style="padding: 10px;">@item.AccountNo</td>
+                            <td style="padding: 10px;">@item.AccountName</td>
+                            <td style="padding: 10px; text-align: right; color: #28a745;">@item.Amount.ToString("N4")</td>
+                            <td style="padding: 10px; text-align: right;">0.0000</td>
+                        </tr>
+                    }
+
+                    @foreach (var item in Model.IncomeStatement.Expenses)
+                    {
+                        <tr>
+                            <td style="padding: 10px;">EXPENSES</td>
+                            <td style="padding: 10px;">@item.AccountNo</td>
+                            <td style="padding: 10px;">@item.AccountName</td>
+                            <td style="padding: 10px; text-align: right;">0.0000</td>
+                            <td style="padding: 10px; text-align: right; color: #dc3545;">@item.Amount.ToString("N4")</td>
+                        </tr>
+                    }
+
+                    <!-- Total Income Row -->
+                    <tr style="border-top: 2px solid #3f2b96; background-color: #f8f9fa; font-weight: 600;">
+                        <td style="padding: 12px;" colspan="2"></td>
+                        <td style="padding: 12px;">Total Income</td>
+                        <td style="padding: 12px; text-align: right; color: #28a745;">@Model.IncomeStatement.TotalRevenue.ToString("N4")</td>
+                        <td style="padding: 12px; text-align: right;">0.0000</td>
+                    </tr>
+
+                    <!-- Total Expenses Row -->
+                    <tr style="background-color: #f8f9fa; font-weight: 600;">
+                        <td style="padding: 12px;" colspan="2"></td>
+                        <td style="padding: 12px;">Total Expenses</td>
+                        <td style="padding: 12px; text-align: right;">0.0000</td>
+                        <td style="padding: 12px; text-align: right; color: #dc3545;">@Model.IncomeStatement.TotalExpenses.ToString("N4")</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card-footer bg-white py-3">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-sm btn-outline-success me-2">
+                        <i class="fas fa-file-excel me-1"></i> Export to Excel
+                    </button>
+                    <small class="text-muted ms-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Generated: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+                    </small>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="d-flex justify-content-end align-items-center">
+                    <span class="fw-bold me-3">Total Profit/Loss:</span>
+                    <span class="fw-bold" style="color: #17a2b8; font-size: 1.2rem;">
+                        @Model.IncomeStatement.NetIncome.ToString("N4")
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

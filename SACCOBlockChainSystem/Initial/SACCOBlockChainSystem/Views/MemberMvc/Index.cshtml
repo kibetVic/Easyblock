@@ -1,0 +1,772 @@
+﻿@model SACCOBlockChainSystem.Models.ViewModels.MembersIndexViewModel
+
+@{
+    ViewData["Title"] = "Members List";
+}
+
+<div class="container-fluid">
+    <!-- Debug Information - Remove after fixing -->
+    @if (TempData["DebugMessage"] != null)
+    {
+        <div class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Debug:</strong> @TempData["DebugMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Page Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="page-header d-flex justify-content-between align-items-center">
+                <h1><i class="fas fa-users me-2"></i> Members Management</h1>
+                <a asp-action="Register" class="btn btn-primary">
+                    <i class="fas fa-user-plus me-1"></i> Register New Member
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Bar for Members -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-search me-2"></i>Search Members</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" id="memberSearchInput" class="form-control"
+                                       placeholder="Search by Member No, Name, ID Number, Phone, Email..." autocomplete="off">
+                                <button class="btn btn-outline-secondary" type="button" onclick="clearMemberSearch()">
+                                    <i class="fas fa-times"></i> Clear
+                                </button>
+                            </div>
+                            <small class="text-muted" id="searchStats"></small>
+                        </div>
+                        <div class="col-md-3">
+                            <select id="statusFilter" class="form-select">
+                                <option value="all">All Status</option>
+                                <option value="active">Active Only</option>
+                                <option value="inactive">Inactive Only</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <select id="sortBy" class="form-select">
+                                <option value="name">Sort by Name</option>
+                                <option value="memberNo">Sort by Member No</option>
+                                <option value="date">Sort by Registration Date</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- All Members Table (Scrollable) -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-list me-2"></i>All Members</h5>
+                    <span class="badge bg-light text-primary" id="memberCount">@Model.AllMembers.Count members</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                        <table class="table table-hover mb-0" id="membersTable">
+                            <thead class="bg-light sticky-top" style="position: sticky; top: 0; z-index: 1;">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Member No</th>
+                                    <th>Full Name</th>
+                                    <th>ID Number</th>
+                                    <th>Phone</th>
+                                    <th>Email</th>
+                                    <th>Status</th>
+                                    <th>Registration Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="membersTableBody">
+                                @{
+                                    var allMembers = Model.AllMembers.OrderBy(m => m.Surname).ToList();
+                                    var counter = 1;
+                                }
+                                @foreach (var member in allMembers)
+                                {
+                                    var fullName = $"{member.Surname} {member.OtherNames}";
+                                    var statusText = member.Status == 1 ? "Active" : "Inactive";
+                                    var statusClass = member.Status == 1 ? "active" : "inactive";
+                                    var registrationDate = member.ApplicDate?.ToString("dd/MM/yyyy") ?? "N/A";
+                                    var sortDate = member.ApplicDate?.ToString("yyyy-MM-dd") ?? "9999-12-31";
+
+                                    <tr data-memberno="@member.MemberNo"
+                                        data-name="@fullName"
+                                        data-surname="@member.Surname"
+                                        data-othernames="@member.OtherNames"
+                                        data-idno="@member.Idno"
+                                        data-phone="@member.PhoneNo"
+                                        data-email="@member.Email"
+                                        data-status="@statusClass"
+                                        data-date="@sortDate">
+                                        <td class="row-number">@(counter++)</td>
+                                        <td>
+                                            <strong>@member.MemberNo</strong>
+                                            @if (!string.IsNullOrEmpty(member.BlockchainTxId))
+                                            {
+                                                <span class="badge bg-success ms-1" title="On Blockchain">
+                                                    <i class="fas fa-link fa-xs"></i>
+                                                </span>
+                                            }
+                                        </td>
+                                        <td class="member-name">@fullName</td>
+                                        <td class="member-idno">@member.Idno</td>
+                                        <td class="member-phone">
+                                            @if (!string.IsNullOrEmpty(member.PhoneNo))
+                                            {
+                                                <a href="tel:@member.PhoneNo" class="text-decoration-none">
+                                                    <i class="fas fa-phone me-1"></i>@member.PhoneNo
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">N/A</span>
+                                            }
+                                        </td>
+                                        <td class="member-email">
+                                            @if (!string.IsNullOrEmpty(member.Email))
+                                            {
+                                                <a href="mailto:@member.Email" class="text-decoration-none">
+                                                    <i class="fas fa-envelope me-1"></i>@member.Email
+                                                </a>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">N/A</span>
+                                            }
+                                        </td>
+                                        <td class="member-status">
+                                            @if (member.Status == 1)
+                                            {
+                                                <span class="badge bg-success status-badge">Active</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary status-badge">Inactive</span>
+                                            }
+                                        </td>
+                                        <td class="member-date">@registrationDate</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a asp-action="Details" asp-route-memberNo="@member.MemberNo"
+                                                   class="btn btn-sm btn-info" title="View Details">
+                                                    <i class="fas fa-eye"></i> View
+                                                </a>
+                                                <a asp-action="Edit" asp-route-memberNo="@member.MemberNo"
+                                                   class="btn btn-sm btn-warning" title="Edit">
+                                                    <i class="fas fa-edit"></i> Select
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                }
+                                @if (!Model.AllMembers.Any())
+                                {
+                                    <tr id="noMembersRow">
+                                        <td colspan="9" class="text-center py-4">
+                                            <i class="fas fa-users fa-2x text-muted mb-3"></i>
+                                            <p class="text-muted">No members found. Register a new member to get started.</p>
+                                            <a asp-action="Register" class="btn btn-primary">
+                                                <i class="fas fa-user-plus me-1"></i> Register First Member
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Member Registration Timeline/Blockchain Visualization -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-project-diagram me-2"></i>Member Registration Blockchain Timeline</h5>
+                    <small>Showing @Model.AllMembers.Count members in chronological order</small>
+                </div>
+                <div class="card-body">
+                    <!-- Timeline Visualization -->
+                    <div class="timeline-container" style="max-height: 500px; overflow-y: auto;">
+                        <div class="timeline">
+                            @foreach (var member in Model.AllMembers.OrderBy(m => m.ApplicDate))
+                            {
+                                var fullName = $"{member.Surname} {member.OtherNames}";
+                                var statusClass = member.Status == 1 ? "bg-success" : "bg-secondary";
+                                var statusText = member.Status == 1 ? "active" : "inactive";
+
+                                <div class="timeline-item" data-memberno="@member.MemberNo"
+                                     data-name="@fullName"
+                                     data-idno="@member.Idno"
+                                     data-phone="@member.PhoneNo"
+                                     data-email="@member.Email"
+                                     data-status="@statusText">
+                                    <div class="timeline-marker @statusClass"></div>
+                                    <div class="timeline-content">
+                                        <div class="timeline-header d-flex justify-content-between">
+                                            <h6 class="mb-1">
+                                                <i class="fas fa-user me-1"></i>
+                                                @fullName
+                                                @if (!string.IsNullOrEmpty(member.BlockchainTxId))
+                                                {
+                                                    <span class="badge bg-info ms-2" title="Blockchain Verified">
+                                                        <i class="fas fa-shield-alt fa-xs"></i> Secured
+                                                    </span>
+                                                }
+                                            </h6>
+                                            <small class="text-muted">@member.ApplicDate?.ToString("dd MMM yyyy HH:mm")</small>
+                                        </div>
+                                        <div class="timeline-body">
+                                            <div class="row">
+                                                <div class="col-md-3">
+                                                    <strong>Member No:</strong> @member.MemberNo
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <strong>ID:</strong> @member.Idno
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <strong>Phone:</strong> @member.PhoneNo
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <strong>Shares:</strong>
+                                                    <span class="badge bg-success">KES @(member.ShareCap?.ToString("N0") ?? "0")</span>
+                                                </div>
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(member.Email))
+                                            {
+                                                <div class="mt-2">
+                                                    <small><i class="fas fa-envelope me-1"></i> @member.Email</small>
+                                                </div>
+                                            }
+                                            @if (!string.IsNullOrEmpty(member.BlockchainTxId))
+                                            {
+                                                <div class="mt-2">
+                                                    <small class="text-muted">
+                                                        <i class="fas fa-link me-1"></i>
+                                                        Blockchain TX:
+                                                        <code class="small" title="@member.BlockchainTxId">
+                                                            @(member.BlockchainTxId.Length > 20 ? member.BlockchainTxId.Substring(0, 20) + "..." : member.BlockchainTxId)
+                                                        </code>
+                                                        <a href="/Blockchain/Verify/@member.BlockchainTxId"
+                                                           class="btn btn-sm btn-outline-info btn-xs ms-1" target="_blank">
+                                                            Verify
+                                                        </a>
+                                                    </small>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Statistics Summary -->
+                    <div class="row mt-4">
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    <h3 id="totalMembersCount">@Model.AllMembers.Count</h3>
+                                    <p class="text-muted mb-0">Total Registered</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    @{
+                                        var activeCount = Model.AllMembers.Count(m => m.Status == 1);
+                                    }
+                                    <h3 id="activeMembersCount">@activeCount</h3>
+                                    <p class="text-muted mb-0">Active Members</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    @{
+                                        var inactiveCount = Model.AllMembers.Count(m => m.Status != 1);
+                                    }
+                                    <h3 id="inactiveMembersCount">@inactiveCount</h3>
+                                    <p class="text-muted mb-0">Inactive Members</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-light">
+                                <div class="card-body text-center">
+                                    @{
+                                        var withBlockchain = Model.AllMembers.Count(m => !string.IsNullOrEmpty(m.BlockchainTxId));
+                                    }
+                                    <h3 id="blockchainMembersCount">@withBlockchain</h3>
+                                    <p class="text-muted mb-0">On Blockchain</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add CSS for timeline and scrollbars -->
+<style>
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #dee2e6;
+        }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 25px;
+    }
+
+    .timeline-marker {
+        position: absolute;
+        left: -30px;
+        top: 5px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        border: 3px solid white;
+        box-shadow: 0 0 0 3px #dee2e6;
+    }
+
+    .timeline-content {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        transition: all 0.3s ease;
+    }
+
+        .timeline-content:hover {
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+
+    .timeline-header {
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px dashed #dee2e6;
+    }
+
+    .sticky-top {
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Scrollbar styling */
+    .table-responsive::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    .table-responsive::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+    .timeline-container::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .timeline-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    .timeline-container::-webkit-scrollbar-thumb {
+        background: #6c757d;
+        border-radius: 4px;
+    }
+
+        .timeline-container::-webkit-scrollbar-thumb:hover {
+            background: #495057;
+        }
+
+    /* Highlight matching search text */
+    .highlight {
+        background-color: #ffeb3b;
+        padding: 0 2px;
+        border-radius: 3px;
+        font-weight: bold;
+        color: #000;
+    }
+
+    /* No results message */
+    .no-results {
+        text-align: center;
+        padding: 40px;
+        color: #6c757d;
+    }
+
+        .no-results i {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+    {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .timeline-item {
+        animation: fadeIn 0.5s ease-out;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        let searchTimeout;
+
+        $(document).ready(function() {
+            // Initialize tooltips
+            $('[title]').tooltip();
+
+            // Search functionality with debounce
+            $('#memberSearchInput').on('keyup', function() {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(function() {
+                    filterMembers();
+                }, 300);
+            });
+
+            $('#statusFilter').on('change', filterMembers);
+            $('#sortBy').on('change', function() {
+                sortMembers();
+                filterMembers(); // Reapply filter after sort
+            });
+
+            // Initial filter to set search stats
+            filterMembers();
+        });
+
+        function filterMembers() {
+            var searchTerm = $('#memberSearchInput').val().toLowerCase().trim();
+            var statusFilter = $('#statusFilter').val();
+
+            var visibleCount = 0;
+            var originalTexts = new Map(); // Store original text for highlight removal
+
+            // Filter table rows
+            $('#membersTableBody tr').each(function() {
+                var row = $(this);
+
+                // Skip the no members row if it exists
+                if (row.attr('id') === 'noMembersRow') {
+                    return;
+                }
+
+                // Get data from the row's actual text content (more reliable than data attributes)
+                var memberNo = row.find('td:eq(1)').text().trim().toLowerCase();
+                var name = row.find('td:eq(2)').text().trim().toLowerCase();
+                var idNo = row.find('td:eq(3)').text().trim().toLowerCase();
+                var phone = row.find('td:eq(4)').text().trim().toLowerCase();
+                var email = row.find('td:eq(5)').text().trim().toLowerCase();
+                var statusText = row.find('td:eq(6) .status-badge').text().trim().toLowerCase();
+
+                // Also get from data attributes as backup
+                var dataMemberNo = row.data('memberno')?.toLowerCase() || '';
+                var dataName = row.data('name')?.toLowerCase() || '';
+                var dataIdNo = row.data('idno')?.toLowerCase() || '';
+                var dataPhone = row.data('phone')?.toLowerCase() || '';
+                var dataEmail = row.data('email')?.toLowerCase() || '';
+
+                // Check if matches search term (use both text and data attributes)
+                var matchesSearch = searchTerm === '' ||
+                    memberNo.includes(searchTerm) ||
+                    name.includes(searchTerm) ||
+                    idNo.includes(searchTerm) ||
+                    phone.includes(searchTerm) ||
+                    email.includes(searchTerm) ||
+                    statusText.includes(searchTerm) ||
+                    dataMemberNo.includes(searchTerm) ||
+                    dataName.includes(searchTerm) ||
+                    dataIdNo.includes(searchTerm) ||
+                    dataPhone.includes(searchTerm) ||
+                    dataEmail.includes(searchTerm);
+
+                // Determine status based on badge class or data attribute
+                var statusClass = row.find('td:eq(6) .status-badge').hasClass('bg-success') ? 'active' : 'inactive';
+                var dataStatus = row.data('status') || '';
+
+                // Check if matches status filter
+                var matchesStatus = statusFilter === 'all' || statusClass === statusFilter || dataStatus === statusFilter;
+
+                if (matchesSearch && matchesStatus) {
+                    row.show();
+                    visibleCount++;
+
+                    // Highlight search term in name and ID number
+                    if (searchTerm !== '') {
+                        highlightSearchTerm(row, searchTerm);
+                    } else {
+                        removeHighlights(row);
+                    }
+                } else {
+                    row.hide();
+                    removeHighlights(row);
+                }
+            });
+
+            // Update search stats
+            var totalMembers = $('#membersTableBody tr:not(#noMembersRow)').length;
+            $('#searchStats').html(`<i class="fas fa-search me-1"></i> Showing ${visibleCount} of ${totalMembers} members`);
+            $('#memberCount').text(`${visibleCount} members`);
+
+            // Update statistics based on filtered view
+            updateStatistics();
+
+            // Show/hide no results message
+            if (visibleCount === 0 && totalMembers > 0) {
+                if ($('#noResultsRow').length === 0) {
+                    $('#membersTableBody').append(`
+                        <tr id="noResultsRow">
+                            <td colspan="9" class="text-center py-4">
+                                <i class="fas fa-search fa-2x text-muted mb-3"></i>
+                                <p class="text-muted">No members match your search criteria.</p>
+                                <button class="btn btn-sm btn-primary" onclick="clearMemberSearch()">
+                                    <i class="fas fa-times"></i> Clear Search
+                                </button>
+                             </td>
+                         </tr>
+                    `);
+                }
+            } else {
+                $('#noResultsRow').remove();
+            }
+
+            // Also filter timeline items
+            filterTimeline(searchTerm, statusFilter);
+        }
+
+        function highlightSearchTerm(row, searchTerm) {
+            // Highlight in name column (index 2)
+            var nameCell = row.find('td:eq(2)');
+            var originalName = nameCell.data('original-text');
+            if (!originalName) {
+                originalName = nameCell.text();
+                nameCell.data('original-text', originalName);
+            }
+
+            if (originalName.toLowerCase().includes(searchTerm)) {
+                var regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                var highlightedName = originalName.replace(regex, '<span class="highlight">$1</span>');
+                nameCell.html(highlightedName);
+            } else {
+                nameCell.html(originalName);
+            }
+
+            // Highlight in ID number column (index 3)
+            var idCell = row.find('td:eq(3)');
+            var originalId = idCell.data('original-text');
+            if (!originalId) {
+                originalId = idCell.text();
+                idCell.data('original-text', originalId);
+            }
+
+            if (originalId.toLowerCase().includes(searchTerm)) {
+                var regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                var highlightedId = originalId.replace(regex, '<span class="highlight">$1</span>');
+                idCell.html(highlightedId);
+            } else {
+                idCell.html(originalId);
+            }
+        }
+
+        function removeHighlights(row) {
+            // Restore original name text
+            var nameCell = row.find('td:eq(2)');
+            var originalName = nameCell.data('original-text');
+            if (originalName && nameCell.html() !== originalName) {
+                nameCell.html(originalName);
+            }
+
+            // Restore original ID text
+            var idCell = row.find('td:eq(3)');
+            var originalId = idCell.data('original-text');
+            if (originalId && idCell.html() !== originalId) {
+                idCell.html(originalId);
+            }
+        }
+
+        function filterTimeline(searchTerm, statusFilter) {
+            var visibleCount = 0;
+
+            $('.timeline-item').each(function() {
+                var item = $(this);
+                var memberNo = item.data('memberno')?.toLowerCase() || '';
+                var name = item.data('name')?.toLowerCase() || '';
+                var idNo = item.data('idno')?.toLowerCase() || '';
+                var phone = item.data('phone')?.toLowerCase() || '';
+                var email = item.data('email')?.toLowerCase() || '';
+                var status = item.data('status') || '';
+
+                var matchesSearch = searchTerm === '' ||
+                    memberNo.includes(searchTerm) ||
+                    name.includes(searchTerm) ||
+                    idNo.includes(searchTerm) ||
+                    phone.includes(searchTerm) ||
+                    email.includes(searchTerm);
+
+                var matchesStatus = statusFilter === 'all' || status === statusFilter;
+
+                if (matchesSearch && matchesStatus) {
+                    item.show();
+                    visibleCount++;
+                } else {
+                    item.hide();
+                }
+            });
+        }
+
+        function sortMembers() {
+            var sortBy = $('#sortBy').val();
+            var tbody = $('#membersTableBody');
+            var rows = tbody.find('tr:not(#noMembersRow):not(#noResultsRow)').get();
+
+            rows.sort(function(a, b) {
+                var aVal, bVal;
+
+                switch(sortBy) {
+                    case 'name':
+                        aVal = $(a).find('td:eq(2)').data('original-text') || $(a).find('td:eq(2)').text();
+                        bVal = $(b).find('td:eq(2)').data('original-text') || $(b).find('td:eq(2)').text();
+                        break;
+                    case 'memberNo':
+                        aVal = $(a).find('td:eq(1)').text().trim();
+                        bVal = $(b).find('td:eq(1)').text().trim();
+                        break;
+                    case 'date':
+                        aVal = $(a).data('date') || '9999-12-31';
+                        bVal = $(b).data('date') || '9999-12-31';
+                        break;
+                    default:
+                        aVal = $(a).find('td:eq(2)').text();
+                        bVal = $(b).find('td:eq(2)').text();
+                }
+
+                return aVal.localeCompare(bVal);
+            });
+
+            // Re-append sorted rows and update row numbers
+            $.each(rows, function(index, row) {
+                tbody.append(row);
+                $(row).find('td:first').text(index + 1);
+            });
+        }
+
+        function updateStatistics() {
+            var visibleRows = $('#membersTableBody tr:visible:not(#noMembersRow):not(#noResultsRow)');
+            var totalVisible = visibleRows.length;
+            var activeVisible = visibleRows.filter(':has(.status-badge.bg-success)').length;
+            var inactiveVisible = totalVisible - activeVisible;
+
+            $('#totalMembersCount').text(totalVisible);
+            $('#activeMembersCount').text(activeVisible);
+            $('#inactiveMembersCount').text(inactiveVisible);
+        }
+
+        function clearMemberSearch() {
+            $('#memberSearchInput').val('');
+            $('#statusFilter').val('all');
+            $('#sortBy').val('name');
+
+            // Clear all stored original texts
+            $('#membersTableBody tr').each(function() {
+                $(this).find('td:eq(2)').removeData('original-text');
+                $(this).find('td:eq(3)').removeData('original-text');
+                removeHighlights($(this));
+            });
+
+            filterMembers();
+            sortMembers();
+        }
+
+        function copyMemberNumber(memberNo) {
+            navigator.clipboard.writeText(memberNo).then(function() {
+                showToast('Member number copied to clipboard!', 'success');
+            }).catch(function() {
+                showToast('Failed to copy member number', 'danger');
+            });
+        }
+
+        function showToast(message, type = 'info') {
+            // Simple toast notification
+            const toast = document.createElement('div');
+            toast.className = `toast align-items-center text-white bg-${type} border-0`;
+            toast.style.position = 'fixed';
+            toast.style.bottom = '20px';
+            toast.style.right = '20px';
+            toast.style.zIndex = '9999';
+            toast.style.minWidth = '250px';
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2"></i>
+                        ${message}
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" onclick="this.closest('.toast').remove()"></button>
+                </div>
+            `;
+            document.body.appendChild(toast);
+
+            // Show toast
+            $(toast).toast({ delay: 3000 }).toast('show');
+
+            // Auto remove after 3 seconds
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 3000);
+        }
+    </script>
+}

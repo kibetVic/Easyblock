@@ -1,0 +1,448 @@
+﻿@model SACCOBlockChainSystem.Models.Member
+
+@{
+    ViewData["Title"] = "Member Details";
+    var fullName = $"{Model.Surname} {Model.OtherNames}".Trim();
+    var registrationType = Model.MemberDescription ?? "Not specified";
+    var membershipType = Model.MembershipType ?? "Not specified";
+    var maritalStatus = Model.Mstatus == true ? "Married" : Model.Mstatus == false ? "Single" : "Not specified";
+    var gender = Model.Sex ?? "Not specified";
+    var status = Model.Status switch
+    {
+        1 => "Active",
+        2 => "Withdrawn",
+        3 => "Deceased",
+        4 => "Dormant",
+        5 => "Suspended",
+        _ => "Unknown"
+    };
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0"><i class="fas fa-user"></i> Member Details: @fullName</h4>
+                    <div>
+                        <span class="badge @(Model.Status == 1 ? "bg-success" : "bg-warning") me-2" style="font-size: 1rem;">
+                            @status
+                        </span>
+                        @if (!string.IsNullOrEmpty(Model.BlockchainTxId))
+                        {
+                            <span class="badge bg-info" style="font-size: 1rem;">
+                                <i class="fas fa-link"></i> Blockchain Verified
+                            </span>
+                        }
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (TempData["SuccessMessage"] != null)
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    @if (TempData["ErrorMessage"] != null)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-circle"></i> @TempData["ErrorMessage"]
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <!-- Member Information Tabs -->
+                    <ul class="nav nav-tabs mb-4" id="memberTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="personal-tab" data-bs-toggle="tab" data-bs-target="#personal" type="button" role="tab">
+                                <i class="fas fa-user"></i> Personal Information
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact" type="button" role="tab">
+                                <i class="fas fa-address-book"></i> Contact & Address
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="employment-tab" data-bs-toggle="tab" data-bs-target="#employment" type="button" role="tab">
+                                <i class="fas fa-briefcase"></i> Employment Details
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="membership-tab" data-bs-toggle="tab" data-bs-target="#membership" type="button" role="tab">
+                                <i class="fas fa-id-card"></i> Membership Details
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="financial-tab" data-bs-toggle="tab" data-bs-target="#financial" type="button" role="tab">
+                                <i class="fas fa-chart-line"></i> Financial Information
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="blockchain-tab" data-bs-toggle="tab" data-bs-target="#blockchain" type="button" role="tab">
+                                <i class="fas fa-link"></i> Blockchain Data
+                            </button>
+                        </li>
+                    </ul>
+
+                    <!-- Tab Content -->
+                    <div class="tab-content" id="memberTabsContent">
+                        <!-- Personal Information Tab -->
+                        <div class="tab-pane fade show active" id="personal" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-bordered table-striped">
+                                        <tr>
+                                            <th style="width: 40%">Member Number:</th>
+                                            <td><strong>@Model.MemberNo</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Surname:</th>
+                                            <td>@Model.Surname</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Other Names:</th>
+                                            <td>@Model.OtherNames</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Full Name:</th>
+                                            <td>@fullName</td>
+                                        </tr>
+                                        <tr>
+                                            <th>ID Number:</th>
+                                            <td>@Model.Idno</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-bordered table-striped">
+                                        <tr>
+                                            <th style="width: 40%">Gender:</th>
+                                            <td>@gender</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Date of Birth:</th>
+                                            <td>@Model.Dob?.ToString("dd MMMM yyyy")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Age:</th>
+                                            <td>@(Model.Age.HasValue? Model.Age + " years" : "Not specified")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Marital Status:</th>
+                                            <td>@maritalStatus</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Status:</th>
+                                            <td>
+                                                <span class="badge @(Model.Status == 1 ? "bg-success" : "bg-warning")">@status</span>
+                                            </td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Contact & Address Tab -->
+                        <div class="tab-pane fade" id="contact" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <h5 class="mb-3"><i class="fas fa-phone"></i> Contact Information</h5>
+                                    <table class="table table-bordered table-striped">
+                                        <tr>
+                                            <th style="width: 40%">Phone Number:</th>
+                                            <td>@(!string.IsNullOrEmpty(Model.PhoneNo) ? Model.PhoneNo : "Not provided")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Landline:</th>
+                                            <td>@(!string.IsNullOrEmpty(Model.HomeTelNo) ? Model.HomeTelNo : "Not provided")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Email Address:</th>
+                                            <td>@(!string.IsNullOrEmpty(Model.Email) ? Model.Email : "Not provided")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Alternative Email:</th>
+                                            <td>@(!string.IsNullOrEmpty(Model.EmailAddress) ? Model.EmailAddress : "Not provided")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Office Phone:</th>
+                                            <td>@(!string.IsNullOrEmpty(Model.OfficeTelNo) ? Model.OfficeTelNo : "Not provided")</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <h5 class="mb-3"><i class="fas fa-map-marker-alt"></i> Address Information</h5>
+                                    <table class="table table-bordered table-striped">
+                                        <tr>
+                                            <th style="width: 40%">Station/County:</th>
+                                            <td>@(!string.IsNullOrEmpty(Model.Station) ? Model.Station : "Not provided")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Present Address:</th>
+                                            <td>@(!string.IsNullOrEmpty(Model.PresentAddr) ? Model.PresentAddr : "Not provided")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Home Address:</th>
+                                            <td>@(!string.IsNullOrEmpty(Model.HomeAddr) ? Model.HomeAddr : "Not provided")</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Employment Details Tab -->
+                        <div class="tab-pane fade" id="employment" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-bordered table-striped">
+                                        <tr>
+                                            <th style="width: 40%">Employer:</th>
+                                            <td>@(!string.IsNullOrEmpty(Model.Employer) ? Model.Employer : "Not provided")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Department:</th>
+                                            <td>@(!string.IsNullOrEmpty(Model.Dept) ? Model.Dept : "Not provided")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Station/County:</th>
+                                            <td>@(!string.IsNullOrEmpty(Model.Station) ? Model.Station : "Not provided")</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-bordered table-striped">
+                                        <tr>
+                                            <th style="width: 40%">Rank:</th>
+                                            <td>@(!string.IsNullOrEmpty(Model.Rank) ? Model.Rank : "Not provided")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Terms:</th>
+                                            <td>@(!string.IsNullOrEmpty(Model.Terms) ? Model.Terms : "Not provided")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Staff Number:</th>
+                                            <td>@(!string.IsNullOrEmpty(Model.StaffNo) ? Model.StaffNo : "Not provided")</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Membership Details Tab -->
+                        <div class="tab-pane fade" id="membership" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-bordered table-striped">
+                                        <tr>
+                                            <th style="width: 40%">Membership Type:</th>
+                                            <td>@membershipType</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Registration Type:</th>
+                                            <td>@registrationType</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Company Code:</th>
+                                            <td>@Model.CompanyCode</td>
+                                        </tr>
+                                        <tr>
+                                            <th>CIG Code:</th>
+                                            <td>@(!string.IsNullOrEmpty(Model.Cigcode) ? Model.Cigcode : "Not provided")</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-bordered table-striped">
+                                        <tr>
+                                            <th style="width: 40%">Registration Date:</th>
+                                            <td>@Model.ApplicDate?.ToString("dd MMMM yyyy")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Effect Date:</th>
+                                            <td>@Model.EffectDate?.ToString("dd MMMM yyyy")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Member Since:</th>
+                                            <td>@Model.ApplicDate?.ToString("dd MMMM yyyy")</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Financial Information Tab -->
+                        <div class="tab-pane fade" id="financial" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <table class="table table-bordered table-striped">
+                                        <tr>
+                                            <th style="width: 40%">Share Capital:</th>
+                                            <td><strong>KES @Model.ShareCap?.ToString("N2")</strong></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Initial Shares:</th>
+                                            <td>KES @Model.InitShares?.ToString("N2")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Loan Balance:</th>
+                                            <td>KES @Model.LoanBalance?.ToString("N2")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Interest Balance:</th>
+                                            <td>KES @Model.InterestBalance?.ToString("N2")</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                                <div class="col-md-6">
+                                    <table class="table table-bordered table-striped">
+                                        <tr>
+                                            <th style="width: 40%">Registration Fee:</th>
+                                            <td>KES @Model.RegFee?.ToString("N2")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Monthly Contribution:</th>
+                                            <td>KES @Model.MonthlyContr?.ToString("N2")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Bank Code:</th>
+                                            <td>@(!string.IsNullOrEmpty(Model.BankCode) ? Model.BankCode : "Not provided")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Account Number:</th>
+                                            <td>@(!string.IsNullOrEmpty(Model.Accno) ? Model.Accno : "Not provided")</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Blockchain Data Tab -->
+                        <div class="tab-pane fade" id="blockchain" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="card">
+                                        <div class="card-header bg-info text-white">
+                                            <h5 class="mb-0"><i class="fas fa-link"></i> Blockchain Transaction Details</h5>
+                                        </div>
+                                        <div class="card-body">
+                                            <table class="table table-bordered">
+                                                <tr>
+                                                    <th style="width: 20%">Transaction ID:</th>
+                                                    <td>
+                                                        @if (!string.IsNullOrEmpty(Model.BlockchainTxId))
+                                                        {
+                                                            <code>@Model.BlockchainTxId</code>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span class="badge bg-warning">Pending</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Transaction Number:</th>
+                                                    <td>@(!string.IsNullOrEmpty(Model.TransactionNo) ? Model.TransactionNo : "Not available")</td>
+                                                </tr>
+                                                <tr>
+                                                    <th>Verification:</th>
+                                                    <td>
+                                                        @if (!string.IsNullOrEmpty(Model.BlockchainTxId))
+                                                        {
+                                                            <a href="/Blockchain/Verify/@Model.BlockchainTxId" target="_blank" class="btn btn-sm btn-primary">
+                                                                <i class="fas fa-shield-alt"></i> Verify on Blockchain
+                                                            </a>
+                                                        }
+                                                        else
+                                                        {
+                                                            <span>Not verified</span>
+                                                        }
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Audit Information -->
+                    <div class="row mt-4">
+                        <div class="col-md-12">
+                            <div class="card">
+                                <div class="card-header bg-secondary text-white">
+                                    <h5 class="mb-0"><i class="fas fa-history"></i> Audit Trail</h5>
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <small class="text-muted d-block">Created By:</small>
+                                            <strong>@(!string.IsNullOrEmpty(Model.AuditId) ? Model.AuditId : "System")</strong>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small class="text-muted d-block">Created On:</small>
+                                            <strong>@Model.AuditTime?.ToString("dd MMMM yyyy HH:mm:ss")</strong>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <small class="text-muted d-block">Last Updated:</small>
+                                            <strong>@Model.AuditDateTime?.ToString("dd MMMM yyyy HH:mm:ss")</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="mt-4 d-flex justify-content-between">
+                        <div>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to List
+                            </a>
+                            @* <a href="/api/Member/@Model.MemberNo" class="btn btn-info" target="_blank">
+                                <i class="fas fa-code"></i> View API Data
+                            </a> *@
+                        </div>
+                        <div>
+                            <a asp-action="Edit" asp-route-memberNo="@Model.MemberNo" class="btn btn-warning">
+                                <i class="fas fa-edit"></i> Edit Member
+                            </a>
+                            @* <a asp-action="Statement" asp-route-memberNo="@Model.MemberNo" class="btn btn-success">
+                                <i class="fas fa-file-alt"></i> View Statement
+                            </a>
+                            <a asp-action="Transactions" asp-route-memberNo="@Model.MemberNo" class="btn btn-info">
+                                <i class="fas fa-exchange-alt"></i> Transactions
+                            </a> *@
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .nav-tabs .nav-link {
+            color: #495057;
+            font-weight: 500;
+        }
+
+            .nav-tabs .nav-link.active {
+                color: #007bff;
+                font-weight: 600;
+            }
+
+        .table th {
+            background-color: #f8f9fa;
+        }
+
+        .badge {
+            font-size: 0.9rem;
+            padding: 0.5rem 0.75rem;
+        }
+    </style>
+}

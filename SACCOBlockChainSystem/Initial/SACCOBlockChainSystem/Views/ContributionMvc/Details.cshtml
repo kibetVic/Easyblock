@@ -1,0 +1,286 @@
+﻿@using SACCOBlockChainSystem.Models.DTOs
+@model ContributionResponseDTO
+@{
+    ViewData["Title"] = $"Contribution Details: {Model.ReceiptNo}";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="display-6">
+                    <i class="fas fa-receipt"></i> Contribution
+                </h1>
+                <div>
+                    <a asp-controller="ContributionMvc" asp-action="Member"
+                       asp-route-memberNo="@Model.MemberNo" class="btn btn-primary btn-lg">
+                        <i class="fas fa-history"></i> Member Contributions
+                    </a>
+                    <a asp-action="Index" class="btn btn-secondary btn-lg">
+                        <i class="fas fa-arrow-left"></i> Back to List
+                    </a>
+                </div>
+            </div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Home</a></li>
+                    <li class="breadcrumb-item"><a asp-action="Index">Contributions</a></li>
+                    <li class="breadcrumb-item active">Details</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Contribution Information -->
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5>
+                        <i class="fas fa-info-circle"></i> Contribution Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">Receipt No:</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge bg-dark fs-6">@Model.ReceiptNo</span>
+                                </dd>
+
+                                <dt class="col-sm-4">Member No:</dt>
+                                <dd class="col-sm-8">
+                                    <strong>@Model.MemberNo</strong><br />
+                                </dd>
+                                <dt class="col-sm-4">Full Name:</dt>
+                                <dd class="col-sm-8">
+                                    <small class="text-muted">@Model.MemberName</small>
+                                </dd>
+                                <dt class="col-sm-4">Transaction Date:</dt>
+                                <dd class="col-sm-8">
+                                    @Model.TransactionDate.ToString("dd/MM/yyyy HH:mm")
+                                </dd>
+
+                                <dt class="col-sm-4">Share Type:</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge bg-info">@Model.ShareTypeName</span>
+                                    (@Model.SharesCode)
+                                </dd>
+                            </dl>
+                        </div>
+                        <div class="col-md-6">
+                            <dl class="row">
+                                <dt class="col-sm-4">Amount:</dt>
+                                <dd class="col-sm-8">
+                                    <h4 class="text-success">@Model.Amount.ToString("C")</h4>
+                                </dd>
+
+                                <dt class="col-sm-4">Total Shares After:</dt>
+                                <dd class="col-sm-8">
+                                    <span class="badge bg-success">@Model.TotalSharesAfter.ToString("C")</span>
+                                </dd>
+
+                                <dt class="col-sm-4">Created By:</dt>
+                                <dd class="col-sm-8">@Model.CreatedBy</dd>
+
+                                <dt class="col-sm-4">Created At:</dt>
+                                <dd class="col-sm-8">@Model.CreatedAt.ToString("dd/MM/yyyy HH:mm")</dd>
+
+                                <dt class="col-sm-4">Company Code:</dt>
+                                <dd class="col-sm-8">@Model.CompanyCode</dd>
+                            </dl>
+
+                            <!-- Add this in the Quick Actions card or near other action buttons -->
+                            @{
+                                var canEdit = true; // You should pass this from controller
+                                var daysSince = (DateTime.Now - Model.TransactionDate).TotalDays;
+                                canEdit = canEdit && daysSince <= 7; // Only edit contributions from last 7 days
+                            }
+
+                            @if (canEdit)
+                            {
+                                <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                                    <i class="fas fa-edit"></i> Edit Contribution
+                                </a>
+                            }
+                        </div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Model.Remarks))
+                    {
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <dt>Remarks:</dt>
+                                <dd>@Model.Remarks</dd>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Blockchain Information -->
+            <div class="card mb-4">
+                <div class="card-header bg-success text-white">
+                    <h5>
+                        <i class="fas fa-link"></i> Blockchain Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(Model.BlockchainTxId))
+                    {
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle"></i>
+                            <strong>Transaction recorded on blockchain</strong>
+                            <p class="mb-0 mt-2">
+                                <strong>Transaction ID:</strong> @Model.BlockchainTxId
+                            </p>
+                            <small class="text-muted">
+                                This transaction has been permanently recorded on the blockchain for audit purposes.
+                            </small>
+                        </div>
+
+                        // <div class="d-grid gap-2">
+                        //     <button type="button" class="btn btn-outline-success"
+                        //             onclick="viewOnBlockchain('@Model.BlockchainTxId')">
+                        //         <i class="fas fa-external-link-alt"></i> View on Blockchain Explorer
+                        //     </button>
+                        // </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <strong>Blockchain recording pending</strong>
+                            <p class="mb-0 mt-2">
+                                This transaction is not yet recorded on the blockchain.
+                                It may be pending or there was an issue with blockchain recording.
+                            </p>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Receipt Printing Section (Hidden) -->
+    <div id="receiptContent" class="d-none">
+        <div class="receipt-container">
+            <div class="text-center mb-4">
+                <h3>CONTRIBUTION RECEIPT</h3>
+                <p>@Model.CompanyCode</p>
+            </div>
+
+            <div class="receipt-details">
+                <div class="row">
+                    <div class="col-6"><strong>Receipt No:</strong></div>
+                    <div class="col-6">@Model.ReceiptNo</div>
+                </div>
+                <div class="row">
+                    <div class="col-6"><strong>Date:</strong></div>
+                    <div class="col-6">@Model.TransactionDate.ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+                <div class="row">
+                    <div class="col-6"><strong>Member No:</strong></div>
+                    <div class="col-6">@Model.MemberNo</div>
+                </div>
+                <div class="row">
+                    <div class="col-6"><strong>Member Name:</strong></div>
+                    <div class="col-6">@Model.MemberName</div>
+                </div>
+                <hr />
+                <div class="row">
+                    <div class="col-6"><strong>Share Type:</strong></div>
+                    <div class="col-6">@Model.ShareTypeName (@Model.SharesCode)</div>
+                </div>
+                <div class="row">
+                    <div class="col-6"><strong>Amount:</strong></div>
+                    <div class="col-6"><strong>@Model.Amount.ToString("C")</strong></div>
+                </div>
+                <div class="row">
+                    <div class="col-6"><strong>Total Shares:</strong></div>
+                    <div class="col-6">@Model.TotalSharesAfter.ToString("C")</div>
+                </div>
+                @if (!string.IsNullOrEmpty(Model.Remarks))
+                {
+                    <div class="row">
+                        <div class="col-6"><strong>Remarks:</strong></div>
+                        <div class="col-6">@Model.Remarks</div>
+                    </div>
+                }
+                <hr />
+                <div class="row">
+                    <div class="col-6"><strong>Received By:</strong></div>
+                    <div class="col-6">@Model.CreatedBy</div>
+                </div>
+                <div class="row">
+                    <div class="col-6"><strong>Blockchain ID:</strong></div>
+                    <div class="col-6">@(Model.BlockchainTxId ?? "Pending")</div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <p>*** This is a computer generated receipt ***</p>
+                <p>Thank you for your contribution!</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function viewOnBlockchain(txId) {
+            // In a real application, this would open your blockchain explorer
+            alert(`In a production system, this would open blockchain explorer for transaction: ${txId}`);
+            // window.open(`/blockchain/explorer/${txId}`, '_blank');
+        }
+
+        function printReceipt() {
+            // Get receipt content
+            const receiptContent = document.getElementById('receiptContent').innerHTML;
+
+            // Open print window
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Receipt: @Model.ReceiptNo</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; padding: 20px; }
+                        .receipt-container { max-width: 400px; margin: 0 auto; }
+                        .receipt-details .row { margin-bottom: 8px; }
+                        hr { margin: 15px 0; border-top: 1px dashed #ccc; }
+                        h3 { color: #333; }
+                        .text-center { text-align: center; }
+                          .no-print { display: none; }
+                         }
+                    </style>
+                </head>
+                <body>
+                    ${receiptContent}
+                    <div class="no-print text-center mt-4">
+                        <button onclick="window.print()" class="btn btn-primary">Print</button>
+                        <button onclick="window.close()" class="btn btn-secondary">Close</button>
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+
+        // Auto-focus on print button if coming from success message
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for success message in URL
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.has('success')) {
+                setTimeout(() => {
+                    const printBtn = document.querySelector('button[onclick="printReceipt()"]');
+                    if (printBtn) {
+                        printBtn.focus();
+                    }
+                }, 500);
+            }
+        });
+    </script>
+}

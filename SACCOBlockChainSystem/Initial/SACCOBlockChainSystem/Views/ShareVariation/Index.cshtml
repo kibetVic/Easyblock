@@ -1,0 +1,235 @@
+﻿@model List<SACCOBlockChainSystem.Models.DTOs.ShareVariationDTO>
+
+@{
+    ViewData["Title"] = "Share Variations";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="bi bi-bar-chart-line-fill"></i> Share Variations / Types
+        </h3>
+        <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="bi bi-dash"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-bordered table-hover" id="shareVariationsTable">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Share Code</th>
+                        <th>Share Type</th>
+                        <th class="text-center">Main Shares</th>
+                        <th class="text-center">Used for Guarantee</th>
+                        <th class="text-center">Used for Offset</th>
+                        <th class="text-center">Withdrawable</th>
+                        <th class="text-end">Min Amount</th>
+                        <th class="text-end">Max Amount</th>
+                        <th class="text-end">Interest Rate</th>
+                        <th class="text-end">Loan/Share Ratio</th>
+                        <th class="text-center">Priority</th>
+                        <th class="text-end">Total Members</th>
+                        <th class="text-end">Total Shares</th>
+                        <th class="text-center">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td><strong>@item.SharesCode</strong></td>
+                            <td>@item.SharesType</td>
+                            <td class="text-center">
+                                @if (item.IsMainShares)
+                                {
+                                    <span class="badge bg-success"><i class="bi bi-check-circle"></i> Yes</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary"><i class="bi bi-x-circle"></i> No</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (item.UsedToGuarantee)
+                                {
+                                    <span class="badge bg-info"><i class="bi bi-shield-check"></i> Yes</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">No</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (item.UsedToOffset)
+                                {
+                                    <span class="badge bg-warning"><i class="bi bi-arrow-left-right"></i> Yes</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">No</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                @if (item.Withdrawable)
+                                {
+                                    <span class="badge bg-danger"><i class="bi bi-cash-stack"></i> Yes</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">No</span>
+                                }
+                            </td>
+                            <td class="text-end">@item.MinAmount.ToString("N2")</td>
+                            <td class="text-end">@(item.MaxAmount.HasValue? item.MaxAmount.Value.ToString("N2") : "Unlimited")</td>
+                            <td class="text-end">@(item.Interest.HasValue? item.Interest.Value.ToString("N2") + "%" : "N/A")</td>
+                            <td class="text-end">@(item.LoanToShareRatio.HasValue? item.LoanToShareRatio.Value.ToString("N2") : "N/A")</td>
+                            <td class="text-center">@item.Priority</td>
+                            <td class="text-end">@item.TotalMembers.ToString("N0")</td>
+                            <td class="text-end">@item.TotalShares.ToString("N2")</td>
+                            <td class="text-center">
+                                <a href="@Url.Action("Details", new { sharesCode = item.SharesCode })" class="btn btn-info btn-sm">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot class="table-secondary">
+                    <tr>
+                        <th colspan="2" class="text-end">Total Share Types:</th>
+                        <th colspan="11" class="text-start">@Model.Count</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Summary Statistics -->
+<div class="row mt-3">
+    <div class="col-md-3">
+        <div class="small-box bg-info">
+            <div class="inner">
+                <h3>@Model.Count</h3>
+                <p>Total Share Types</p>
+            </div>
+            <div class="icon">
+                <i class="bi bi-pie-chart-fill"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="small-box bg-success">
+            <div class="inner">
+                <h3>@Model.Count(s => s.IsMainShares)</h3>
+                <p>Main Share Types</p>
+            </div>
+            <div class="icon">
+                <i class="bi bi-star-fill"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="small-box bg-warning">
+            <div class="inner">
+                <h3>@Model.Count(s => s.UsedToGuarantee)</h3>
+                <p>Can Be Used for Guarantee</p>
+            </div>
+            <div class="icon">
+                <i class="bi bi-shield-shaded"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="small-box bg-danger">
+            <div class="inner">
+                <h3>@Model.Count(s => s.Withdrawable)</h3>
+                <p>Withdrawable Types</p>
+            </div>
+            <div class="icon">
+                <i class="bi bi-cash"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#shareVariationsTable').DataTable({
+                "order": [[10, "asc"]], // Order by Priority
+                "pageLength": 25,
+                "responsive": true,
+                "language": {
+                    "search": "Search Share Types:",
+                    "lengthMenu": "Show _MENU_ entries",
+                    "info": "Showing _START_ to _END_ of _TOTAL_ share types"
+                }
+            });
+        });
+    </script>
+}
+
+<style>
+    .small-box {
+        border-radius: 0.25rem;
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+        display: block;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+        .small-box .inner {
+            padding: 10px;
+        }
+
+        .small-box h3 {
+            font-size: 2.2rem;
+            font-weight: bold;
+            margin: 0 0 10px 0;
+            white-space: nowrap;
+            padding: 0;
+        }
+
+        .small-box p {
+            font-size: 1rem;
+        }
+
+        .small-box .icon {
+            color: rgba(0,0,0,0.15);
+            position: absolute;
+            right: 10px;
+            top: 5px;
+            z-index: 0;
+            font-size: 5rem;
+        }
+
+    .bg-info {
+        background-color: #17a2b8 !important;
+        color: white;
+    }
+
+    .bg-success {
+        background-color: #28a745 !important;
+        color: white;
+    }
+
+    .bg-warning {
+        background-color: #ffc107 !important;
+        color: #1f2d3d;
+    }
+
+    .bg-danger {
+        background-color: #dc3545 !important;
+        color: white;
+    }
+
+    .bg-secondary {
+        background-color: #6c757d !important;
+        color: white;
+    }
+</style>

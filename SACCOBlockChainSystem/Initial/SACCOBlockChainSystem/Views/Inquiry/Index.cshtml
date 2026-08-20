@@ -1,0 +1,97 @@
+﻿@{
+    ViewData["Title"] = "Inquiries";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Inquiry Dashboard</h3>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-lg-3 col-6">
+                            <div class="small-box bg-info">
+                                <div class="inner">
+                                    <h3>Member</h3>
+                                    <p>Search & View Members</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="bi bi-people-fill"></i>
+                                </div>
+                                <a href="@Url.Action("MemberInquiry")" class="small-box-footer">
+                                    Start Inquiry <i class="bi bi-arrow-right-circle"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 col-6">
+                            <div class="small-box bg-success">
+                                <div class="inner">
+                                    <h3>Shares</h3>
+                                    <p>Share Balance Inquiry</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="bi bi-pie-chart-fill"></i>
+                                </div>
+                                <a href="@Url.Action("ShareInquiry")" class="small-box-footer">
+                                    Start Inquiry <i class="bi bi-arrow-right-circle"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 col-6">
+                            <div class="small-box bg-warning">
+                                <div class="inner">
+                                    <h3>Loans</h3>
+                                    <p>Loan Portfolio Inquiry</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="bi bi-cash-stack"></i>
+                                </div>
+                                <a href="@Url.Action("LoanInquiry")" class="small-box-footer">
+                                    Start Inquiry <i class="bi bi-arrow-right-circle"></i>
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-3 col-6">
+                            <div class="small-box bg-secondary">
+                                <div class="inner">
+                                    <h3>Transactions</h3>
+                                    <p>Transaction History</p>
+                                </div>
+                                <div class="icon">
+                                    <i class="bi bi-receipt"></i>
+                                </div>
+                                <a href="@Url.Action("TransactionInquiry")" class="small-box-footer">
+                                    Start Inquiry <i class="bi bi-arrow-right-circle"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h3 class="card-title">Recent Audit Trail</h3>
+                                    <div class="card-tools">
+                                        <a href="@Url.Action("AuditTrail")" class="btn btn-primary btn-sm">
+                                            View Full Audit Trail <i class="bi bi-eye"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                                <div class="card-body">
+                                    <partial name="_RecentAuditTrail" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,326 @@
+﻿@using System.Security.Claims
+@model SACCOBlockChainSystem.Models.ViewModels.UserManagementViewModel
+@{
+    ViewData["Title"] = "User Management";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var isSuperAdmin = User.IsInRole("Super Admin") || User.HasClaim("UserGroup", "Super Admin");
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary me-3">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                    <h2 class="page-title d-inline-block mb-0">
+                        <i class="bi bi-people me-2"></i>User Management
+                    </h2>
+                </div>
+                <div class="text-muted">
+                    <i class="bi bi-info-circle"></i> Role: @User.FindFirstValue(ClaimTypes.Role)
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (!isSuperAdmin)
+    {
+        <div class="alert alert-warning">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            You are viewing users from your company only. User management actions require Super Admin privileges.
+        </div>
+    }
+
+    <!-- Search Bar -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" asp-action="UserManagement" class="row g-3">
+                <div class="col-md-8">
+                    <div class="input-group">
+                        <input type="text" name="searchTerm" class="form-control" placeholder="Search by username, email, phone, department..." value="@ViewBag.SearchTerm" />
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                        @if (!string.IsNullOrEmpty(ViewBag.SearchTerm))
+                        {
+                            <a asp-action="UserManagement" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-lg"></i> Clear
+                            </a>
+                        }
+                    </div>
+                </div>
+                <div class="col-md-4 text-end">
+                    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                        <i class="bi bi-person-plus"></i> Add New User
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0">System Users</h5>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>User ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Phone</th>
+                            <th>User Group</th>
+                            <th>Company</th>
+                            <th>Status</th>
+                            <th>Locked</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model?.Users != null && Model.Users.Any())
+                        {
+                            foreach (var user in Model.Users)
+                            {
+                                var statusBadge = user.Status?.ToLower() == "active" ? "bg-success" :
+                                (user.Status?.ToLower() == "inactive" ? "bg-secondary" :
+                                (user.Status?.ToLower() == "pending" ? "bg-warning" : "bg-danger"));
+
+                                var lockedStatus = user.IsLocked ? "Locked" : "Active";
+                                var lockedBadge = user.IsLocked ? "bg-danger" : "bg-success";
+
+                                <tr>
+                                    <td>@user.UserId</td>
+                                    <td>
+                                        <strong>@user.UserName</strong>
+                                        <br />
+                                        <small class="text-muted">@user.UserLoginId</small>
+                                    </td>
+                                    <td>@user.Email</td>
+                                    <td>@user.Phone</td>
+                                    <td>
+                                        <span class="badge bg-info">@user.UserGroup</span>
+                                    </td>
+                                    <td>
+                                        <small>@user.CompanyCode</small>
+                                        <br />
+                                        <small class="text-muted">@user.CompanyName</small>
+                                    </td>
+                                    <td>
+                                        <span class="badge @statusBadge">@user.Status</span>
+                                    </td>
+                                    <td>
+                                        <span class="badge @lockedBadge">@lockedStatus</span>
+                                    </td>
+                                    <td class="text-center">
+                                        @if (isSuperAdmin)
+                                        {
+                                            if (user.IsLocked)
+                                            {
+                                                <button type="button" class="btn btn-sm btn-success"
+                                                        onclick="unlockUser(@user.UserId, '@user.UserName')"
+                                                        title="Unlock User">
+                                                    <i class="bi bi-unlock"></i> Unlock
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="button" class="btn btn-sm btn-danger"
+                                                        onclick="lockUser(@user.UserId, '@user.UserName')"
+                                                        title="Lock User">
+                                                    <i class="bi bi-lock"></i> Lock
+                                                </button>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">
+                                                <i class="bi bi-shield-lock"></i> No actions
+                                            </span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="9" class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1"></i>
+                                    <p class="mt-2">No users found</p>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal (Only for Super Admin) -->
+@if (isSuperAdmin)
+{
+    <div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title" id="addUserModalLabel">
+                        <i class="bi bi-person-plus me-2"></i>Add New User
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form asp-action="Create" method="post">
+                    @Html.AntiForgeryToken()
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Username *</label>
+                                <input type="text" name="UserName" class="form-control" required maxlength="50" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Email *</label>
+                                <input type="email" name="Email" class="form-control" required />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Password *</label>
+                                <input type="password" name="Password" class="form-control" required minlength="6" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Confirm Password *</label>
+                                <input type="password" name="ConfirmPassword" class="form-control" required />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Phone</label>
+                                <input type="tel" name="Phone" class="form-control" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Department</label>
+                                <input type="text" name="Department" class="form-control" />
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">User Group</label>
+                                <select name="UserGroup" class="form-select">
+                                    <option value="Member">Member</option>
+                                    <option value="Teller">Teller</option>
+                                    <option value="LoanOfficer">Loan Officer</option>
+                                    <option value="Auditor">Auditor</option>
+                                    <option value="Finance Officer">Finance Officer</option>
+                                    <option value="BoardMember">Board Member</option>
+                                    <option value="Staff">Staff</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Company</label>
+                                <select name="CompanyCode" class="form-select" required>
+                                    <option value="">-- Select Company --</option>
+                                    @if (ViewBag.Companies != null)
+                                    {
+                                        foreach (var company in ViewBag.Companies)
+                                        {
+                                            <option value="@company.CompanyCode">@company.DisplayText</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create User</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        function lockUser(userId, userName) {
+            if (confirm(`Are you sure you want to lock user '${userName}'? This will prevent them from logging in.`)) {
+                $.ajax({
+                    url: '@Url.Action("LockUser", "Account")',
+                    type: 'POST',
+                    data: { userId: userId },
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showToast('success', response.message);
+                            setTimeout(function() { location.reload(); }, 1500);
+                        } else {
+                            showToast('error', response.message);
+                        }
+                    },
+                    error: function() {
+                        showToast('error', 'An error occurred. Please try again.');
+                    }
+                });
+            }
+        }
+
+        function unlockUser(userId, userName) {
+            if (confirm(`Are you sure you want to unlock user '${userName}'?`)) {
+                $.ajax({
+                    url: '@Url.Action("UnlockUser", "Account")',
+                    type: 'POST',
+                    data: { userId: userId },
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showToast('success', response.message);
+                            setTimeout(function() { location.reload(); }, 1500);
+                        } else {
+                            showToast('error', response.message);
+                        }
+                    },
+                    error: function() {
+                        showToast('error', 'An error occurred. Please try again.');
+                    }
+                });
+            }
+        }
+
+        function showToast(type, message) {
+            var toastHtml = `
+                <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0 position-fixed bottom-0 end-0 m-3" style="z-index: 9999;">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            $('body').append(toastHtml);
+            var toast = $('.toast').last();
+            var bsToast = new bootstrap.Toast(toast[0]);
+            bsToast.show();
+            toast.on('hidden.bs.toast', function() { $(this).remove(); });
+        }
+    </script>
+}

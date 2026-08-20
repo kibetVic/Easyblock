@@ -1,0 +1,40 @@
+﻿@model IEnumerable<dynamic>   // or better: JournalListViewModel
+
+<h2>Journal Vouchers</h2>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Voucher No</th>
+            <th>Date</th>
+            <th>Member</th>
+            <th>Total DR</th>
+            <th>Total CR</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var j in Model)
+        {
+            <tr>
+                <td>@j.VoucherNo</td>
+                <td>@j.VoucherDate?.ToString("dd/MM/yyyy")</td>
+                <td>@j.MemberNo</td>
+                <td>@j.TotalDebit.ToString("N2")</td>
+                <td>@j.TotalCredit.ToString("N2")</td>
+                <td>
+                    <span class="badge @(j.Posted ? "bg-success" : "bg-warning")">
+                        @(j.Posted ? "Posted" : "Draft")
+                    </span>
+                </td>
+                <td>
+                    <a href="@Url.Action("Edit", "JournalPosting", new { voucherNo = j.VoucherNo })"
+                       class="btn btn-sm btn-primary">
+                        Open
+                    </a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

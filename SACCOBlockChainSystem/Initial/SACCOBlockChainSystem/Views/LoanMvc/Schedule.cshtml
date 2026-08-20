@@ -1,0 +1,496 @@
+﻿@model List<SACCOBlockChainSystem.Models.DTOs.LoanScheduleDTO>
+@{
+    ViewData["Title"] = "Loan Repayment Schedule";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var loan = ViewBag.Loan as SACCOBlockChainSystem.Models.Loan;
+    var repayments = ViewBag.Repayments as List<SACCOBlockChainSystem.Models.Repay> ?? new List<SACCOBlockChainSystem.Models.Repay>();
+    var member = ViewBag.Member as SACCOBlockChainSystem.Models.Member;
+
+    // Build member full name
+    var memberFullName = "";
+    if (member != null)
+    {
+        memberFullName = $"{member.Surname ?? ""} {member.OtherNames ?? ""}".Trim();
+        if (string.IsNullOrEmpty(memberFullName))
+        {
+            memberFullName = member.MemberNo;
+        }
+    }
+}
+
+<style>
+    /* Print/PDF Styles - Reduced Font Sizes */
+    @@media print {
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 8pt !important;
+        }
+
+        .no-print {
+            display: none !important;
+        }
+
+        .print-only {
+            display: block !important;
+        }
+
+        .card {
+            border: none !important;
+            box-shadow: none !important;
+            margin-bottom: 5px !important;
+        }
+
+        .card-header {
+            background-color: #f8f9fa !important;
+            border-bottom: 1px solid #dee2e6 !important;
+            padding: 3px 8px !important;
+        }
+
+            .card-header h6 {
+                font-size: 9pt !important;
+                margin: 0 !important;
+            }
+
+        .card-body {
+            padding: 10px !important;
+        }
+
+        table {
+            font-size: 7pt !important;
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #dee2e6;
+            padding: 3px !important;
+        }
+
+        th {
+            font-size: 7pt !important;
+            font-weight: bold;
+        }
+
+        td {
+            font-size: 7pt !important;
+        }
+
+        .badge {
+            border: none;
+            padding: 1px 3px !important;
+            font-size: 6pt !important;
+        }
+
+        .btn, .btn-group, .dataTables_filter, .dataTables_length, .dataTables_paginate {
+            display: none !important;
+        }
+
+        .table-responsive {
+            overflow: visible !important;
+        }
+
+        .small-text {
+            font-size: 6pt !important;
+        }
+
+        .summary-value {
+            font-size: 9pt !important;
+        }
+
+        .summary-label {
+            font-size: 6pt !important;
+        }
+    }
+
+    /* PDF specific styles - Reduced Fonts */
+    .pdf-header {
+        text-align: center;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #333;
+    }
+
+        .pdf-header h2 {
+            margin: 0;
+            font-size: 11pt;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        .pdf-header p {
+            margin: 2px 0;
+            font-size: 7pt;
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+    .pdf-footer {
+        text-align: center;
+        margin-top: 15px;
+        padding-top: 5px;
+        border-top: 1px solid #ccc;
+        font-size: 6pt;
+        font-family: 'Times New Roman', Times, serif;
+    }
+
+    .member-info-table {
+        width: 100%;
+        margin-bottom: 10px;
+        font-size: 10pt !important;
+    }
+
+        .member-info-table td {
+            padding: 3px;
+            border: none;
+        }
+
+    .section-title {
+        font-size: 9pt;
+        font-weight: bold;
+        margin: 8px 0 3px 0;
+        padding: 3px;
+        background-color: #f0f0f0;
+    }
+
+    /* Compact summary row */
+    .compact-summary {
+        font-size: 7pt;
+    }
+
+        .compact-summary strong {
+            font-size: 9pt;
+        }
+</style>
+
+<div class="row mb-4 no-print">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <a asp-action="Details" asp-route-loanNo="@loan?.LoanNo" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Back to Loan
+                </a>
+                <h2 class="page-title mb-0">
+                    <i class="bi bi-table me-2"></i>Repayment Schedule
+                </h2>
+            </div>
+            <div class="btn-group">
+                <button type="button" class="btn btn-outline-primary" onclick="downloadPDF()">
+                    <i class="bi bi-file-pdf me-2"></i>Download PDF
+                </button>
+                <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                    <i class="bi bi-printer me-2"></i>Print
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PDF Content Container -->
+<div id="pdfContent">
+    <!-- PDF Header -->
+    <div class="pdf-header print-only" style="display: none;">
+        <h2>@User.FindFirst("CompanyName")?.Value</h2>
+        <p>Loan Repayment Schedule</p>
+        <p>Generated on @DateTime.Now.ToString("dd MMMM yyyy HH:mm:ss")</p>
+    </div>
+
+    <!-- Member Information (Simplified) -->
+    <div class="card mb-2">
+        <div class="card-header bg-light">
+            <h6 class="mb-0">Member Information</h6>
+        </div>
+        <div class="card-body p-2">
+            <table class="member-info-table">
+                <tr>
+                    <td width="120"><strong>Loan Number:</strong></td>
+                    <td width="200">@loan?.LoanNo</td>
+                    <td width="120"><strong>Member Number:</strong></td>
+                    <td>@loan?.MemberNo</td>
+                </tr>
+                <tr>
+                    <td><strong>Member Name:</strong></td>
+                    <td>@memberFullName</td>
+                    <td><strong>Interest Rate:</strong></td>
+                    <td>@(loan?.Interest?.ToString("N2") ?? "0")% p.a.</td>
+                </tr>
+                <tr>
+                    <td><strong>Repayment Period:</strong></td>
+                    <td>@(loan?.RepayPeriod?.ToString() ?? "0") months</td>
+                    <td><strong>Repayment Method:</strong></td>
+                    <td>@loan?.RepayMethod</td>
+                </tr>
+                <tr>
+                    <td><strong>Disbursement Date:</strong></td>
+                    <td>@(loan?.AuditDateTime?.ToString("dd/MM/yyyy") ?? "-")</td>
+                    <td><strong>Approved Amount:</strong></td>
+                    <td>KES @ViewBag.ApprovedAmount?.ToString("N2")</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Compact Summary Row -->
+    <div class="card mb-2">
+        <div class="card-body p-1">
+            <div class="row text-center compact-summary">
+                <div class="col-3">
+                    <span class="summary-label">Total Loan</span><br />
+                    <strong class="summary-value">KES @ViewBag.TotalPrincipal?.ToString("N2")</strong>
+                </div>
+                <div class="col-3">
+                    <span class="summary-label">Total Interest</span><br />
+                    <strong class="summary-value">KES @ViewBag.TotalInterest?.ToString("N2")</strong>
+                </div>
+                <div class="col-3">
+                    <span class="summary-label">Total Paid</span><br />
+                    <strong class="summary-value">KES @ViewBag.TotalPaid?.ToString("N2")</strong>
+                </div>
+                <div class="col-3">
+                    <span class="summary-label">Outstanding</span><br />
+                    <strong class="summary-value">KES @ViewBag.TotalOutstanding?.ToString("N2")</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Amortization Schedule Table -->
+    <div class="card">
+        <div class="card-header bg-light">
+            <h6 class="mb-0">Amortization Schedule (@Model.Count Installments)</h6>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-sm mb-0" id="scheduleTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>#</th>
+                            <th>Due Date</th>
+                            <th class="text-end">Principal</th>
+                            <th class="text-end">Interest</th>
+                            <th class="text-end">Total</th>
+                            <th class="text-end">Paid</th>
+                            <th class="text-end">Outstanding</th>
+                            <th class="text-end">Penalty</th>
+                            <th>Status</th>
+                            <th>Paid Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var installment in Model)
+                        {
+                            var statusClass = installment.Status == "Overdue" ? "table-danger" :
+                            installment.Status == "Paid" ? "table-success" :
+                            installment.Status == "Partial" ? "table-warning" : "";
+                            <tr class="@statusClass">
+                                <td><strong>@installment.InstallmentNo</strong></td>
+                                <td>@installment.DueDate.ToString("dd/MM/yyyy")</td>
+                                <td class="text-end">@installment.PrincipalAmount.ToString("N2")</td>
+                                <td class="text-end">@installment.InterestAmount.ToString("N2")</td>
+                                <td class="text-end fw-bold">@installment.TotalInstallment.ToString("N2")</td>
+                                <td class="text-end text-success">
+                                    @if (installment.PaidAmount > 0)
+                                    {
+                                        <strong>@installment.PaidAmount.ToString("N2")</strong>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">0.00</span>
+                                    }
+                                </td>
+                                <td class="text-end @(installment.OutstandingAmount > 0 ? "text-danger fw-bold" : "")">
+                                    @installment.OutstandingAmount.ToString("N2")
+                                </td>
+                                <td class="text-end text-danger">@installment.PenaltyAmount.ToString("N2")</td>
+                                <td>
+                                    @if (installment.Status == "Paid")
+                                    {
+                                        <span class="badge bg-success">Paid</span>
+                                    }
+                                    else if (installment.Status == "Partial")
+                                    {
+                                        <span class="badge bg-warning">Partial</span>
+                                    }
+                                    else if (installment.Status == "Overdue")
+                                    {
+                                        <span class="badge bg-danger">Overdue</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">Pending</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (installment.Status == "Paid" && installment.PaidDate.HasValue)
+                                    {
+                                        @installment.PaidDate.Value.ToString("dd/MM/yyyy")
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-light">
+                        <tr>
+                            <th colspan="2">Totals</th>
+                            <th class="text-end">@Model.Sum(i => i.PrincipalAmount).ToString("N2")</th>
+                            <th class="text-end">@Model.Sum(i => i.InterestAmount).ToString("N2")</th>
+                            <th class="text-end">@Model.Sum(i => i.TotalInstallment).ToString("N2")</th>
+                            <th class="text-end">@Model.Sum(i => i.PaidAmount).ToString("N2")</th>
+                            <th class="text-end">@Model.Sum(i => i.OutstandingAmount).ToString("N2")</th>
+                            <th class="text-end">@Model.Sum(i => i.PenaltyAmount).ToString("N2")</th>
+                            <th colspan="2"></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Repayments Table -->
+    @if (repayments.Any())
+    {
+        <div class="card mt-2">
+            <div class="card-header bg-light">
+                <h6 class="mb-0">Recent Repayments (Last 10)</h6>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-sm mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Receipt No</th>
+                                <th>Payment Date</th>
+                                <th class="text-end">Amount</th>
+                                <th class="text-end">Principal</th>
+                                <th class="text-end">Interest</th>
+                                <th class="text-end">Penalty</th>
+                                <th>Method</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var payment in repayments.Where(r => r.Posted == true).OrderByDescending(r => r.DateReceived).Take(10))
+                            {
+                                <tr>
+                                    <td><strong>@payment.ReceiptNo</strong></td>
+                                    <td>@(payment.DateReceived?.ToString("dd/MM/yyyy") ?? "N/A")</td>
+                                    <td class="text-end">KES @(payment.Amount?.ToString("N2") ?? "0.00")</td>
+                                    <td class="text-end text-success">KES @(payment.Principal?.ToString("N2") ?? "0.00")</td>
+                                    <td class="text-end text-info">KES @(payment.Interest?.ToString("N2") ?? "0.00")</td>
+                                    <td class="text-end text-danger">KES @(payment.Penalty?.ToString("N2") ?? "0.00")</td>
+                                    <td>@(!string.IsNullOrEmpty(payment.Chequeno) ? "Cheque" : "Cash")</td>
+                                    <td>
+                                        <span class="badge bg-@(payment.Posted == true ? "success" : "danger")">
+                                            @(payment.Posted == true ? "Posted" : "Reversed")
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+    <!-- PDF Footer -->
+    <div class="pdf-footer print-only" style="display: none;">
+        <p>Generated by: @User.Identity?.Name | @DateTime.Now.ToString("dd MMMM yyyy HH:mm:ss")</p>
+        <p>This is a computer-generated document. No signature is required.</p>
+    </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTable
+            $('#scheduleTable').DataTable({
+                pageLength: 25,
+                order: [[0, 'asc']],
+                language: {
+                    search: "Filter:",
+                    lengthMenu: "Show _MENU_ entries"
+                }
+            });
+        });
+
+        function downloadPDF() {
+            // Get the content element
+            var element = document.getElementById('pdfContent');
+
+            // Show print-only elements for PDF
+            var printHeaders = document.querySelectorAll('.print-only');
+            printHeaders.forEach(function(el) {
+                el.style.display = 'block';
+            });
+
+            // Configure PDF options with smaller margins for more content
+            var opt = {
+                margin: [0.25, 0.25, 0.25, 0.25],
+                filename: 'Loan_Schedule_@(loan?.LoanNo).pdf',
+                image: { type: 'jpeg', quality: 0.95 },
+                html2canvas: {
+                    scale: 1.2,
+                    letterRendering: true,
+                    useCORS: true
+                },
+                jsPDF: {
+                    unit: 'in',
+                    format: 'a4',
+                    orientation: 'portrait'
+                }
+            };
+
+            // Add custom style for PDF generation
+            var style = document.createElement('style');
+            style.textContent = `
+                body {
+                    font-family: 'Times New Roman', Times, serif !important;
+                    font-size: 8pt !important;
+                }
+                table {
+                    font-size: 7pt !important;
+                }
+                th, td {
+                    padding: 2px 3px !important;
+                }
+                .card-header h6 {
+                    font-size: 9pt !important;
+                }
+                .summary-value {
+                    font-size: 9pt !important;
+                }
+                .summary-label {
+                    font-size: 6pt !important;
+                }
+                .badge {
+                    font-size: 5pt !important;
+                    padding: 1px 2px !important;
+                }
+            `;
+            document.head.appendChild(style);
+
+            // Generate PDF
+            html2pdf().set(opt).from(element).save().then(function() {
+                // Hide print-only elements after PDF generation
+                printHeaders.forEach(function(el) {
+                    el.style.display = 'none';
+                });
+                document.head.removeChild(style);
+            }).catch(function(error) {
+                console.error('PDF generation error:', error);
+                alert('Error generating PDF. Please try again.');
+                printHeaders.forEach(function(el) {
+                    el.style.display = 'none';
+                });
+                document.head.removeChild(style);
+            });
+        }
+    </script>
+}

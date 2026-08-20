@@ -1,0 +1,392 @@
+﻿@using System.Security.Claims
+@model SACCOBlockChainSystem.Models.ViewModels.MembersPerSaccoIndexViewModel
+@{
+    ViewData["Title"] = "Members Per SACCO Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var hasData = Model != null && Model.Members != null && Model.Members.Any();
+    var reportDate = Model?.ReportDate != null ? Model.ReportDate : (ViewBag.ReportDate as DateTime? ?? DateTime.Now);
+    var saccoName = Model?.SaccoName ?? ViewBag.SaccoName ?? "";
+}
+
+<style media="print">
+    .app-sidebar, .app-header, .main-footer, .sidebar-wrapper, .navbar,
+    .breadcrumb, .footer, [data-lte-toggle="sidebar"], .brand-link,
+    .sidebar-footer, .no-print {
+        display: none !important;
+    }
+
+    .app-main, .app-content, .content-wrapper, .main-content {
+        margin-left: 0 !important;
+        padding: 20px !important;
+        width: 100% !important;
+    }
+
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .card-header {
+        background-color: #007bff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+        .table th {
+            background-color: #f2f2f2 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+    .btn, .export-buttons, #exportExcelBtn, #exportPdfBtn {
+        display: none !important;
+    }
+
+    body {
+        background: white !important;
+        font-size: 11pt;
+    }
+
+    .bg-primary {
+        background-color: #007bff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .statistics-row {
+        margin-bottom: 20px;
+    }
+</style>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h3 class="card-title">
+            <i class="fas fa-users me-2"></i>Members Per SACCO Report
+        </h3>
+        <span class="float-end badge bg-white text-primary">
+            All Registered Members
+        </span>
+    </div>
+
+    <div class="card-body">
+        <!-- Filter Section - Hidden when printing -->
+        <div class="row mb-4 no-print">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Report As At Date</h5>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="MembersPerSacco" method="post" id="reportForm">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">As At Date</label>
+                                        <input type="date" name="reportDate" id="reportDate"
+                                               class="form-control"
+                                               value="@reportDate.ToString("yyyy-MM-dd")"
+                                               required />
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">&nbsp;</label>
+                                        <div>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-search me-1"></i>Generate Report
+                                            </button>
+                                            <button type="button" class="btn btn-success" id="exportExcelBtn">
+                                                <i class="fas fa-file-excel me-1"></i>Excel
+                                            </button>
+                                            <button type="button" class="btn btn-danger" id="exportPdfBtn">
+                                                <i class="fas fa-file-pdf me-1"></i>PDF
+                                            </button>
+                                            
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Export Forms -->
+                        <form asp-action="ExportMembersPerSaccoToExcel" method="post" id="excelForm" style="display:none;">
+                            <input type="hidden" name="reportDate" id="excelReportDate" />
+                        </form>
+                        <form asp-action="ExportMembersPerSaccoToPdf" method="post" id="pdfForm" style="display:none;">
+                            <input type="hidden" name="reportDate" id="pdfReportDate" />
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (hasData)
+        {
+            <!-- SACCO Header -->
+            <div class="text-center mb-4">
+                <h2 class="display-6 fw-bold">@saccoName.ToUpper()</h2>
+                <h4 class="text-muted">MEMBERS REGISTER AS AT @reportDate.ToString("dd/MM/yyyy")</h4>
+                <hr class="my-3" />
+            </div>
+
+            <!-- Statistics Section -->
+            <div class="row mb-4 statistics-row">
+                <div class="col-md-3">
+                    <div class="small-box bg-info">
+                        <div class="inner">
+                            <h3>@Model.TotalMembers</h3>
+                            <p>TOTAL MEMBERS</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-primary">
+                        <div class="inner">
+                            <h3>@Model.MaleCount</h3>
+                            <p>MALE</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-male"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-danger">
+                        <div class="inner">
+                            <h3>@Model.FemaleCount</h3>
+                            <p>FEMALE</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-female"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-success">
+                        <div class="inner">
+                            <h3>@Model.YouthCount</h3>
+                            <p>YOUTH (18-35)</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-child"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Members Table -->
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover" id="membersTable">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>#</th>
+                            <th>MemberNo</th>
+                            <th>Names</th>
+                            <th>Sex</th>
+                            <th>PhoneNo</th>
+                            <th>IDNo</th>
+                            <th>Applic Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            int counter = 1;
+                        }
+                        @foreach (var item in Model.Members)
+                        {
+                            <tr>
+                                <td>@counter</td>
+                                <td>@item.MemberNo</td>
+                                <td>@item.FullName</td>
+                                <td>@item.Sex</td>
+                                <td>@item.PhoneNo</td>
+                                <td>@item.IDNo</td>
+                                <td>@item.ApplicDate?.ToString("dd/MM/yyyy")</td>
+                                <td>
+                                    @if (item.Status == "ACTIVE")
+                                    {
+                                        <span class="badge bg-success">ACTIVE</span>
+                                    }
+                                    else if (item.Status == "WITHDRAWN")
+                                    {
+                                        <span class="badge bg-danger">WITHDRAWN</span>
+                                    }
+                                    else if (item.Status == "ARCHIVED")
+                                    {
+                                        <span class="badge bg-warning">ARCHIVED</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@item.Status</span>
+                                    }
+                                </td>
+                            </tr>
+                            counter++;
+                        }
+                    </tbody>
+                    <tfoot class="bg-light fw-bold">
+                        <tr>
+                            <td colspan="7" class="text-end">GRAND TOTAL MEMBERS:</td>
+                            <td>@Model.TotalMembers</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Report Footer -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="text-muted small">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Report Generated: @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") |
+                        As At: @Model.ReportDate.ToString("dd/MM/yyyy") |
+                        Total Records: @Model.TotalMembers |
+                        Company: @saccoName
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info text-center py-5">
+                <i class="fas fa-users fa-3x mb-3"></i>
+                <h5>No Members Found</h5>
+                <p>There are no registered members in the system as at @reportDate.ToString("dd/MM/yyyy")</p>
+            </div>
+        }
+    </div>
+</div>
+ 
+@section Scripts {
+    <script>
+        (function() {
+            'use strict';
+
+            document.addEventListener('DOMContentLoaded', function() {
+
+                // ---------- EXPORT FUNCTIONALITY ----------
+                const exportExcelBtn = document.getElementById('exportExcelBtn');
+                const exportPdfBtn = document.getElementById('exportPdfBtn');
+                const reportDate = document.getElementById('reportDate');
+                const excelReportDate = document.getElementById('excelReportDate');
+                const pdfReportDate = document.getElementById('pdfReportDate');
+                const excelForm = document.getElementById('excelForm');
+                const pdfForm = document.getElementById('pdfForm');
+
+                // Excel Export
+                if (exportExcelBtn) {
+                    exportExcelBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+
+                        if (!reportDate || !reportDate.value) {
+                            alert('Please select a report date');
+                            return;
+                        }
+
+                        excelReportDate.value = reportDate.value;
+                        excelForm.submit();
+                    });
+                }
+
+                // PDF Export
+                if (exportPdfBtn) {
+                    exportPdfBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+
+                        if (!reportDate || !reportDate.value) {
+                            alert('Please select a report date');
+                            return;
+                        }
+
+                        pdfReportDate.value = reportDate.value;
+                        pdfForm.submit();
+                    });
+                }
+
+                // Print functionality
+                const printBtn = document.getElementById('printReportBtn');
+                if (printBtn) {
+                    printBtn.addEventListener('click', function() {
+                        window.print();
+                    });
+                }
+
+                // Form validation
+                const reportForm = document.getElementById('reportForm');
+                if (reportForm) {
+                    reportForm.addEventListener('submit', function(e) {
+                        const dateInput = this.querySelector('#reportDate');
+                        if (dateInput && !dateInput.value) {
+                            e.preventDefault();
+                            alert('Please select a report date');
+                        }
+                    });
+                }
+            });
+        })();
+    </script>
+}
+
+<style>
+    .small-box {
+        border-radius: 0.25rem;
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+        display: block;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+        .small-box > .inner {
+            padding: 10px;
+        }
+
+        .small-box h3 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 0 0 10px;
+            padding: 0;
+            white-space: nowrap;
+            color: white;
+        }
+
+        .small-box p {
+            color: white;
+            font-size: 1rem;
+        }
+
+        .small-box .icon {
+            color: rgba(0,0,0,0.15);
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            transition: all .3s linear;
+            z-index: 0;
+        }
+
+            .small-box .icon > i {
+                font-size: 70px;
+            }
+
+        .small-box:hover .icon {
+            font-size: 75px;
+        }
+
+    @@media (max-width: 767px) {
+        .small-box {
+            text-align: center;
+        }
+
+            .small-box .icon {
+                display: none;
+            }
+    }
+</style>

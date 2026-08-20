@@ -1,0 +1,568 @@
+﻿<!-- Views/Agent/Index.cshtml - Updated with Recruitment Agent Type Dropdown -->
+@model List<SACCOBlockChainSystem.Models.DTOs.AgentResponseDTO>
+
+@{
+    ViewData["Title"] = "Agents Management";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var recruitmentTypes = ViewBag.RecruitmentTypes as List<string> ?? new List<string>();
+    var currentUser = ViewBag.CurrentUser as string ?? "SYSTEM";
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center">
+                <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+                <h2><i class="bi bi-people me-2"></i>Agents Management</h2>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Form Card -->
+    <div class="card shadow-sm mb-4" id="formCard">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0" id="formTitle"><i class="bi bi-plus-circle me-2"></i>Add New Agent</h5>
+        </div>
+        <div class="card-body">
+            <form id="agentForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="Id" />
+                <input type="hidden" id="OriginalIdNo" />
+
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">ID Number *</label>
+                        <input type="text" class="form-control" id="IdNo" maxlength="50" />
+                        <small class="text-muted">Unique identification number (e.g., National ID)</small>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Full Names *</label>
+                        <input type="text" class="form-control" id="Names" maxlength="150" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Gender *</label>
+                        <select class="form-select" id="Gender">
+                            <option value="">-- Select Gender --</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Recruitment Agent Type *</label>
+                        <select class="form-select" id="RecruitementAgents">
+                            <option value="">-- Select Type --</option>
+                            @foreach (var type in recruitmentTypes)
+                            {
+                                <option value="@type">@type</option>
+                            }
+                        </select>
+                        <small class="text-muted">Type of agent recruiting this person</small>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Staff Code</label>
+                        <input type="text" class="form-control" id="StaffCode" maxlength="50" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">PIN</label>
+                        <input type="text" class="form-control" id="PIN" maxlength="100" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Occupation</label>
+                        <input type="text" class="form-control" id="Occupation" maxlength="50" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Mobile Number *</label>
+                        <input type="tel" class="form-control" id="MobileNo" maxlength="50" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Land Phone *</label>
+                        <input type="tel" class="form-control" id="LandPhone" maxlength="50" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Branch Name</label>
+                        <input type="text" class="form-control" id="Branchname" maxlength="50" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Home Address *</label>
+                        <input type="text" class="form-control" id="HomeAddress" maxlength="50" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Town (County) *</label>
+                        <input type="text" class="form-control" id="Town" maxlength="50" />
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label fw-bold">Recruitment Date *</label>
+                        <input type="date" class="form-control" id="Recruitdate" />
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" onclick="resetForm()">Reset</button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">Save Agent</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- List Card (same as before, but add RecruitementAgents column) -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h5 class="mb-0"><i class="bi bi-list-check me-2"></i>Agents List</h5>
+                    <small class="text-muted">Manage recruitment agents</small>
+                </div>
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="searchInput" placeholder="Search by name, ID number, or mobile..." />
+                        <button class="btn btn-outline-secondary" onclick="filterTable()"><i class="bi bi-search"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            @if (!Model.Any())
+            {
+                <div class="alert alert-info text-center py-5">
+                    <i class="bi bi-info-circle fs-1"></i>
+                    <h5 class="mt-3">No agents found</h5>
+                    <p class="mb-0">Use the form above to create your first agent.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover" id="dataTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th>ID Number</th>
+                                <th>Names</th>
+                                <th>Recruitment Type</th>
+                                <th>Mobile</th>
+                                <th>Land Phone</th>
+                                <th>Town</th>
+                                <th>Recruitment Date</th>
+                                <th>Recruited By</th>
+                                <th>Blockchain Tx</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model)
+                            {
+                                <tr id="row-@item.Id">
+                                    <td><strong>@item.IdNo</strong></td>
+                                    <td>@item.Names</td>
+                                    <td><span class="badge bg-info">@item.RecruitementAgents</span></td>
+                                    <td>@item.MobileNo</td>
+                                    <td>@item.LandPhone</td>
+                                    <td>@item.Town</td>
+                                    <td>@item.Recruitdate.ToString("dd/MM/yyyy")</td>
+                                    <td>@item.CreatedBy</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(item.BlockchainTxId))
+                                        {
+                                            <code class="small">@(item.BlockchainTxId.Length > 12 ? item.BlockchainTxId.Substring(0, 12) + "..." : item.BlockchainTxId)</code>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Not recorded</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <button class="btn btn-sm btn-outline-info" onclick="viewDetails(@item.Id)"><i class="bi bi-eye"></i></button>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="editAgent(@item.Id)"><i class="bi bi-pencil"></i></button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAgent(@item.Id, '@item.Names')"><i class="bi bi-trash"></i></button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3 text-muted">
+                    <small>Total: @Model.Count() agent(s)</small>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- View Modal (Updated to show Recruitment Type) -->
+<div class="modal fade" id="viewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-eye me-2"></i>Agent Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <label class="fw-bold text-muted">ID Number:</label>
+                        <p id="v_IdNo">-</p>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="fw-bold text-muted">Names:</label>
+                        <p id="v_Names">-</p>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="fw-bold text-muted">Gender:</label>
+                        <p id="v_Gender">-</p>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="fw-bold text-muted">Recruitment Agent Type:</label>
+                        <p id="v_RecruitementAgents">-</p>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="fw-bold text-muted">Staff Code:</label>
+                        <p id="v_StaffCode">-</p>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="fw-bold text-muted">Occupation:</label>
+                        <p id="v_Occupation">-</p>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="fw-bold text-muted">PIN:</label>
+                        <p id="v_PIN">-</p>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="fw-bold text-muted">Mobile Number:</label>
+                        <p id="v_MobileNo">-</p>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="fw-bold text-muted">Land Phone:</label>
+                        <p id="v_LandPhone">-</p>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="fw-bold text-muted">Branch:</label>
+                        <p id="v_Branchname">-</p>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="fw-bold text-muted">Town (County):</label>
+                        <p id="v_Town">-</p>
+                    </div>
+                    <div class="col-12 mb-2">
+                        <label class="fw-bold text-muted">Home Address:</label>
+                        <p id="v_HomeAddress">-</p>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="fw-bold text-muted">Recruitment Date:</label>
+                        <p id="v_Recruitdate">-</p>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="fw-bold text-muted">Recruited By (AuditId):</label>
+                        <p id="v_CreatedBy">-</p>
+                    </div>
+                    <div class="col-12 mb-2">
+                        <label class="fw-bold text-muted">Blockchain Tx ID:</label>
+                        <p id="v_BlockchainTxId">-</p>
+                    </div>
+                    <div class="col-12 mb-2">
+                        <label class="fw-bold text-muted">Created At:</label>
+                        <p id="v_CreatedAt">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            $('#Recruitdate').val(new Date().toISOString().split('T')[0]);
+
+            if ($.fn.DataTable) {
+                $('#dataTable').DataTable({
+                    pageLength: 10,
+                    ordering: true,
+                    searching: false,
+                    paging: true,
+                    language: {
+                        lengthMenu: "Show _MENU_ agents per page",
+                        info: "Showing _START_ to _END_ of _TOTAL_ agents",
+                        infoEmpty: "No agents found"
+                    }
+                });
+            }
+        });
+
+        function filterTable() {
+            var searchText = $('#searchInput').val().toLowerCase();
+            $('#dataTable tbody tr').each(function() {
+                var text = $(this).text().toLowerCase();
+                $(this).toggle(text.indexOf(searchText) > -1);
+            });
+        }
+
+        $('#agentForm').on('submit', function(e) {
+            e.preventDefault();
+
+            // Validation
+            if (!$('#IdNo').val()) {
+                showToast('error', 'ID Number is required');
+                $('#IdNo').addClass('is-invalid');
+                return;
+            }
+            $('#IdNo').removeClass('is-invalid');
+
+            if (!$('#Names').val()) {
+                showToast('error', 'Names are required');
+                $('#Names').addClass('is-invalid');
+                return;
+            }
+            $('#Names').removeClass('is-invalid');
+
+            if (!$('#Gender').val()) {
+                showToast('error', 'Gender is required');
+                $('#Gender').addClass('is-invalid');
+                return;
+            }
+            $('#Gender').removeClass('is-invalid');
+
+            if (!$('#RecruitementAgents').val()) {
+                showToast('error', 'Recruitment Agent Type is required');
+                $('#RecruitementAgents').addClass('is-invalid');
+                return;
+            }
+            $('#RecruitementAgents').removeClass('is-invalid');
+
+            if (!$('#MobileNo').val()) {
+                showToast('error', 'Mobile Number is required');
+                $('#MobileNo').addClass('is-invalid');
+                return;
+            }
+            $('#MobileNo').removeClass('is-invalid');
+
+            if (!$('#LandPhone').val()) {
+                showToast('error', 'Land Phone is required');
+                $('#LandPhone').addClass('is-invalid');
+                return;
+            }
+            $('#LandPhone').removeClass('is-invalid');
+
+            if (!$('#HomeAddress').val()) {
+                showToast('error', 'Home Address is required');
+                $('#HomeAddress').addClass('is-invalid');
+                return;
+            }
+            $('#HomeAddress').removeClass('is-invalid');
+
+            if (!$('#Town').val()) {
+                showToast('error', 'Town is required');
+                $('#Town').addClass('is-invalid');
+                return;
+            }
+            $('#Town').removeClass('is-invalid');
+
+            if (!$('#Recruitdate').val()) {
+                showToast('error', 'Recruitment Date is required');
+                $('#Recruitdate').addClass('is-invalid');
+                return;
+            }
+            $('#Recruitdate').removeClass('is-invalid');
+
+            var data = {
+                IdNo: $('#IdNo').val(),
+                RecruitementAgents: $('#RecruitementAgents').val(),
+                Names: $('#Names').val(),
+                Gender: $('#Gender').val(),
+                StaffCode: $('#StaffCode').val(),
+                Occupation: $('#Occupation').val(),
+                LandPhone: $('#LandPhone').val(),
+                MobileNo: $('#MobileNo').val(),
+                Branchname: $('#Branchname').val(),
+                HomeAddress: $('#HomeAddress').val(),
+                Town: $('#Town').val(),
+                Recruitdate: $('#Recruitdate').val(),
+                PIN: $('#PIN').val()
+            };
+
+            var id = $('#Id').val();
+            var url = id ? '/Agent/Edit' : '/Agent/Create';
+
+            var btn = $('#submitBtn');
+            btn.prop('disabled', true).html('<i class="bi bi-hourglass-split me-2"></i>Saving...');
+
+            $.ajax({
+                url: url,
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(data),
+                headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                success: function(r) {
+                    if (r.success) {
+                        showToast('success', r.message);
+                        setTimeout(function() { location.reload(); }, 1500);
+                    } else {
+                        showToast('error', r.message);
+                        btn.prop('disabled', false).html('<i class="bi bi-save me-2"></i>Save Agent');
+                    }
+                },
+                error: function(xhr) {
+                    var errorMsg = xhr.responseJSON?.message || 'An error occurred';
+                    showToast('error', errorMsg);
+                    btn.prop('disabled', false).html('<i class="bi bi-save me-2"></i>Save Agent');
+                }
+            });
+        });
+
+        function resetForm() {
+            $('#agentForm')[0].reset();
+            $('#Id').val('');
+            $('#OriginalIdNo').val('');
+            $('#IdNo').prop('readonly', false);
+            $('#Recruitdate').val(new Date().toISOString().split('T')[0]);
+            $('#formTitle').html('<i class="bi bi-plus-circle me-2"></i>Add New Agent');
+            $('#submitBtn').html('<i class="bi bi-save me-2"></i>Save Agent');
+            $('.is-invalid').removeClass('is-invalid');
+        }
+
+        function editAgent(id) {
+            $.get('/Agent/GetDetails?id=' + id, function(r) {
+                if (r.success) {
+                    var a = r.agent;
+                    $('#Id').val(a.id);
+                    $('#OriginalIdNo').val(a.idNo);
+                    $('#IdNo').val(a.idNo).prop('readonly', true);
+                    $('#RecruitementAgents').val(a.recruitementAgents);
+                    $('#Names').val(a.names);
+                    $('#Gender').val(a.gender);
+                    $('#StaffCode').val(a.staffCode);
+                    $('#Occupation').val(a.occupation);
+                    $('#LandPhone').val(a.landPhone);
+                    $('#MobileNo').val(a.mobileNo);
+                    $('#Branchname').val(a.branchname);
+                    $('#HomeAddress').val(a.homeAddress);
+                    $('#Town').val(a.town);
+                    $('#Recruitdate').val(a.recruitdate.split('T')[0]);
+                    $('#PIN').val(a.pin);
+                    $('#formTitle').html('<i class="bi bi-pencil-square me-2"></i>Edit Agent');
+                    $('#submitBtn').html('<i class="bi bi-save me-2"></i>Update Agent');
+                    $('#formCard')[0].scrollIntoView({ behavior: 'smooth' });
+                }
+            });
+        }
+
+        function viewDetails(id) {
+            $.get('/Agent/GetDetails?id=' + id, function(r) {
+                if (r.success) {
+                    var a = r.agent;
+                    $('#v_IdNo').text(a.idNo || '-');
+                    $('#v_Names').text(a.names || '-');
+                    $('#v_Gender').text(a.gender || '-');
+                    $('#v_RecruitementAgents').text(a.recruitementAgents || '-');
+                    $('#v_StaffCode').text(a.staffCode || '-');
+                    $('#v_Occupation').text(a.occupation || '-');
+                    $('#v_PIN').text(a.pin || '-');
+                    $('#v_MobileNo').text(a.mobileNo || '-');
+                    $('#v_LandPhone').text(a.landPhone || '-');
+                    $('#v_Branchname').text(a.branchname || '-');
+                    $('#v_Town').text(a.town || '-');
+                    $('#v_HomeAddress').text(a.homeAddress || '-');
+                    $('#v_Recruitdate').text(a.recruitdate ? new Date(a.recruitdate).toLocaleDateString() : '-');
+                    $('#v_CreatedBy').text(a.createdBy || '-');
+                    $('#v_BlockchainTxId').text(a.blockchainTxId || 'Not recorded');
+                    $('#v_CreatedAt').text(a.createdAt ? new Date(a.createdAt).toLocaleString() : '-');
+                    $('#viewModal').modal('show');
+                }
+            });
+        }
+
+        function deleteAgent(id, name) {
+            if (confirm(`Are you sure you want to delete agent '${name}'? This action cannot be undone.`)) {
+                $.ajax({
+                    url: '/Agent/Delete?id=' + id,
+                    type: 'POST',
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                    success: function(r) {
+                        if (r.success) {
+                            showToast('success', r.message);
+                            setTimeout(function() { location.reload(); }, 1000);
+                        } else {
+                            showToast('error', r.message);
+                        }
+                    },
+                    error: function() {
+                        showToast('error', 'An error occurred while deleting');
+                    }
+                });
+            }
+        }
+
+        function showToast(type, message) {
+            var toastHtml = `
+                <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0 position-fixed bottom-0 end-0 m-3" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body"><i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>${message}</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            $('body').append(toastHtml);
+            var toast = $('.toast').last();
+            var bsToast = new bootstrap.Toast(toast[0]);
+            bsToast.show();
+            toast.on('hidden.bs.toast', function() { $(this).remove(); });
+        }
+    </script>
+}
+
+@section Styles {
+    <style>
+        .form-control:focus, .form-select:focus {
+            border-color: #00AEEF;
+            box-shadow: 0 0 0 0.2rem rgba(0, 174, 239, 0.15);
+        }
+
+        .btn-primary {
+            background: linear-gradient(145deg, #00AEEF, #164799);
+            border: none;
+        }
+
+            .btn-primary:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(0, 174, 239, 0.2);
+            }
+
+        .card {
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .table-hover tbody tr:hover {
+            background-color: rgba(0, 174, 239, 0.05);
+        }
+
+        .toast {
+            z-index: 1050;
+        }
+
+        .badge {
+            padding: 5px 10px;
+            font-weight: 500;
+        }
+    </style>
+}

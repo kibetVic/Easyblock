@@ -1,0 +1,155 @@
+﻿@model SACCOBlockChainSystem.ViewModels.TransactionVerificationViewModel
+
+@{
+    ViewData["Title"] = "Verify Transaction";
+}
+
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="fas fa-shield-alt"></i> Verify Blockchain Transaction</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Verify" method="post">
+                        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+                        <div class="form-group mb-3">
+                            <label asp-for="TransactionId" class="control-label">Transaction ID</label>
+                            <div class="input-group">
+                                <input asp-for="TransactionId" class="form-control" placeholder="Enter transaction ID to verify" />
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Verify
+                                </button>
+                            </div>
+                            <span asp-validation-for="TransactionId" class="text-danger"></span>
+                        </div>
+                    </form>
+
+                    @if (Model.Transaction != null)
+                    {
+                        <hr />
+                        <div class="verification-result mt-4">
+                            <div class="alert @(Model.IsValid ? "alert-success" : "alert-danger")">
+                                <h5 class="alert-heading">
+                                    <i class="fas @(Model.IsValid ? "fa-check-circle" : "fa-exclamation-triangle")"></i>
+                                    @Model.Message
+                                </h5>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <table class="table table-bordered">
+                                        <tr>
+                                            <th style="width: 30%">Transaction ID:</th>
+                                            <td><code>@Model.Transaction.TransactionId</code></td>
+                                        </tr>
+                                        <tr>
+                                            <th>Type:</th>
+                                            <td>@Model.Transaction.TransactionType</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Member:</th>
+                                            <td>@Model.Transaction.MemberNo</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Amount:</th>
+                                            <td>KES @Model.Transaction.Amount.ToString("N2")</td>
+                                        </tr>
+                                        <tr>
+                                            <th>Timestamp:</th>
+                                            <td>@Model.Transaction.Timestamp.ToString("dd MMM yyyy HH:mm:ss")</td>
+                                        </tr>
+                                    </table>
+                                </div>
+                            </div>
+
+                            @if (Model.VerificationDetails != null)
+                            {
+                                <h5 class="mt-4">Verification Details</h5>
+                                <table class="table table-sm table-bordered">
+                                    <tr>
+                                        <th>Found in Block:</th>
+                                        <td>
+                                            @if (Model.VerificationDetails.FoundInBlock)
+                                            {
+                                                <span class="badge bg-success">Yes</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">No</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Block Confirmed:</th>
+                                        <td>
+                                            @if (Model.VerificationDetails.BlockConfirmed)
+                                            {
+                                                <span class="badge bg-success">Yes</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">No</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Data Integrity:</th>
+                                        <td>
+                                            @if (Model.VerificationDetails.DataIntegrity)
+                                            {
+                                                <span class="badge bg-success">Valid</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">Invalid</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <th>Timestamp Valid:</th>
+                                        <td>
+                                            @if (Model.VerificationDetails.TimestampValid)
+                                            {
+                                                <span class="badge bg-success">Yes</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-danger">No</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                    @if (!string.IsNullOrEmpty(Model.VerificationDetails.CalculatedHash))
+                                    {
+                                        <tr>
+                                            <th>Calculated Hash:</th>
+                                            <td><code>@Model.VerificationDetails.CalculatedHash</code></td>
+                                        </tr>
+                                    }
+                                </table>
+                            }
+
+                            <div class="mt-3">
+                                <a href="@Url.Action("TransactionDetails", new { transactionId = Model.Transaction.TransactionId })"
+                                   class="btn btn-info">
+                                    <i class="fas fa-info-circle"></i> View Full Details
+                                </a>
+                                <a href="@Url.Action("Verify")" class="btn btn-secondary">
+                                    <i class="fas fa-redo"></i> Verify Another
+                                </a>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

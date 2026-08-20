@@ -1,0 +1,181 @@
+﻿@model SACCOBlockChainSystem.Models.ViewModels.FinancialReportViewModel
+
+@{
+    ViewData["Title"] = "Financial Reports";
+    Layout = "_Layout";
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<div class="container-fluid p-4">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 style="color: #3f2b96; font-weight: 600;">
+            <i class="fas fa-chart-bar me-2"></i> Financial Reports
+        </h2>
+        <div class="d-flex gap-2">
+            <span class="badge bg-primary p-3" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                <i class="fas fa-building me-1"></i> @ViewBag.CompanyName (@ViewBag.CompanyCode)
+            </span>
+        </div>
+    </div>
+
+    <!-- Alert Messages -->
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Filters Card -->
+    <div class="card shadow-sm mb-4" style="border: none; border-radius: 10px;">
+        <div class="card-header bg-white py-3" style="border-bottom: 2px solid #3f2b96;">
+            <h5 class="mb-0" style="color: #3f2b96; font-weight: 600;">
+                <i class="fas fa-filter me-2"></i> Trial Balance Filters
+            </h5>
+        </div>
+        <div class="card-body p-4" style="background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);">
+            <form asp-action="Generate" method="post" id="reportForm">
+                @Html.AntiForgeryToken()
+                
+                <div class="row g-4 mb-4">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold text-muted">
+                            <i class="fas fa-calendar-alt me-1"></i> Start Date:
+                        </label>
+                        <input type="date" name="startDate" class="form-control" 
+                               value="@Model.StartDate.ToString("yyyy-MM-dd")" required />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold text-muted">
+                            <i class="fas fa-calendar-alt me-1"></i> End Date:
+                        </label>
+                        <input type="date" name="endDate" class="form-control" 
+                               value="@Model.EndDate.ToString("yyyy-MM-dd")" required />
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <div class="col-12">
+                        <div class="d-flex flex-wrap gap-3">
+                            <button type="submit" name="reportType" value="TrialBalance" 
+                                    class="btn btn-primary @(Model.ReportType == "TrialBalance" ? "active" : "")"
+                                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; min-width: 150px;">
+                                <i class="fas fa-balance-scale me-2"></i> Trial Balance
+                            </button>
+                            <button type="submit" name="reportType" value="IncomeStatement" 
+                                    class="btn btn-success @(Model.ReportType == "IncomeStatement" ? "active" : "")"
+                                    style="min-width: 150px;">
+                                <i class="fas fa-chart-line me-2"></i> Income Statement
+                            </button>
+                            <button type="submit" name="reportType" value="BalanceSheet" 
+                                    class="btn btn-info @(Model.ReportType == "BalanceSheet" ? "active" : "")"
+                                    style="min-width: 150px;">
+                                <i class="fas fa-file-invoice me-2"></i> Balance Sheet
+                            </button>
+                            <button type="submit" name="reportType" value="CashFlow" 
+                                    class="btn btn-warning @(Model.ReportType == "CashFlow" ? "active" : "")"
+                                    style="min-width: 150px;">
+                                <i class="fas fa-money-bill-wave me-2"></i> Cash Flow
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Export Button -->
+    @if (!string.IsNullOrEmpty(Model.ReportType) && Model.ReportType != "TrialBalance" || Model.TrialBalance.Any())
+    {
+        <div class="mb-3 text-end">
+            <a href="@Url.Action("Export", new { 
+                startDate = Model.StartDate.ToString("yyyy-MM-dd"), 
+                endDate = Model.EndDate.ToString("yyyy-MM-dd"), 
+                reportType = Model.ReportType,
+                format = "excel"
+            })" class="btn btn-success">
+                <i class="fas fa-file-excel me-2"></i> Export to Excel
+            </a>
+        </div>
+    }
+
+    <!-- Report Results -->
+    @if (Model.ReportType == "TrialBalance" && Model.TrialBalance.Any())
+    {
+        @await Html.PartialAsync("_TrialBalanceReport", Model)
+    }
+    else if (Model.ReportType == "IncomeStatement" && (Model.IncomeStatement.Revenue.Any() || Model.IncomeStatement.Expenses.Any()))
+    {
+        @await Html.PartialAsync("_IncomeStatementReport", Model)
+    }
+    else if (Model.ReportType == "BalanceSheet" && (Model.BalanceSheet.Assets.Any() || Model.BalanceSheet.Liabilities.Any() || Model.BalanceSheet.Equity.Any()))
+    {
+        @await Html.PartialAsync("_BalanceSheetReport", Model)
+    }
+    else if (Model.ReportType == "CashFlow" && (Model.CashFlow.OperatingActivities.Any() || Model.CashFlow.InvestingActivities.Any() || Model.CashFlow.FinancingActivities.Any()))
+    {
+        @await Html.PartialAsync("_CashFlowReport", Model)
+    }
+    else if (!string.IsNullOrEmpty(Model.ReportType))
+    {
+        <div class="card shadow-sm" style="border: none; border-radius: 10px; background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">No data found for the selected period</h5>
+                <p class="text-muted mb-0">Try adjusting your date range</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm" style="border: none; border-radius: 10px; background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-chart-bar fa-4x text-muted mb-3"></i>
+                <h5 class="text-muted">Select a report type and date range</h5>
+                <p class="text-muted mb-0">Choose from Trial Balance, Income Statement, Balance Sheet, or Cash Flow</p>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .btn.active {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    
+    .card {
+        transition: all 0.3s ease;
+    }
+    
+    .table th {
+        font-weight: 600;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .table td {
+        font-size: 13px;
+    }
+    
+    .badge {
+        font-weight: 500;
+        padding: 5px 10px;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Highlight active report button
+            $('.btn[type="submit"]').click(function() {
+                $('.btn[type="submit"]').removeClass('active');
+                $(this).addClass('active');
+            });
+        });
+    </script>
+}

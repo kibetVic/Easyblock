@@ -1,0 +1,1347 @@
+﻿@model SACCOBlockChainSystem.Models.ViewModels.JournalEntryViewModel
+
+@{
+    ViewData["Title"] = "Journal Posting";
+}
+<input type="hidden" id="VoucherNo" value="@Model.VoucherNo" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<div class="journal-container">
+    <!-- Header -->
+    <div class="header-section">
+        <h1><i class="fas fa-book"></i> Journal Posting</h1>
+    </div>
+
+    <div class="main-content">
+        <!-- Left Panel - Journal Details -->
+        <div class="left-panel">
+            <div class="journal-no-box">
+                <div class="label">Journal No</div>
+                <div class="value">@Model.VoucherNo</div>
+                <button class="print-btn"><i class="fas fa-print"></i> Print Jv</button>
+            </div>
+
+            <div class="gl-account-section">
+                <div class="gl-row">
+                    <div class="gl-account">GL A\C</div>
+                    <div class="gl-values">
+                        <select id="glAccountSelect" class="gl-account-select">
+                            <option value="">-- Select GL Account --</option>
+                            @if (ViewBag.Accounts != null)
+                            {
+                                foreach (var acc in ViewBag.Accounts)
+                                {
+                                    <option value="@acc.AccNo"
+                                            data-name="@acc.Glaccname"
+                                            data-normal="@acc.Normalbal"
+                                            data-balance="@acc.OpeningBal">
+                                        @acc.AccNo - @acc.Glaccname (@acc.Normalbal)
+                                    </option>
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+                <div class="dr-cr-row">
+                    <div class="dr-box">
+                        <span class="label">DR</span>
+                        <input type="number" id="drAmount" class="dr-input" value="0" step="0.01" min="0" placeholder="0.00" />
+                    </div>
+                    <div class="account-code" id="selectedAccountCode">coop001</div>
+                    <div class="cr-box">
+                        <span class="label">CR</span>
+                        <input type="number" id="crAmount" class="cr-input" value="0" step="0.01" min="0" placeholder="0.00" />
+                    </div>
+                </div>
+                <div class="account-balance-info" id="accountBalanceInfo" style="display: none;">
+                    <small>Opening Balance: <span id="openingBalance">0.00</span> | Normal: <span id="normalBalance">DR</span></small>
+                </div>
+            </div>
+
+            <div class="details-grid">
+                <div class="detail-item">
+                    <span class="label">Member No</span>
+                    <input type="text" class="detail-input" id="memberNo" value="@Model.MemberNo" placeholder="Member No" />
+                </div>
+                <div class="detail-item">
+                    <span class="label">ShareType</span>
+                    <select class="detail-select" id="shareType">
+                        <option value="CASH">CASH</option>
+                        <option value="SHARES">SHARES</option>
+                        <option value="LOAN">LOAN</option>
+                        <option value="INTEREST">INTEREST</option>
+                        <option value="FEE">FEE</option>
+                    </select>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Total DR</span>
+                    <span class="total-value" id="totalDR">0</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Loanno</span>
+                    <input type="text" class="detail-input" id="loanNo" value="@Model.LoanNo" placeholder="Loan No" />
+                </div>
+                <div class="detail-item">
+                    <span class="label">Total CR</span>
+                    <span class="total-value" id="totalCR">0</span>
+                </div>
+            </div>
+
+            <div class="narration-section">
+                <span class="label">Journal Narration</span>
+                <input type="text" class="narration-input" id="narration" value="@Model.Description" placeholder="Enter narration..." />
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-add" id="addEntryBtn"><i class="fas fa-plus"></i> ADD</button>
+                <button class="btn-unposted" id="viewUnpostedBtn"><i class="fas fa-clock"></i> UnPosted Journals</button>
+                <button class="btn-remove" id="removeUnpostedBtn"><i class="fas fa-trash"></i> REMOVE(unposted)</button>
+            </div>
+
+            <!-- Selected Entries Summary -->
+            <div class="selected-summary" id="selectedSummary" style="display: none; margin-top: 15px; padding: 10px; background-color: #e3f2fd; border-radius: 4px;">
+                <div class="summary-header">
+                    <strong><i class="fas fa-check-circle"></i> Selected Entries ( <span id="selectedCount">0</span> )</strong>
+                    <button class="btn-clear-selection" id="clearSelectionBtn"><i class="fas fa-times"></i> Clear</button>
+                </div>
+                <div class="summary-details">
+                    <div class="summary-row">
+                        <span>Total DR:</span>
+                        <span class="selected-dr" id="selectedDR">0.00</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Total CR:</span>
+                        <span class="selected-cr" id="selectedCR">0.00</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Difference:</span>
+                        <span class="selected-diff" id="selectedDiff">0.00</span>
+                    </div>
+                </div>
+                <button class="btn-combine" id="combineEntriesBtn"><i class="fas fa-link"></i> Combine Selected</button>
+            </div>
+        </div>
+
+        <!-- Right Panel - Transaction Table -->
+        <div class="right-panel">
+            <div class="table-controls">
+                <button class="btn-select-all" id="selectAllBtn"><i class="fas fa-check-double"></i> Select All</button>
+                <button class="btn-deselect-all" id="deselectAllBtn"><i class="fas fa-times"></i> Deselect All</button>
+                <span class="selection-info" id="selectionInfo">0 entries selected</span>
+            </div>
+            <div class="table-container">
+                <table class="journal-table" id="journalTable">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAllCheckbox" /></th>
+                            <th>vno</th>
+                            <th>translate</th>
+                            <th>narration</th>
+                            <th>AMOUNT_DR</th>
+                            <th>AMOUNT_CR</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="journalTableBody">
+                        @if (Model.Details != null && Model.Details.Any())
+                        {
+                            foreach (var detail in Model.Details)
+                            {
+                                <tr data-account="@detail.AccountNo"
+                                    data-normal="@detail.NormalBalance"
+                                    data-dr="@detail.Debit"
+                                    data-cr="@detail.Credit"
+                                    data-narration="@(detail.Narration ?? Model.Description)"
+                                    class="@(detail.Posted ? "posted-row" : "")">
+                                    <td style="text-align: center;">
+                                        @if (!detail.Posted)
+                                        {
+                                            <input type="checkbox" class="row-checkbox" />
+                                        }
+                                    </td>
+                                    <td>@Model.VoucherNo</td>
+                                    <td>@Model.VoucherDate.ToString("dd/MM/yyyy HH:mm:ss")</td>
+                                    <td>@(detail.Narration ?? Model.Description ?? "matching")</td>
+                                    <td class="dr-amount">@detail.Debit.ToString("F4")</td>
+                                    <td class="cr-amount">@detail.Credit.ToString("F4")</td>
+                                    <td>
+                                        @if (!detail.Posted)
+                                        {
+                                            <button class="btn-delete-row" onclick="deleteRow(this)"><i class="fas fa-trash"></i></button>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">Posted</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr class="no-data-row">
+                                <td colspan="7" style="text-align: center; padding: 20px;">
+                                    No journal entries added. Use ADD button to create entries.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Bottom Action Buttons -->
+            <div class="bottom-actions">
+                <button class="btn-process" id="processSelectedBtn" disabled><i class="fas fa-cog"></i> Process Selected</button>
+                <button class="btn-post" id="postSelectedBtn" disabled><i class="fas fa-check-circle"></i> Post Selected</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        background-color: #f5f5f5;
+    }
+
+    .journal-container {
+        max-width: 1400px;
+        margin: 20px auto;
+        padding: 20px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    /* Header */
+    .header-section {
+        margin-bottom: 30px;
+    }
+
+        .header-section h1 {
+            color: #ff6b00;
+            font-size: 28px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+            .header-section h1 i {
+                color: #ff6b00;
+            }
+
+    /* Main Content Layout */
+    .main-content {
+        display: grid;
+        grid-template-columns: 450px 1fr;
+        gap: 30px;
+    }
+
+    /* Left Panel Styles */
+    .left-panel {
+        background-color: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        padding: 20px;
+    }
+
+    .journal-no-box {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+        .journal-no-box .label {
+            color: #6c757d;
+            font-size: 14px;
+        }
+
+        .journal-no-box .value {
+            font-size: 18px;
+            font-weight: 600;
+            color: #000;
+        }
+
+    .print-btn {
+        background: none;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        padding: 5px 10px;
+        font-size: 12px;
+        color: #6c757d;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+        .print-btn:hover {
+            background-color: #e9ecef;
+        }
+
+    .gl-account-section {
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        margin-bottom: 20px;
+    }
+
+    .gl-row {
+        display: flex;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    .gl-account {
+        width: 100px;
+        padding: 12px;
+        background-color: #f8f9fa;
+        font-weight: 600;
+        border-right: 1px solid #dee2e6;
+    }
+
+    .gl-values {
+        flex: 1;
+        padding: 8px 12px;
+    }
+
+    .gl-account-select {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+        .gl-account-select:focus {
+            outline: none;
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+        }
+
+    .dr-cr-row {
+        display: flex;
+        align-items: center;
+        padding: 12px;
+    }
+
+    .dr-box, .cr-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex: 1;
+    }
+
+        .dr-box .label, .cr-box .label {
+            font-weight: 600;
+            min-width: 30px;
+        }
+
+    .dr-input, .cr-input {
+        width: 100px;
+        padding: 6px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        text-align: right;
+    }
+
+        .dr-input:focus, .cr-input:focus {
+            outline: none;
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,0.25);
+        }
+
+    .account-code {
+        margin: 0 20px;
+        padding: 0 15px;
+        border-left: 1px solid #dee2e6;
+        border-right: 1px solid #dee2e6;
+        color: #6c757d;
+        font-size: 13px;
+        min-width: 100px;
+        text-align: center;
+    }
+
+    .account-balance-info {
+        padding: 8px 12px;
+        background-color: #e9ecef;
+        border-top: 1px solid #dee2e6;
+        font-size: 12px;
+        color: #495057;
+    }
+
+    .details-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+
+    .detail-item {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+        .detail-item .label {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+    .detail-input, .detail-select {
+        padding: 8px;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .detail-select {
+        background-color: white;
+    }
+
+    .total-value {
+        font-size: 16px;
+        font-weight: 600;
+        color: #17a2b8;
+        padding: 8px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+        text-align: right;
+    }
+
+    .narration-section {
+        margin-bottom: 20px;
+    }
+
+        .narration-section .label {
+            display: block;
+            font-size: 12px;
+            color: #6c757d;
+            margin-bottom: 5px;
+        }
+
+    .narration-input {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        font-size: 14px;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .btn-add, .btn-unposted, .btn-remove {
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.3s;
+    }
+
+    .btn-add {
+        background-color: #28a745;
+        color: white;
+    }
+
+        .btn-add:hover {
+            background-color: #218838;
+        }
+
+    .btn-unposted {
+        background-color: #ffc107;
+        color: #000;
+    }
+
+        .btn-unposted:hover {
+            background-color: #e0a800;
+        }
+
+    .btn-remove {
+        background-color: #dc3545;
+        color: white;
+    }
+
+        .btn-remove:hover {
+            background-color: #c82333;
+        }
+
+    /* Selected Summary Styles */
+    .selected-summary {
+        border: 1px solid #90caf9;
+        background-color: #e3f2fd;
+    }
+
+    .summary-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #90caf9;
+    }
+
+    .btn-clear-selection {
+        background: none;
+        border: none;
+        color: #1976d2;
+        cursor: pointer;
+        font-size: 12px;
+    }
+
+        .btn-clear-selection:hover {
+            text-decoration: underline;
+        }
+
+    .summary-details {
+        margin-bottom: 10px;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 3px 0;
+        font-size: 13px;
+    }
+
+    .selected-dr {
+        color: #28a745;
+        font-weight: 600;
+    }
+
+    .selected-cr {
+        color: #dc3545;
+        font-weight: 600;
+    }
+
+    .selected-diff {
+        font-weight: 600;
+    }
+
+    .btn-combine {
+        width: 100%;
+        padding: 8px;
+        background-color: #1976d2;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+    }
+
+        .btn-combine:hover {
+            background-color: #1565c0;
+        }
+
+        .btn-combine:disabled {
+            background-color: #b0bec5;
+            cursor: not-allowed;
+        }
+
+    .grouped-row {
+        background-color: #fff3cd !important;
+        border-left: 3px solid #ffc107;
+    }
+
+    .combined-row {
+        background-color: #d1ecf1 !important;
+        border-left: 3px solid #17a2b8;
+    }
+
+    .btn-expand-row {
+        background: none;
+        border: none;
+        color: #17a2b8;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+
+        .btn-expand-row:hover {
+            background-color: #17a2b8;
+            color: white;
+        }
+
+    .badge.bg-info {
+        background-color: #17a2b8;
+        color: white;
+        padding: 3px 6px;
+        border-radius: 3px;
+        font-size: 10px;
+    }
+    /* Right Panel Styles */
+    .right-panel {
+        background-color: #fff;
+    }
+
+    .table-controls {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        margin-bottom: 10px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 4px;
+    }
+
+    .btn-select-all, .btn-deselect-all {
+        padding: 5px 10px;
+        border: 1px solid #ced4da;
+        border-radius: 4px;
+        background-color: white;
+        cursor: pointer;
+        font-size: 12px;
+    }
+
+        .btn-select-all:hover, .btn-deselect-all:hover {
+            background-color: #e9ecef;
+        }
+
+    .selection-info {
+        font-size: 13px;
+        color: #6c757d;
+        margin-left: auto;
+    }
+
+    .table-container {
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        overflow: hidden;
+        margin-bottom: 20px;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+
+    .journal-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+        .journal-table th {
+            background-color: #343a40;
+            color: white;
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: left;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .journal-table td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 13px;
+        }
+
+        .journal-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .journal-table tbody tr.selected {
+            background-color: #e3f2fd;
+        }
+
+    .posted-row {
+        background-color: #e8f5e8;
+        opacity: 0.8;
+    }
+
+    .dr-amount {
+        color: #28a745;
+        font-weight: 600;
+    }
+
+    .cr-amount {
+        color: #dc3545;
+        font-weight: 600;
+    }
+
+    .btn-delete-row {
+        background: none;
+        border: none;
+        color: #dc3545;
+        cursor: pointer;
+        font-size: 14px;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+
+        .btn-delete-row:hover {
+            background-color: #dc3545;
+            color: white;
+        }
+
+    .row-checkbox {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+
+    .bottom-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .btn-process, .btn-post {
+        padding: 12px 30px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s;
+    }
+
+    .btn-process {
+        background-color: #6c757d;
+        color: white;
+    }
+
+        .btn-process:hover:not(:disabled) {
+            background-color: #5a6268;
+        }
+
+    .btn-post {
+        background-color: #007bff;
+        color: white;
+    }
+
+        .btn-post:hover:not(:disabled) {
+            background-color: #0069d9;
+        }
+
+        .btn-process:disabled, .btn-post:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+    }
+
+    .bg-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .combined-row {
+        background-color: #fff3cd !important;
+        border-left: 4px solid #ffc107 !important;
+    }
+
+        .combined-row td:first-child {
+            border-left: 4px solid #ffc107;
+        }
+
+    .badge.bg-info {
+        background-color: #17a2b8;
+        color: white;
+        padding: 3px 6px;
+        border-radius: 3px;
+        font-size: 10px;
+        margin-right: 5px;
+    }
+    /* Responsive Design */
+    @@media (max-width: 1024px) {
+        .main-content {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // GL Account selection change
+        $('#glAccountSelect').change(function() {
+            var selected = $(this).find('option:selected');
+            var accountNo = selected.val();
+            var accountName = selected.data('name');
+            var normalBalance = selected.data('normal');
+            var openingBalance = selected.data('balance') || 0;
+
+            if (accountNo) {
+                $('#selectedAccountCode').text(accountNo);
+                $('#openingBalance').text(parseFloat(openingBalance).toFixed(2));
+                $('#normalBalance').text(normalBalance);
+                $('#accountBalanceInfo').show();
+
+                // Clear DR/CR inputs
+                $('#drAmount').val('0');
+                $('#crAmount').val('0');
+            } else {
+                $('#selectedAccountCode').text('coop001');
+                $('#accountBalanceInfo').hide();
+            }
+        });
+
+        // DR/CR mutual exclusivity
+        $('#drAmount').on('input', function() {
+            var dr = parseFloat($(this).val()) || 0;
+            if (dr > 0) {
+                $('#crAmount').val('0').prop('readonly', true);
+            } else {
+                $('#crAmount').prop('readonly', false);
+            }
+        });
+
+        $('#crAmount').on('input', function() {
+            var cr = parseFloat($(this).val()) || 0;
+            if (cr > 0) {
+                $('#drAmount').val('0').prop('readonly', true);
+            } else {
+                $('#drAmount').prop('readonly', false);
+            }
+        });
+
+        // ============================================
+        // ADD BUTTON FUNCTIONALITY
+        // ============================================
+        $('#addEntryBtn').click(function() {
+            var accountNo = $('#glAccountSelect').val();
+            var accountName = $('#glAccountSelect').find('option:selected').data('name');
+            var normalBalance = $('#glAccountSelect').find('option:selected').data('normal');
+            var dr = parseFloat($('#drAmount').val()) || 0;
+            var cr = parseFloat($('#crAmount').val()) || 0;
+            var narration = $('#narration').val() || 'matching';
+            var memberNo = $('#memberNo').val();
+            var shareType = $('#shareType').val();
+            var loanNo = $('#loanNo').val();
+
+            // Validation
+            if (!accountNo) {
+                alert('Please select a GL Account.');
+                return;
+            }
+
+            if (dr === 0 && cr === 0) {
+                alert('Please enter either DR or CR amount.');
+                return;
+            }
+
+            // Check if we have the no-data row and remove it
+            if ($('#journalTableBody tr.no-data-row').length > 0) {
+                $('#journalTableBody').empty();
+            }
+
+            // Get current date and time
+            var now = new Date();
+            var formattedDate = now.getFullYear() + '-' +
+                                String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                                String(now.getDate()).padStart(2, '0') + ' ' +
+                                String(now.getHours()).padStart(2, '0') + ':' +
+                                String(now.getMinutes()).padStart(2, '0') + ':' +
+                                String(now.getSeconds()).padStart(2, '0');
+
+            // Add new row
+            var newRow = `<tr data-account="${accountNo}"
+                             data-normal="${normalBalance}"
+                             data-dr="${dr}"
+                             data-cr="${cr}"
+                             data-narration="${narration}">
+                <td style="text-align: center;">
+                    <input type="checkbox" class="row-checkbox" />
+                </td>
+                <td>@Model.VoucherNo</td>
+                <td>${formattedDate}</td>
+                <td>${narration}</td>
+                <td class="dr-amount">${dr.toFixed(4)}</td>
+                <td class="cr-amount">${cr.toFixed(4)}</td>
+                <td>
+                    <button class="btn-delete-row" onclick="deleteRow(this)"><i class="fas fa-trash"></i></button>
+                </td>
+            </tr>`;
+
+            $('#journalTableBody').append(newRow);
+
+            // Clear inputs
+            $('#glAccountSelect').val('');
+            $('#selectedAccountCode').text('coop001');
+            $('#drAmount').val('0').prop('readonly', false);
+            $('#crAmount').val('0').prop('readonly', false);
+            $('#accountBalanceInfo').hide();
+
+            // Update totals
+            calculateTotals();
+            updateSelectionSummary();
+
+            // Show success message
+            showTemporaryMessage('Entry added successfully!', 'success');
+        });
+
+        // ============================================
+        // UNPOSTED JOURNALS BUTTON
+        // ============================================
+        $('#viewUnpostedBtn').click(function() {
+            window.location.href = '/Journal/List?status=Draft';
+        });
+
+        // ============================================
+        // REMOVE UNPOSTED BUTTON
+        // ============================================
+        $('#removeUnpostedBtn').click(function() {
+            var unpostedRows = $('#journalTableBody tr').filter(function() {
+                return !$(this).hasClass('posted-row') && !$(this).hasClass('no-data-row');
+            });
+
+            if (unpostedRows.length === 0) {
+                alert('No unposted entries to remove.');
+                return;
+            }
+
+            if (confirm('Are you sure you want to remove all unposted entries?')) {
+                unpostedRows.remove();
+
+                if ($('#journalTableBody tr').length === 0) {
+                    $('#journalTableBody').append(`
+                        <tr class="no-data-row">
+                            <td colspan="7" style="text-align: center; padding: 20px;">
+                                No journal entries added. Use ADD button to create entries.
+                            </td>
+                        </tr>
+                    `);
+                }
+
+                updateSelectionSummary();
+                calculateTotals();
+                showTemporaryMessage('Unposted entries removed successfully!', 'warning');
+            }
+        });
+
+        // ============================================
+        // SELECT ALL CHECKBOX
+        // ============================================
+        $('#selectAllCheckbox').change(function() {
+            var isChecked = $(this).prop('checked');
+            $('.row-checkbox:not(:disabled)').prop('checked', isChecked);
+            updateSelectionSummary();
+        });
+
+        $('#selectAllBtn').click(function() {
+            $('.row-checkbox:not(:disabled)').prop('checked', true);
+            $('#selectAllCheckbox').prop('checked', true);
+            updateSelectionSummary();
+        });
+
+        $('#deselectAllBtn').click(function() {
+            $('.row-checkbox').prop('checked', false);
+            $('#selectAllCheckbox').prop('checked', false);
+            updateSelectionSummary();
+        });
+
+        $(document).on('change', '.row-checkbox', function() {
+            var totalCheckboxes = $('.row-checkbox:not(:disabled)').length;
+            var checkedCheckboxes = $('.row-checkbox:checked').length;
+
+            $('#selectAllCheckbox').prop('checked', totalCheckboxes > 0 && totalCheckboxes === checkedCheckboxes);
+            $('#selectionInfo').text(checkedCheckboxes + ' entries selected');
+            updateSelectionSummary();
+        });
+
+        $('#clearSelectionBtn').click(function() {
+            $('.row-checkbox').prop('checked', false);
+            $('#selectAllCheckbox').prop('checked', false);
+            updateSelectionSummary();
+        });
+
+        // Hide the Combine button since we're not using it
+        $('#combineEntriesBtn').hide();
+
+        // ============================================
+        // CALCULATE TOTALS FUNCTION
+        // ============================================
+          // ============================================
+    // CALCULATE TOTALS FUNCTION
+    // ============================================
+    function calculateTotals() {
+        var totalDR = 0;
+        var totalCR = 0;
+
+        $('#journalTableBody tr').each(function() {
+            if (!$(this).hasClass('no-data-row')) {
+                // Get amounts from the data attributes for accuracy
+                var dr = parseFloat($(this).data('dr')) || 0;
+                var cr = parseFloat($(this).data('cr')) || 0;
+
+                totalDR += dr;
+                totalCR += cr;
+            }
+        });
+
+        $('#totalDR').text(totalDR.toFixed(0));
+        $('#totalCR').text(totalCR.toFixed(0));
+
+        console.log('Totals calculated - DR:', totalDR, 'CR:', totalCR);
+    }
+
+        // ============================================
+        // UPDATE SELECTION SUMMARY FUNCTION
+        // ============================================
+        function updateSelectionSummary() {
+            var selectedRows = $('.row-checkbox:checked').closest('tr');
+            var selectedCount = selectedRows.length;
+            var selectedDR = 0;
+            var selectedCR = 0;
+
+            selectedRows.each(function() {
+                selectedDR += parseFloat($(this).data('dr')) || 0;
+                selectedCR += parseFloat($(this).data('cr')) || 0;
+            });
+
+            $('#selectedCount').text(selectedCount);
+            $('#selectedDR').text(selectedDR.toFixed(2));
+            $('#selectedCR').text(selectedCR.toFixed(2));
+            $('#selectionInfo').text(selectedCount + ' entries selected');
+
+            var diff = selectedDR - selectedCR;
+            $('#selectedDiff').text(diff.toFixed(2));
+
+            if (Math.abs(diff) < 0.01) {
+                $('#selectedDiff').css('color', '#28a745');
+            } else {
+                $('#selectedDiff').css('color', '#dc3545');
+            }
+
+            if (selectedCount > 0) {
+                $('#selectedSummary').show();
+            } else {
+                $('#selectedSummary').hide();
+            }
+
+            $('#processSelectedBtn, #postSelectedBtn').prop('disabled', selectedCount === 0);
+        }
+
+        // ============================================
+        // DELETE ROW FUNCTION
+        // ============================================
+        window.deleteRow = function(btn) {
+            if (confirm('Are you sure you want to delete this entry?')) {
+                $(btn).closest('tr').remove();
+
+                if ($('#journalTableBody tr').length === 0) {
+                    $('#journalTableBody').append(`
+                        <tr class="no-data-row">
+                            <td colspan="7" style="text-align: center; padding: 20px;">
+                                No journal entries added. Use ADD button to create entries.
+                            </td>
+                        </tr>
+                    `);
+                }
+
+                updateSelectionSummary();
+                calculateTotals();
+                showTemporaryMessage('Entry deleted successfully!', 'danger');
+            }
+        };
+
+        // ============================================
+        // SHOW TEMPORARY MESSAGE FUNCTION
+        // ============================================
+        function showTemporaryMessage(message, type) {
+            $('.temp-message').remove();
+
+            var messageClass = 'alert-info';
+            if (type === 'success') messageClass = 'alert-success';
+            if (type === 'warning') messageClass = 'alert-warning';
+            if (type === 'danger') messageClass = 'alert-danger';
+
+            var messageHtml = `<div class="alert ${messageClass} temp-message" style="position: fixed; top: 20px; right: 20px; z-index: 9999; max-width: 300px;">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : (type === 'warning' ? 'exclamation-triangle' : 'info-circle')}"></i>
+                ${message}
+            </div>`;
+
+            $('body').append(messageHtml);
+
+            setTimeout(function() {
+                $('.temp-message').fadeOut('slow', function() {
+                    $(this).remove();
+                });
+            }, 3000);
+        }
+
+        // ============================================
+        // PROCESS SELECTED BUTTON - UPDATED TO HANDLE SINGLE ENTRIES
+        // ============================================
+           // ============================================
+    // PROCESS SELECTED BUTTON - SAVE AND ADD TO TABLE
+      // ============================================
+    // PROCESS SELECTED BUTTON - COMBINE ENTRIES INTO ONE
+    // ============================================
+       $('#processSelectedBtn').click(function() {
+        console.log('========== PROCESS BUTTON CLICKED ==========');
+
+        // ============================================
+        // DEBUG: Log all rows in the table
+        // ============================================
+        console.log('ALL ROWS IN TABLE:');
+        $('#journalTableBody tr').each(function(index) {
+            if (!$(this).hasClass('no-data-row')) {
+                var accountNo = $(this).data('account');
+                var dr = $(this).data('dr');
+                var cr = $(this).data('cr');
+                var narration = $(this).data('narration');
+                var isChecked = $(this).find('.row-checkbox').is(':checked');
+                console.log(`Row ${index}: Account=${accountNo}, DR=${dr}, CR=${cr}, Checked=${isChecked}, Narration=${narration}`);
+            }
+        });
+
+        // ============================================
+        // Get selected rows
+        // ============================================
+        var selectedRows = $('.row-checkbox:checked').closest('tr');
+        console.log('SELECTED ROWS COUNT:', selectedRows.length);
+
+        if (selectedRows.length < 2) {
+            alert('Please select at least 2 entries to combine.');
+            return;
+        }
+
+        var totalDR = 0;
+        var totalCR = 0;
+        var entries = [];
+        var narrations = [];
+        var accountSummary = [];
+
+        // ============================================
+        // Process each selected row
+        // ============================================
+        selectedRows.each(function(index) {
+            var dr = parseFloat($(this).data('dr')) || 0;
+            var cr = parseFloat($(this).data('cr')) || 0;
+            var accountNo = $(this).data('account');
+            var narration = $(this).data('narration');
+
+            console.log(`Selected Row ${index}: Account=${accountNo}, DR=${dr}, CR=${cr}, Narration=${narration}`);
+
+            totalDR += dr;
+            totalCR += cr;
+            narrations.push(narration);
+            accountSummary.push(accountNo + (dr > 0 ? ' (DR)' : ' (CR)'));
+
+            entries.push({
+                accountNo: accountNo,
+                narration: narration,
+                debit: dr,
+                credit: cr,
+                memberNo: $('#memberNo').val(),
+                shareType: $('#shareType').val(),
+                loanNo: $('#loanNo').val()
+            });
+        });
+
+        // ============================================
+        // Log totals
+        // ============================================
+        console.log('TOTALS - DR:', totalDR, 'CR:', totalCR, 'Diff:', totalDR - totalCR);
+        console.log('ENTRIES COUNT:', entries.length);
+        console.log('ENTRIES DETAILS:', entries);
+
+        if (Math.abs(totalDR - totalCR) > 0.01) {
+            alert('Selected entries are not balanced! DR: ' + totalDR.toFixed(2) + ', CR: ' + totalCR.toFixed(2));
+            return;
+        }
+
+        // Confirm with user
+        if (!confirm(`Combine ${selectedRows.length} entries into one?\nTotal Amount: ${totalDR.toFixed(2)}`)) {
+            return;
+        }
+
+        // Show processing indicator
+        var originalText = $(this).html();
+        $(this).html('<i class="fas fa-spinner fa-spin"></i> Processing...').prop('disabled', true);
+
+        // Prepare data - send ALL entries to server
+        var formData = {
+            voucherNo: $('#VoucherNo').val(),
+            voucherDate: new Date().toISOString().split('T')[0],
+            description: $('#narration').val() || 'Combined journal entry',
+            memberNo: $('#memberNo').val() || 'SYSTEM',
+            loanNo: $('#loanNo').val() || '0',
+            companyCode: '@Model.CompanyCode' || '001',
+            originalEntries: entries
+        };
+
+        console.log('SENDING TO SERVER:', JSON.stringify(formData, null, 2));
+
+        $.ajax({
+            url: '/Journal/ProcessAndCombine',
+            type: 'POST',
+            data: JSON.stringify(formData),
+            contentType: 'application/json',
+            headers: {
+                'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+            },
+            success: function(response) {
+                console.log('SERVER RESPONSE:', response);
+                if (response.success) {
+                    // Remove the original selected rows
+                    selectedRows.remove();
+
+                    // Get current date and time
+                    var now = new Date();
+                    var formattedDate = now.getFullYear() + '-' +
+                        String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(now.getDate()).padStart(2, '0') + ' ' +
+                        String(now.getHours()).padStart(2, '0') + ':' +
+                        String(now.getMinutes()).padStart(2, '0') + ':' +
+                        String(now.getSeconds()).padStart(2, '0');
+
+                    // Create ONE combined row
+                    var combinedRow = `<tr data-account="COMBINED"
+                                         data-dr="${totalDR}"
+                                         data-cr="${totalCR}"
+                                         data-narration="Combined: ${narrations.join(' + ')}"
+                                         data-combined="true"
+                                         class="combined-row">
+                        <td style="text-align: center;">
+                            <input type="checkbox" class="row-checkbox" />
+                        </td>
+                        <td>${$('#VoucherNo').val()}</td>
+                        <td>${formattedDate}</td>
+                        <td>${narrations.join(' + ')}</td>
+                        <td class="dr-amount">${totalDR.toFixed(4)}</td>
+                        <td class="cr-amount">${totalCR.toFixed(4)}</td>
+                        <td>
+                            <span class="badge bg-info">Combined</span>
+                            <button class="btn-delete-row" onclick="deleteRow(this)"><i class="fas fa-trash"></i></button>
+                        </td>
+                    </tr>`;
+
+                    // Remove no-data row if present
+                    if ($('#journalTableBody tr.no-data-row').length > 0) {
+                        $('#journalTableBody').empty();
+                    }
+
+                    // Add the combined row at the TOP
+                    $('#journalTableBody').prepend(combinedRow);
+
+                    // Clear selection
+                    $('.row-checkbox').prop('checked', false);
+                    $('#selectAllCheckbox').prop('checked', false);
+
+                    // Update totals and summary
+                    calculateTotals();
+                    updateSelectionSummary();
+
+                    showTemporaryMessage('✅ Entries combined into one successfully!', 'success');
+                } else {
+                    alert('❌ Error: ' + response.message);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('AJAX ERROR:', {
+                    status: xhr.status,
+                    statusText: xhr.statusText,
+                    responseText: xhr.responseText,
+                    error: error
+                });
+                alert('❌ Server error: ' + (xhr.responseText || xhr.statusText));
+            },
+            complete: function() {
+                $('#processSelectedBtn').html(originalText).prop('disabled', false);
+            }
+        });
+    });
+        // ============================================
+        // POST SELECTED BUTTON
+        // ============================================
+        $('#postSelectedBtn').on('click', function () {
+            let voucherNo = $('#VoucherNo').val();
+
+            if (!voucherNo) {
+                voucherNo = $('input.row-checkbox:checked').closest('tr').find('.vno').text().trim();
+            }
+
+            if (!voucherNo) {
+                alert('Voucher number is missing.');
+                return;
+            }
+
+            if (!confirm(`Post journal ${voucherNo}?`)) return;
+
+            const $btn = $(this);
+            const originalText = $btn.text();
+            $btn.text('Posting...').prop('disabled', true);
+
+            $.ajax({
+                url: `/Journal/Post/${voucherNo}`,
+                type: 'POST',
+                success: function (res) {
+                    console.log('Server response:', res);
+                    if (res.success) {
+                        alert(`✅ Journal posted successfully!\nTransaction No: ${res.transactionNo || 'N/A'}`);
+                        window.location.href = `/Journal?voucherNo=${voucherNo}#posted`;
+                    } else {
+                        alert(`❌ Failed: ${res.message || 'Unknown error'}`);
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error('AJAX Error:', {
+                        status: xhr.status,
+                        statusText: xhr.statusText,
+                        responseText: xhr.responseText,
+                        error: error
+                    });
+
+                    let errorMessage = `Server error (${xhr.status})`;
+
+                    try {
+                        const response = JSON.parse(xhr.responseText);
+                        if (response.message) {
+                            errorMessage = response.message;
+                        }
+                    } catch (e) {
+                        if (xhr.responseText) {
+                            errorMessage = xhr.responseText;
+                        }
+                    }
+
+                    alert(`❌ ${errorMessage}`);
+                },
+                complete: function() {
+                    $btn.text(originalText).prop('disabled', false);
+                }
+            });
+        });
+
+        // Calculate on page load
+        calculateTotals();
+        updateSelectionSummary();
+    });
+</script>

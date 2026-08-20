@@ -1,0 +1,1139 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.BulkSmsRequestDTO
+@{
+    ViewData["Title"] = "Bulk SMS";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var templates = ViewBag.Templates as List<SACCOBlockChainSystem.Models.SmsTemplate> ?? new List<SACCOBlockChainSystem.Models.SmsTemplate>();
+    var groups = ViewBag.MemberGroups as List<string> ?? new List<string>();
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center">
+                <a asp-action="Index" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Back to Messages
+                </a>
+                <h2 class="page-title mb-0">
+                    <i class="bi bi-envelope-plus me-2"></i>Bulk SMS
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-12">
+            <!-- Step Navigation -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="step-item" id="step1Indicator">
+                            <div class="step-circle bg-primary text-white">1</div>
+                            <span class="step-label">Select Recipients</span>
+                        </div>
+                        <div class="flex-grow-1 mx-3">
+                            <div class="progress" style="height: 4px;">
+                                <div class="progress-bar" id="progressBar" role="progressbar" style="width: 33%;"></div>
+                            </div>
+                        </div>
+                        <div class="step-item" id="step2Indicator">
+                            <div class="step-circle bg-secondary text-white">2</div>
+                            <span class="step-label">Compose Message</span>
+                        </div>
+                        <div class="flex-grow-1 mx-3">
+                            <div class="progress" style="height: 4px;">
+                                <div class="progress-bar" id="progressBar2" role="progressbar" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <div class="step-item" id="step3Indicator">
+                            <div class="step-circle bg-secondary text-white">3</div>
+                            <span class="step-label">Review & Send</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <form asp-action="BulkSend" method="post" id="bulkSmsForm"></form>
+                @Html.AntiForgeryToken()
+
+                <!-- Step 1: Select Recipients -->
+                <div id="step1" class="card shadow-sm mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-people me-2"></i>Step 1: Select Recipients
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="nav nav-tabs" id="recipientTab" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab">
+                                    <i class="bi bi-file-upload"></i> Upload File
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual" type="button" role="tab">
+                                    <i class="bi bi-pencil-square"></i> Manual Entry
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="filter-tab" data-bs-toggle="tab" data-bs-target="#filter" type="button" role="tab">
+                                    <i class="bi bi-funnel"></i> Filter Members
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="group-tab" data-bs-toggle="tab" data-bs-target="#group" type="button" role="tab">
+                                    <i class="bi bi-tag"></i> Member Groups
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content mt-3">
+                            <!-- Upload File Tab -->
+                            <div class="tab-pane fade show active" id="upload" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="alert alert-info">
+                                            <i class="bi bi-info-circle me-2"></i>
+                                            <strong>Supported Format:</strong> CSV or Excel file with columns: PhoneNumber, RecipientName (optional)
+                                            <br />
+                                            <a href="#" onclick="downloadSample()" class="alert-link">Download Sample File</a>
+                                        </div>
+                                        <div class="upload-area border rounded p-5 text-center" id="uploadArea">
+                                            <i class="bi bi-cloud-upload fs-1 text-muted"></i>
+                                            <h5 class="mt-3">Drag and drop file here or click to browse</h5>
+                                            <p class="text-muted">Supported formats: .csv, .xlsx, .xls</p>
+                                            <input type="file" id="fileUpload" class="d-none" accept=".csv,.xlsx,.xls" />
+                                            <button type="button" class="btn btn-outline-primary mt-3" onclick="$('#fileUpload').click()">
+                                                <i class="bi bi-folder2-open"></i> Browse Files
+                                            </button>
+                                        </div>
+                                        <div id="uploadPreview" class="mt-3" style="display: none;">
+                                            <div class="card">
+                                                <div class="card-header bg-success text-white">
+                                                    <i class="bi bi-check-circle me-2"></i>File Uploaded Successfully
+                                                </div>
+                                                <div class="card-body">
+                                                    <div class="row">
+                                                        <div class="col-md-6">
+                                                            <strong>File Name:</strong> <span id="fileName"></span><br />
+                                                            <strong>Total Records:</strong> <span id="recordCount">0</span>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <strong>Valid Numbers:</strong> <span id="validCount">0</span><br />
+                                                            <strong>Invalid Numbers:</strong> <span id="invalidCount">0</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="mt-3">
+                                                        <button type="button" class="btn btn-sm btn-danger" onclick="clearUpload()">
+                                                            <i class="bi bi-trash"></i> Remove File
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Manual Entry Tab -->
+                            <div class="tab-pane fade" id="manual" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="alert alert-info">
+                                            <i class="bi bi-info-circle me-2"></i>
+                                            Enter one recipient per line. Format: PhoneNumber, RecipientName (optional)
+                                        </div>
+                                        <textarea id="manualRecipients" class="form-control" rows="10" 
+                                                  placeholder="0712345678, John Doe
+0712345679, Jane Smith
+0712345680
+0723456789, Peter Omondi"></textarea>
+                                        <div class="mt-2">
+                                            <button type="button" class="btn btn-sm btn-primary" onclick="parseManualRecipients()">
+                                                <i class="bi bi-check-circle"></i> Parse & Validate
+                                            </button>
+                                            <span class="ms-2 text-muted" id="manualStats"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Filter Members Tab -->
+                            <div class="tab-pane fade" id="filter" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Membership Type</label>
+                                            <select id="filterMembershipType" class="form-select">
+                                                <option value="">All</option>
+                                                <option value="Individual">Individual</option>
+                                                <option value="Corporate">Corporate</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Status</label>
+                                            <select id="filterStatus" class="form-select">
+                                                <option value="">All</option>
+                                                <option value="Active">Active</option>
+                                                <option value="Inactive">Inactive</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Department</label>
+                                            <input type="text" id="filterDepartment" class="form-control" placeholder="Enter department" />
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <label class="form-label">Station</label>
+                                            <input type="text" id="filterStation" class="form-control" placeholder="Enter station" />
+                                        </div>
+                                    </div>
+                                    <div class="col-md-12">
+                                        <button type="button" class="btn btn-primary" onclick="filterMembers()">
+                                            <i class="bi bi-search"></i> Search Members
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="clearFilters()">
+                                            <i class="bi bi-eraser"></i> Clear
+                                        </button>
+                                        <span id="filterResultsCount" class="ms-2 text-muted"></span>
+                                    </div>
+                                </div>
+                                <div id="filterResults" class="mt-3" style="display: none;">
+                                    <div class="card">
+                                        <div class="card-header bg-success text-white">
+                                            <i class="bi bi-check-circle me-2"></i>Members Found
+                                        </div>
+                                        <div class="card-body">
+                                            <div class="table-responsive">
+                                                <table class="table table-sm" id="filterResultsTable">
+                                                    <thead>
+                                                        <tr>
+                                                            <th><input type="checkbox" id="selectAllFiltered" onchange="toggleSelectAllFiltered()" /></th>
+                                                            <th>Member No</th>
+                                                            <th>Name</th>
+                                                            <th>Phone</th>
+                                                        </thead>
+                                                        <tbody id="filterResultsBody"></tbody>
+                                                    </table>
+                                                </div>
+                                                <div class="mt-2">
+                                                    <button type="button" class="btn btn-sm btn-primary" onclick="addSelectedFiltered()">
+                                                        <i class="bi bi-plus-circle"></i> Add Selected to List
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Member Groups Tab -->
+                            <div class="tab-pane fade" id="group" role="tabpanel">
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <div class="alert alert-info">
+                                            <i class="bi bi-info-circle me-2"></i>
+                                            Select predefined member groups to send SMS
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <div class="card mb-3">
+                                                    <div class="card-body">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" id="groupAllActive" value="All Active Members">
+                                                            <label class="form-check-label fw-bold" for="groupAllActive">
+                                                                All Active Members
+                                                            </label>
+                                                            <br />
+                                                            <small class="text-muted">Send to all active members</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="card mb-3">
+                                                    <div class="card-body">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" id="groupNewMembers" value="New Members">
+                                                            <label class="form-check-label fw-bold" for="groupNewMembers">
+                                                                New Members (Last 30 days)
+                                                            </label>
+                                                            <br />
+                                                            <small class="text-muted">Members who joined in the last 30 days</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="card mb-3">
+                                                    <div class="card-body">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" id="groupLoanHolders" value="Loan Holders">
+                                                            <label class="form-check-label fw-bold" for="groupLoanHolders">
+                                                                Active Loan Holders
+                                                            </label>
+                                                            <br />
+                                                            <small class="text-muted">Members with active loans</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="card mb-3">
+                                                    <div class="card-body">
+                                                        <div class="form-check">
+                                                            <input class="form-check-input" type="checkbox" id="groupNoLoans" value="No Loans">
+                                                            <label class="form-check-label fw-bold" for="groupNoLoans">
+                                                                Members with No Loans
+                                                            </label>
+                                                            <br />
+                                                            <small class="text-muted">Members without any loans</small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="mt-3">
+                                            <button type="button" class="btn btn-primary" onclick="loadGroupMembers()">
+                                                <i class="bi bi-search"></i> Load Selected Groups
+                                            </button>
+                                            <span id="groupResultsCount" class="ms-2 text-muted"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recipients Summary -->
+                        <div class="mt-4" id="recipientsSummary" style="display: none;">
+                            <div class="card bg-light">
+                                <div class="card-header bg-info text-white">
+                                    <i class="bi bi-list-check me-2"></i>Recipients Summary
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <strong>Total Recipients:</strong> <span id="totalRecipients">0</span>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <strong>Valid Numbers:</strong> <span id="summaryValid">0</span>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <strong>Invalid Numbers:</strong> <span id="summaryInvalid">0</span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <button type="button" class="btn btn-sm btn-danger" onclick="clearAllRecipients()">
+                                            <i class="bi bi-trash"></i> Clear All
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mt-3">
+                            <button type="button" class="btn btn-primary" onclick="nextStep(2)">
+                                Next: Compose Message <i class="bi bi-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Compose Message -->
+                <div id="step2" class="card shadow-sm mb-4" style="display: none;">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-pencil-square me-2"></i>Step 2: Compose Message
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Select Template (Optional)</label>
+                            <div class="input-group">
+                                <select id="bulkTemplateSelect" class="form-select" onchange="loadBulkTemplate()">
+                                    <option value="">-- Select Template --</option>
+                                    @foreach (var template in templates.Where(t => t.IsActive))
+                                    {
+                                        <option value="@template.TemplateCode" data-content="@template.TemplateContent">
+                                            @template.TemplateName (@template.TemplateCode)
+                                        </option>
+                                    }
+                                </select>
+                                <a asp-action="Templates" class="btn btn-outline-secondary" target="_blank">
+                                    <i class="bi bi-gear"></i> Manage Templates
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Message Content *</label>
+                            <textarea id="bulkMessageContent" class="form-control" rows="6" 
+                                      placeholder="Type your message here... Use {{Placeholder}} for dynamic content"></textarea>
+                            <div class="d-flex justify-content-between mt-1">
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Character count: <span id="bulkCharCount">0</span> / 160
+                                </small>
+                                <small class="text-muted">
+                                    <a href="#" onclick="showBulkPlaceholders()">Available Placeholders</a>
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Message Type</label>
+                            <select id="bulkMessageType" class="form-select">
+                                <option value="General">General</option>
+                                <option value="Registration">Registration</option>
+                                <option value="Withdrawal">Withdrawal</option>
+                                <option value="Loan">Loan</option>
+                                <option value="Share Transfer">Share Transfer</option>
+                                <option value="Contribution">Contribution</option>
+                                <option value="Reminder">Reminder</option>
+                                <option value="Notification">Notification</option>
+                                <option value="Promotion">Promotion</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Reference (Optional)</label>
+                            <input type="text" id="bulkReference" class="form-control" placeholder="e.g., Bulk Campaign 2024" />
+                        </div>
+
+                        <!-- Placeholder Panel -->
+                        <div class="card bg-light mb-3">
+                            <div class="card-header">
+                                <i class="bi bi-code-square me-2"></i>Placeholder Variables
+                                <button type="button" class="btn btn-sm btn-link float-end" onclick="toggleBulkPlaceholders()">
+                                    <i class="bi bi-chevron-down"></i>
+                                </button>
+                            </div>
+                            <div class="card-body" id="bulkPlaceholdersPanel" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Member Information:</h6>
+                                        <ul class="list-unstyled">
+                                            <li><code>{{FullName}}</code> - Member's full name</li>
+                                            <li><code>{{MemberNo}}</code> - Member number</li>
+                                            <li><code>{{PhoneNo}}</code> - Phone number</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>System Information:</h6>
+                                        <ul class="list-unstyled">
+                                            <li><code>{{CompanyName}}</code> - SACCO name</li>
+                                            <li><code>{{Date}}</code> - Current date</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Preview -->
+                        <div class="card bg-light mb-3">
+                            <div class="card-header">
+                                <i class="bi bi-eye me-2"></i>Message Preview
+                            </div>
+                            <div class="card-body">
+                                <div class="alert alert-secondary" id="bulkPreviewContent">
+                                    Message preview will appear here
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" onclick="prevStep(1)">
+                                <i class="bi bi-arrow-left"></i> Back
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="nextStep(3)">
+                                Next: Review & Send <i class="bi bi-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 3: Review & Send -->
+                <div id="step3" class="card shadow-sm mb-4" style="display: none;">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">
+                            <i class="bi bi-check2-circle me-2"></i>Step 3: Review & Send
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-info text-white">
+                                        <i class="bi bi-people me-2"></i>Recipients Summary
+                                    </div>
+                                    <div class="card-body">
+                                        <div id="reviewRecipients">
+                                            <p><strong>Total Recipients:</strong> <span id="reviewTotal">0</span></p>
+                                            <p><strong>Valid Numbers:</strong> <span id="reviewValid">0</span></p>
+                                            <p><strong>Invalid Numbers:</strong> <span id="reviewInvalid">0</span></p>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick="viewRecipientsList()">
+                                            <i class="bi bi-list"></i> View Recipients List
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card mb-3">
+                                    <div class="card-header bg-success text-white">
+                                        <i class="bi bi-envelope-paper me-2"></i>Message Summary
+                                    </div>
+                                    <div class="card-body">
+                                        <p><strong>Message Preview:</strong></p>
+                                        <div class="alert alert-light" id="reviewMessagePreview">-</div>
+                                        <p><strong>Message Type:</strong> <span id="reviewMessageType">-</span></p>
+                                        <p><strong>Reference:</strong> <span id="reviewReference">-</span></p>
+                                        <p><strong>Total SMS Cost:</strong> KES <span id="reviewCost">0.00</span></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <strong>Important:</strong> Please review all information before sending. This action cannot be undone.
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <button type="button" class="btn btn-secondary" onclick="prevStep(2)">
+                                <i class="bi bi-arrow-left"></i> Back
+                            </button>
+                            <button type="submit" class="btn btn-success" id="bulkSubmitBtn">
+                                <i class="bi bi-send me-2"></i>Send Bulk SMS
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hidden fields for recipients -->
+                <input type="hidden" id="recipientsData" name="Messages" />
+            <form></form>
+        </div>
+    </div>
+</div>
+
+<!-- Recipients List Modal -->
+<div class="modal fade" id="recipientsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-list-ul me-2"></i>Recipients List
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Phone Number</th>
+                                <th>Recipient Name</th>
+                                <th>Status</th>
+                            </thead>
+                            <tbody id="recipientsModalBody"></tbody>
+                         </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .step-item {
+        text-align: center;
+        min-width: 80px;
+    }
+    
+    .step-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 8px;
+        font-weight: bold;
+    }
+    
+    .step-label {
+        font-size: 12px;
+        font-weight: 500;
+        color: #6c757d;
+    }
+    
+    .upload-area {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background-color: #f8f9fa;
+    }
+    
+    .upload-area:hover {
+        background-color: #e9ecef;
+        border-color: #0d6efd !important;
+    }
+    
+    .progress-bar {
+        transition: width 0.3s ease;
+    }
+</style>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        let recipientsList = [];
+        let currentStep = 1;
+        let filteredMembersList = [];
+
+        $(document).ready(function() {
+            // Character counter
+            $('#bulkMessageContent').on('input', function() {
+                updateBulkCharCount();
+                updateBulkPreview();
+            });
+
+            // File upload handling
+            $('#fileUpload').on('change', handleFileUpload);
+            $('#uploadArea').on('dragover', function(e) {
+                e.preventDefault();
+                $(this).addClass('border-primary');
+            });
+            $('#uploadArea').on('dragleave', function(e) {
+                e.preventDefault();
+                $(this).removeClass('border-primary');
+            });
+            $('#uploadArea').on('drop', function(e) {
+                e.preventDefault();
+                $(this).removeClass('border-primary');
+                const files = e.originalEvent.dataTransfer.files;
+                if (files.length) {
+                    handleFile({ target: { files: files } });
+                }
+            });
+            $('#uploadArea').on('click', function() {
+                $('#fileUpload').click();
+            });
+        });
+
+        function nextStep(step) {
+            if (step === 2 && recipientsList.length === 0) {
+                showToast('warning', 'Please add at least one recipient');
+                return;
+            }
+            if (step === 3 && !$('#bulkMessageContent').val()) {
+                showToast('warning', 'Please enter a message');
+                return;
+            }
+            
+            $('#step' + currentStep).hide();
+            $('#step' + step).show();
+            
+            // Update progress
+            if (step === 2) {
+                $('#progressBar').css('width', '66%');
+                $('#step2Indicator .step-circle').removeClass('bg-secondary').addClass('bg-primary');
+            } else if (step === 3) {
+                $('#progressBar2').css('width', '100%');
+                $('#step3Indicator .step-circle').removeClass('bg-secondary').addClass('bg-primary');
+                updateReview();
+            }
+            
+            currentStep = step;
+        }
+
+        function prevStep(step) {
+            $('#step' + currentStep).hide();
+            $('#step' + step).show();
+            currentStep = step;
+        }
+
+        // Add the rest of your JavaScript functions here...
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            $('#fileName').text(file.name);
+            const extension = file.name.split('.').pop().toLowerCase();
+            if (extension === 'csv') {
+                parseCSV(file);
+            } else if (extension === 'xlsx' || extension === 'xls') {
+                parseExcel(file);
+            } else {
+                showToast('error', 'Unsupported file format. Please upload CSV or Excel file.');
+            }
+        }
+
+        function parseCSV(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const content = e.target.result;
+                const lines = content.split('\n');
+                parseRecipientsFromLines(lines);
+            };
+            reader.readAsText(file);
+        }
+
+        function parseExcel(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1 });
+                const lines = rows.map(row => row.join(','));
+                parseRecipientsFromLines(lines);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function parseRecipientsFromLines(lines) {
+            let validCount = 0;
+            let invalidCount = 0;
+            
+            lines.forEach(line => {
+                if (line.trim()) {
+                    const parts = line.split(',');
+                    const phoneNumber = parts[0].trim();
+                    const recipientName = parts[1] ? parts[1].trim() : '';
+                    
+                    if (isValidPhone(phoneNumber)) {
+                        recipientsList.push({
+                            phoneNumber: phoneNumber,
+                            recipientName: recipientName,
+                            message: null
+                        });
+                        validCount++;
+                    } else {
+                        invalidCount++;
+                    }
+                }
+            });
+            
+            $('#validCount').text(validCount);
+            $('#invalidCount').text(invalidCount);
+            $('#recordCount').text(validCount + invalidCount);
+            $('#uploadPreview').show();
+            updateRecipientsSummary();
+            showToast('success', `Loaded ${validCount} valid numbers`);
+        }
+
+        function parseManualRecipients() {
+            const text = $('#manualRecipients').val();
+            const lines = text.split('\n');
+            let validCount = 0;
+            let invalidCount = 0;
+            
+            recipientsList = [];
+            
+            lines.forEach(line => {
+                if (line.trim()) {
+                    const parts = line.split(',');
+                    const phoneNumber = parts[0].trim();
+                    const recipientName = parts[1] ? parts[1].trim() : '';
+                    
+                    if (isValidPhone(phoneNumber)) {
+                        recipientsList.push({
+                            phoneNumber: phoneNumber,
+                            recipientName: recipientName,
+                            message: null
+                        });
+                        validCount++;
+                    } else {
+                        invalidCount++;
+                    }
+                }
+            });
+            
+            $('#manualStats').text(`Valid: ${validCount}, Invalid: ${invalidCount}`);
+            updateRecipientsSummary();
+            showToast('success', `Loaded ${validCount} valid numbers`);
+        }
+
+        function isValidPhone(phone) {
+            const phoneRegex = /^(0|\+254)?[7][0-9]{8}$/;
+            return phoneRegex.test(phone);
+        }
+
+        function updateRecipientsSummary() {
+            const valid = recipientsList.filter(r => isValidPhone(r.phoneNumber)).length;
+            const invalid = recipientsList.length - valid;
+            
+            $('#totalRecipients').text(recipientsList.length);
+            $('#summaryValid').text(valid);
+            $('#summaryInvalid').text(invalid);
+            $('#recipientsSummary').show();
+        }
+
+        function clearAllRecipients() {
+            if (confirm('Are you sure you want to clear all recipients?')) {
+                recipientsList = [];
+                updateRecipientsSummary();
+                $('#uploadPreview').hide();
+                $('#manualRecipients').val('');
+                $('#manualStats').text('');
+                showToast('info', 'All recipients cleared');
+            }
+        }
+
+        function clearUpload() {
+            $('#fileUpload').val('');
+            $('#uploadPreview').hide();
+        }
+
+        function clearFilters() {
+            $('#filterMembershipType').val('');
+            $('#filterStatus').val('');
+            $('#filterDepartment').val('');
+            $('#filterStation').val('');
+            $('#filterResults').hide();
+            $('#filterResultsCount').text('');
+        }
+
+        function updateBulkCharCount() {
+            const message = $('#bulkMessageContent').val();
+            $('#bulkCharCount').text(message.length);
+        }
+
+        function updateBulkPreview() {
+            let message = $('#bulkMessageContent').val();
+            message = message.replace(/{{FullName}}/g, 'John Doe');
+            message = message.replace(/{{MemberNo}}/g, 'M001234');
+            message = message.replace(/{{PhoneNo}}/g, '0712345678');
+            message = message.replace(/{{CompanyName}}/g, 'JUHUDI SACCO');
+            const today = new Date();
+            message = message.replace(/{{Date}}/g, today.toLocaleDateString('en-KE'));
+            $('#bulkPreviewContent').text(message || 'Message preview will appear here');
+        }
+
+        function showBulkPlaceholders() {
+            $('#bulkPlaceholdersPanel').slideToggle();
+        }
+
+        function toggleBulkPlaceholders() {
+            $('#bulkPlaceholdersPanel').slideToggle();
+        }
+
+        function loadBulkTemplate() {
+            const templateCode = $('#bulkTemplateSelect').val();
+            if (templateCode) {
+                const selectedOption = $('#bulkTemplateSelect option:selected');
+                const content = selectedOption.data('content');
+                if (content) {
+                    $('#bulkMessageContent').val(content);
+                    updateBulkCharCount();
+                    updateBulkPreview();
+                }
+            }
+        }
+
+        function updateReview() {
+            const valid = recipientsList.filter(r => isValidPhone(r.phoneNumber)).length;
+            const invalid = recipientsList.length - valid;
+            $('#reviewTotal').text(recipientsList.length);
+            $('#reviewValid').text(valid);
+            $('#reviewInvalid').text(invalid);
+            
+            const message = $('#bulkMessageContent').val();
+            const messageType = $('#bulkMessageType').val();
+            const reference = $('#bulkReference').val();
+            const costPerSms = 0.50;
+            const smsCount = Math.ceil(message.length / 160);
+            const totalCost = (recipientsList.length * smsCount * costPerSms).toFixed(2);
+            
+            let preview = message;
+            preview = preview.replace(/{{FullName}}/g, '[Member Name]');
+            preview = preview.replace(/{{MemberNo}}/g, '[Member No]');
+            preview = preview.replace(/{{PhoneNo}}/g, '[Phone No]');
+            preview = preview.replace(/{{CompanyName}}/g, 'JUHUDI SACCO');
+            preview = preview.replace(/{{Date}}/g, new Date().toLocaleDateString('en-KE'));
+            
+            $('#reviewMessagePreview').text(preview || '-');
+            $('#reviewMessageType').text(messageType);
+            $('#reviewReference').text(reference || 'N/A');
+            $('#reviewCost').text(totalCost);
+        }
+
+        function viewRecipientsList() {
+            const tbody = $('#recipientsModalBody');
+            tbody.empty();
+            
+            if (recipientsList.length === 0) {
+                tbody.html(' ost<br><td colspan="3" class="text-center">No recipients added</td></tr>');
+            } else {
+                recipientsList.forEach(recipient => {
+                    const isValid = isValidPhone(recipient.phoneNumber);
+                    tbody.append(`
+                        <tr>
+                            <td>${escapeHtml(recipient.phoneNumber)}</td>
+                            <td>${escapeHtml(recipient.recipientName || '-')}</td>
+                            <td>${isValid ? '<span class="badge bg-success">Valid</span>' : '<span class="badge bg-danger">Invalid</span>'}</td>
+                        </tr>
+                    `);
+                });
+            }
+            $('#recipientsModal').modal('show');
+        }
+
+        function downloadSample() {
+            const sampleData = 'PhoneNumber,RecipientName\n0712345678,John Doe\n0712345679,Jane Smith\n0723456789,Peter Omondi';
+            const blob = new Blob([sampleData], { type: 'text/csv' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'sample_recipients.csv';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        function showToast(type, message) {
+            const toastHtml = `
+                <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'danger'} border-0 position-fixed bottom-0 end-0 m-3" role="alert" style="z-index: 9999;">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'x-circle'} me-2"></i>
+                            ${escapeHtml(message)}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            $('body').append(toastHtml);
+            const toast = $('.toast').last();
+            const bsToast = new bootstrap.Toast(toast[0]);
+            bsToast.show();
+            toast.on('hidden.bs.toast', function() { $(this).remove(); });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        // Form submission
+        $('#bulkSmsForm').on('submit', function(e) {
+            e.preventDefault();
+            
+            const message = $('#bulkMessageContent').val();
+            const messageType = $('#bulkMessageType').val();
+            const reference = $('#bulkReference').val();
+            
+            if (!message) {
+                showToast('error', 'Please enter a message');
+                return;
+            }
+            
+            if (recipientsList.length === 0) {
+                showToast('error', 'Please add at least one recipient');
+                return;
+            }
+            
+            const messages = recipientsList
+                .filter(r => isValidPhone(r.phoneNumber))
+                .map(recipient => {
+                    let personalizedMessage = message;
+                    if (recipient.recipientName) {
+                        personalizedMessage = personalizedMessage.replace(/{{FullName}}/g, recipient.recipientName);
+                    }
+                    personalizedMessage = personalizedMessage.replace(/{{PhoneNo}}/g, recipient.phoneNumber);
+                    personalizedMessage = personalizedMessage.replace(/{{CompanyName}}/g, 'JUHUDI SACCO');
+                    const today = new Date();
+                    personalizedMessage = personalizedMessage.replace(/{{Date}}/g, today.toLocaleDateString('en-KE'));
+                    
+                    return {
+                        phoneNumber: recipient.phoneNumber,
+                        recipientName: recipient.recipientName,
+                        message: personalizedMessage,
+                        messageType: messageType,
+                        reference: reference
+                    };
+                });
+            
+            if (messages.length === 0) {
+                showToast('error', 'No valid phone numbers found');
+                return;
+            }
+            
+            const confirmMessage = `You are about to send ${messages.length} SMS messages.\n\nEstimated cost: KES ${(messages.length * Math.ceil(message.length / 160) * 0.50).toFixed(2)}\n\nAre you sure you want to proceed?`;
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            const submitBtn = $('#bulkSubmitBtn');
+            const originalText = submitBtn.html();
+            submitBtn.prop('disabled', true);
+            submitBtn.html('<span class="spinner-border spinner-border-sm me-2"></span>Sending...');
+            
+            fetch('/Sms/BulkSend', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                },
+                body: JSON.stringify({ messages: messages })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('success', data.message || `Bulk SMS sent successfully!`);
+                    setTimeout(() => {
+                        window.location.href = '/Sms/Index';
+                    }, 2000);
+                } else {
+                    showToast('error', data.message || 'Failed to send bulk SMS');
+                    submitBtn.prop('disabled', false);
+                    submitBtn.html(originalText);
+                }
+            })
+            .catch(error => {
+                console.error('Error sending bulk SMS:', error);
+                showToast('error', 'Error sending bulk SMS. Please try again.');
+                submitBtn.prop('disabled', false);
+                submitBtn.html(originalText);
+            });
+        });
+
+        async function filterMembers() {
+            const filters = {
+                membershipType: $('#filterMembershipType').val(),
+                status: $('#filterStatus').val(),
+                department: $('#filterDepartment').val(),
+                station: $('#filterStation').val()
+            };
+            
+            try {
+                const response = await fetch('/MemberMvc/FilterMembers', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    body: JSON.stringify(filters)
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    filteredMembersList = data.members;
+                    $('#filterResultsCount').text(`${data.members.length} members found`);
+                    renderFilterResults(data.members);
+                    $('#filterResults').show();
+                }
+            } catch (error) {
+                console.error('Error filtering members:', error);
+                showToast('error', 'Error filtering members');
+            }
+        }
+
+        function renderFilterResults(members) {
+            const tbody = $('#filterResultsBody');
+            tbody.empty();
+            
+            members.forEach(member => {
+                tbody.append(`
+                    <tr>
+                        <td><input type="checkbox" class="memberCheckbox" value="${member.memberNo}" data-phone="${member.phoneNo}" data-name="${member.fullName}" /></td>
+                        <td>${member.memberNo}</td>
+                        <td>${member.fullName}</td>
+                        <td>${member.phoneNo}</td>
+                    </tr>
+                `);
+            });
+        }
+
+        function toggleSelectAllFiltered() {
+            const isChecked = $('#selectAllFiltered').is(':checked');
+            $('.memberCheckbox').prop('checked', isChecked);
+        }
+
+        function addSelectedFiltered() {
+            let added = 0;
+            $('.memberCheckbox:checked').each(function() {
+                const phoneNumber = $(this).data('phone');
+                const recipientName = $(this).data('name');
+                
+                if (isValidPhone(phoneNumber)) {
+                    recipientsList.push({
+                        phoneNumber: phoneNumber,
+                        recipientName: recipientName,
+                        message: null
+                    });
+                    added++;
+                }
+            });
+            
+            updateRecipientsSummary();
+            showToast('success', `Added ${added} members to recipient list`);
+        }
+
+        async function loadGroupMembers() {
+            const groups = [];
+            if ($('#groupAllActive').is(':checked')) groups.push('allActive');
+            if ($('#groupNewMembers').is(':checked')) groups.push('newMembers');
+            if ($('#groupLoanHolders').is(':checked')) groups.push('loanHolders');
+            if ($('#groupNoLoans').is(':checked')) groups.push('noLoans');
+            
+            if (groups.length === 0) {
+                showToast('warning', 'Please select at least one group');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/MemberMvc/GetMembersByGroups', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    body: JSON.stringify({ groups: groups })
+                });
+                
+                const data = await response.json();
+                if (data.success) {
+                    let added = 0;
+                    data.members.forEach(member => {
+                        if (isValidPhone(member.phoneNo)) {
+                            recipientsList.push({
+                                phoneNumber: member.phoneNo,
+                                recipientName: member.fullName,
+                                message: null
+                            });
+                            added++;
+                        }
+                    });
+                    $('#groupResultsCount').text(`${added} members added from selected groups`);
+                    updateRecipientsSummary();
+                    showToast('success', `Added ${added} members to recipient list`);
+                }
+            } catch (error) {
+                console.error('Error loading group members:', error);
+                showToast('error', 'Error loading group members');
+            }
+        }
+    </script>
+}

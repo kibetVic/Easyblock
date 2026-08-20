@@ -1,0 +1,939 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.LoanTypeResponseDTO
+@{
+    ViewData["Title"] = "Loan Type Management";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var isEdit = Model != null && !string.IsNullOrEmpty(Model.LoanCode);
+    var loanCode = isEdit ? Model.LoanCode : "";
+    var usageCount = ViewBag.UsageCount as int? ?? 0;
+    var canEditCritical = ViewBag.CanEditCritical as bool? ?? true;
+    var approvalStatus = Model?.ApprovalStatus ?? "Draft";
+    var isPending = approvalStatus == "Pending";
+    var isActive = approvalStatus == "Active";
+}
+
+<style>
+    .btn {
+        padding: 8px 16px;
+        margin: 2px;
+        border: none;
+        border-radius: 4px;
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s;
+    }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+    .btn-primary {
+        background-color: #007bff;
+    }
+
+    .btn-warning {
+        background-color: #ffc107;
+        color: black;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+    }
+
+    .btn-success {
+        background-color: #28a745;
+    }
+
+    .btn-info {
+        background-color: #17a2b8;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+    }
+
+    .btn-sm {
+        padding: 3px 8px;
+        font-size: 12px;
+    }
+
+    .form-control, .form-select {
+        padding: 6px 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #3f2b96;
+            outline: none;
+            box-shadow: 0 0 0 0.2rem rgba(63,43,150,0.25);
+        }
+
+    .form-label {
+        font-weight: 600;
+        margin-bottom: 4px;
+        display: block;
+        font-size: 0.9rem;
+        color: #333;
+    }
+
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+    td {
+        padding: 8px;
+        vertical-align: middle;
+    }
+
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+
+    .alert-warning {
+        background-color: #fff3cd;
+        color: #856404;
+        border: 1px solid #ffeeba;
+    }
+
+    .badge {
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .badge-success {
+        background-color: #28a745;
+        color: white;
+    }
+
+    .badge-danger {
+        background-color: #dc3545;
+        color: white;
+    }
+
+    .badge-warning {
+        background-color: #ffc107;
+        color: black;
+    }
+
+    .badge-info {
+        background-color: #17a2b8;
+        color: white;
+    }
+
+    .badge-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .badge-purple {
+        background-color: #6f42c1;
+        color: white;
+    }
+
+    .input-group {
+        display: flex;
+        align-items: center;
+    }
+
+    .input-group-text {
+        padding: 6px 10px;
+        background-color: #e9ecef;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        margin-right: -1px;
+    }
+
+    .bg-warning {
+        background-color: #ffc107;
+    }
+
+    .text-warning {
+        color: #ffc107;
+    }
+
+    .fas {
+        margin-right: 4px;
+    }
+
+    hr {
+        border: 1px solid #3f2b96;
+        margin: 20px 0;
+    }
+
+    h3 {
+        color: orange;
+        margin-top: 0;
+    }
+
+    h4 {
+        color: #3f2b96;
+        margin-bottom: 10px;
+    }
+
+    .checkbox-label {
+        margin-left: 5px;
+        font-weight: normal;
+    }
+
+    .action-buttons {
+        text-align: center;
+        margin: 20px 0;
+    }
+
+    .loan-types-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+
+        .loan-types-table th {
+            background-color: #3f2b96;
+            color: white;
+            padding: 12px 8px;
+            text-align: left;
+        }
+
+        .loan-types-table td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .loan-types-table tr:hover {
+            background-color: #f5f5f5;
+        }
+
+    .status-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 5px;
+    }
+
+    .status-active {
+        background-color: #28a745;
+    }
+
+    .status-pending {
+        background-color: #ffc107;
+    }
+
+    .status-inactive {
+        background-color: #6c757d;
+    }
+
+    .approve-btn {
+        background-color: #28a745;
+        color: white;
+    }
+
+        .approve-btn:hover {
+            background-color: #218838;
+        }
+</style>
+
+<div class="container-fluid">
+    <h3 style="color:orange;">Loan Type Management</h3>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["InfoMessage"] != null)
+    {
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="fas fa-info-circle"></i> @TempData["InfoMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (usageCount > 0 && isEdit)
+    {
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Note:</strong> This loan type is currently used by <strong>@usageCount</strong> loan(s).
+            Some critical fields cannot be modified while loans exist.
+        </div>
+    }
+
+    @if (isEdit && isPending)
+    {
+        <div class="alert alert-info">
+            <i class="fas fa-clock"></i>
+            <strong>Pending Approval:</strong> This loan type is pending approval and cannot be used until approved.
+        </div>
+    }
+
+    <div class="card">
+        <div class="card-body">
+            <!-- Status Badge for Edit Mode -->
+            @if (isEdit)
+            {
+                <div style="margin-bottom: 15px; text-align: right;">
+                    @if (isActive)
+                    {
+                        <span class="badge badge-success" style="font-size: 1rem;">
+                            <i class="fas fa-check-circle"></i> Active
+                        </span>
+                    }
+                    else if (isPending)
+                    {
+                        <span class="badge badge-warning" style="font-size: 1rem;">
+                            <i class="fas fa-clock"></i> Pending Approval
+                        </span>
+                    }
+                    else
+                    {
+                        <span class="badge badge-secondary" style="font-size: 1rem;">
+                            <i class="fas fa-ban"></i> @approvalStatus
+                        </span>
+                    }
+                </div>
+            }
+
+            <form method="post" id="loanTypeForm">
+                @Html.AntiForgeryToken()
+
+                @if (isEdit)
+                {
+                    <input type="hidden" name="loanCode" value="@loanCode" />
+                    <input type="hidden" asp-for="ApprovalStatus" />
+                }
+                <input type="hidden" asp-for="CompanyCode" />
+                <input type="hidden" name="CreatedBy" value="@User.Identity?.Name" />
+                <input type="hidden" name="UpdatedBy" value="@User.Identity?.Name" />
+
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle"></i> Please correct the errors below.
+                        <div asp-validation-summary="All" class="text-danger"></div>
+                    </div>
+                }
+
+                <div class="row g-3">
+                    <!-- Row 1: Loan Code and R.Period -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Loan Code <span class="text-danger">*</span></label>
+                        @if (isEdit)
+                        {
+                            <input type="text" class="form-control bg-light" value="@loanCode" readonly />
+                            <small class="text-muted">Loan code cannot be changed after creation</small>
+                        }
+                        else
+                        {
+                            <input asp-for="LoanCode" class="form-control" placeholder="Enter Loan Code (e.g., LO001)" />
+                            <span asp-validation-for="LoanCode" class="text-danger"></span>
+                        }
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Loan Type Name <span class="text-danger">*</span></label>
+                        <input asp-for="LoanType" class="form-control" placeholder="e.g., Personal Loan, Business Loan" />
+                        <span asp-validation-for="LoanType" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Repayment Period (Months) <span class="text-danger">*</span></label>
+                        <input asp-for="RepayPeriod" type="number" class="form-control" placeholder="e.g., 12, 24, 33" />
+                        <span asp-validation-for="RepayPeriod" class="text-danger"></span>
+                    </div>
+
+                    <!-- Row 2: Max Amount and Processing Fee -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Maximum Amount <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">KES</span>
+                            <input asp-for="MaxAmount" type="number" step="0.01" class="form-control" placeholder="0.00" />
+                        </div>
+                        <span asp-validation-for="MaxAmount" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Processing Fee (%)</label>
+                        <div class="input-group">
+                            <input asp-for="ProcessingFee" type="number" step="0.01" class="form-control" placeholder="0.00" />
+                            <span class="input-group-text">%</span>
+                        </div>
+                        <span asp-validation-for="ProcessingFee" class="text-danger"></span>
+                    </div>
+
+                    <!-- Row 3: Priority and Company -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Priority</label>
+                        <input asp-for="Priority" type="number" class="form-control" value="1" min="1" max="10" />
+                        <span asp-validation-for="Priority" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Company</label>
+                        <input type="text" class="form-control bg-light" value="@ViewBag.CompanyName" readonly />
+                        <input type="hidden" name="CompanyCode" value="@ViewBag.CompanyCode" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Repayment Method <span class="text-danger">*</span></label>
+                        <select asp-for="RepayMethod" class="form-select">
+                            <option value="">-- Select Repayment Method --</option>
+                            <option value="STL">Straight Line (STL) - Flat Rate</option>
+                            <option value="AMT">Amortized (AMT) - EMI</option>
+                            <option value="RBAL">Reducing Balance (RBAL) - Interest Only</option>
+                        </select>
+                        <span asp-validation-for="RepayMethod" class="text-danger"></span>
+                    </div>
+
+                    <!-- Row 5: Interest Rate and Grace Period -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Interest Rate <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input asp-for="Interest" class="form-control" placeholder="e.g., 12.5" />
+                            <span class="input-group-text">%</span>
+                        </div>
+                        <span asp-validation-for="Interest" class="text-danger"></span>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Grace Period (Months)</label>
+                        <input asp-for="GracePeriod" type="number" class="form-control" value="0" min="0" />
+                        <span asp-validation-for="GracePeriod" class="text-danger"></span>
+                    </div>
+
+                    <!-- Row 3: Value Chain -->
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Value Chain</label>
+                        <select asp-for="ValueChain" class="form-select" asp-items="ViewBag.ValueChainOptions">
+                            <option value="">-- Select Value Chain --</option>
+                        </select>
+                        <span asp-validation-for="ValueChain" class="text-danger"></span>
+                    </div>
+
+                    <!-- Row 7: Penalty Value and Attracts Penalty -->
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Attracts Penalty</label>
+                            <div class="form-check mt-2">
+                                @if (isEdit && !canEditCritical)
+                                {
+                                    <input asp-for="Penalty" class="form-check-input" disabled="disabled" />
+                                    <label class="form-check-label">Yes, this loan type attracts penalties</label>
+                                    <i class="fas fa-lock text-warning ms-2" title="Cannot change while loans exist"></i>
+                                }
+                                else
+                                {
+                                    <input asp-for="Penalty" class="form-check-input" />
+                                    <label class="form-check-label">Yes, this loan type attracts penalties</label>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Penalty Mode</label>
+                            <select id="PenaltyMode" class="form-select">
+                                <option value="Percentage">Percentage (%)</option>
+                                <option value="Fixed">Fixed Amount (KES)</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Penalty Value</label>
+                            <div class="input-group">
+                                <input type="text" id="PenaltyValue" class="form-control" placeholder="0" />
+                                <span id="PenaltySymbol" class="input-group-text">%</span>
+                            </div>
+                        </div>
+                    </div>                    
+
+                    <!-- Row 8: GL Accounts - All in one line -->
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Loan Control Account</label>
+                            <select asp-for="LoanAcc" class="form-select" asp-items="ViewBag.AvailableAccounts">
+                                <option value="">-- Select Account --</option>
+                            </select>
+                            <small class="text-muted">GL account for loan disbursements</small>
+                            <span asp-validation-for="LoanAcc" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Interest Control Account</label>
+                            <select asp-for="InterestAcc" class="form-select" asp-items="ViewBag.InterestAccounts">
+                                <option value="">-- Select Account --</option>
+                            </select>
+                            <small class="text-muted">GL account for interest income</small>
+                            <span asp-validation-for="InterestAcc" class="text-danger"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Penalty Control Account</label>
+                            <select asp-for="PenaltyAcc" class="form-select" asp-items="ViewBag.PenaltyAccounts">
+                                <option value="">-- Select Account --</option>
+                            </select>
+                            <small class="text-muted">GL account for penalty income</small>
+                            <span asp-validation-for="PenaltyAcc" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <!-- Row 9: Can Refinance -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Can Refinance</label>
+                            <div class="form-check mt-2">
+                                @if (isEdit && !canEditCritical)
+                                {
+                                    <input asp-for="Bridging" class="form-check-input" disabled="disabled" />
+                                    <label class="form-check-label">Yes, this loan can be refinanced</label>
+                                    <i class="fas fa-lock text-warning ms-2" title="Cannot change while loans exist"></i>
+                                }
+                                else
+                                {
+                                    <input asp-for="Bridging" class="form-check-input" />
+                                    <label class="form-check-label">Yes, this loan can be refinanced</label>
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Row 10: Requires Guarantors -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Requires Guarantors</label>
+                            <div class="form-check mt-2">
+                                @{
+                                    var isGuarantorChecked = Model?.Guarantor == "Y";
+                                }
+                                @if (isEdit && !canEditCritical)
+                                {
+                                    <input type="checkbox" id="GuarantorCheckbox" class="form-check-input"
+                                           @(isGuarantorChecked ? "checked" : "") disabled="disabled" />
+                                    <label class="form-check-label">Yes, this loan requires guarantors</label>
+                                    <input type="hidden" asp-for="Guarantor" id="GuarantorHidden" />
+                                    <i class="fas fa-lock text-warning ms-2" title="Cannot change while loans exist"></i>
+                                }
+                                else
+                                {
+                                    <input type="checkbox" id="GuarantorCheckbox" class="form-check-input"
+                                           @(isGuarantorChecked ? "checked" : "") />
+                                    <label class="form-check-label">Yes, this loan requires guarantors</label>
+                                    <input type="hidden" asp-for="Guarantor" id="GuarantorHidden" />
+                                }
+                            </div>
+                        </div>
+
+                        <!-- Row 11: Self Guarantee and Top-up -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Guarantee Own Loan</label>
+                            <div class="form-check mt-2">
+                                @if (isEdit && !canEditCritical)
+                                {
+                                    <input asp-for="SelfGuarantee" class="form-check-input" disabled="disabled" />
+                                    <label class="form-check-label">Yes, members can guarantee their own loan</label>
+                                    <i class="fas fa-lock text-warning ms-2" title="Cannot change while loans exist"></i>
+                                }
+                                else
+                                {
+                                    <input asp-for="SelfGuarantee" class="form-check-input" />
+                                    <label class="form-check-label">Yes, members can guarantee their own loan</label>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Top-up (%)</label>
+                            <div class="input-group">
+                                <input asp-for="EarningRatio" type="number" step="0.1" class="form-control" placeholder="0" />
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <span asp-validation-for="EarningRatio" class="text-danger"></span>
+                        </div>
+
+                        <!-- Row 12: Rate Calculation Options -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Rate Calculation</label>
+                            <div class="d-flex gap-3 mt-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="Rate" id="rateDaily" value="Daily">
+                                    <label class="form-check-label" for="rateDaily">Daily</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="Rate" id="rateWeekly" value="Weekly">
+                                    <label class="form-check-label" for="rateWeekly">Weekly</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="Rate" id="rateMonthly" value="Monthly" checked>
+                                    <label class="form-check-label" for="rateMonthly">Monthly</label>
+                                </div>
+                            </div>
+                            <small class="text-muted">How interest is calculated (per day, week, or month)</small>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">What to Charge</label>
+                            <div class="d-flex gap-3 mt-2">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="WhatToCharge" id="chargePrincipal" value="Principal">
+                                    <label class="form-check-label" for="chargePrincipal">Principal Only</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="WhatToCharge" id="chargeInterest" value="Interest">
+                                    <label class="form-check-label" for="chargeInterest">Interest Only</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="form-check-input" type="radio" name="WhatToCharge" id="chargeBoth" value="Both" checked>
+                                    <label class="form-check-label" for="chargeBoth">Both Principal & Interest</label>
+                                </div>
+                            </div>
+                            <small class="text-muted">What to charge when processing payments</small>
+                        </div>
+                    </div>
+                    
+
+                    <!-- Row 13: Additional Options -->
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Additional Options</label>
+                        <div class="d-flex flex-wrap gap-4 mt-2">
+                            <div class="form-check">
+                                <input asp-for="MobileLoan" class="form-check-input" />
+                                <label class="form-check-label">Mobile Loan</label>
+                            </div>
+                            <div class="form-check">
+                                <input asp-for="UseIntRange" class="form-check-input" />
+                                <label class="form-check-label">Use Interest Range</label>
+                            </div>
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" id="IsSuspense" />
+                                <label class="form-check-label" for="IsSuspense">Is Suspense Account</label>
+                            </div>
+                        </div>
+                        <small class="text-muted">Additional features for this loan type</small>
+                    </div>
+                </div>
+
+                <!-- Hidden fields for properties not in UI -->
+                <input type="hidden" asp-for="LoanProduct" />
+                <input type="hidden" asp-for="MinLoanAmount" />
+                <input type="hidden" asp-for="MaxLoanAmount" />
+                <input type="hidden" asp-for="MaxLoans" />
+
+                <!-- Action Buttons (matching Account Setup style) -->
+                <div class="action-buttons">
+                    <button type="submit" formaction="/LoanTypeMvc/Create" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save
+                    </button>
+
+                    <button type="submit" formaction="/LoanTypeMvc/Approve/@loanCode" class="btn btn-success"
+                            formmethod="post" onclick="return confirm('Approve this loan type? It will become active and available for use.');">
+                        <i class="fas fa-check-circle"></i> Approve
+                    </button>
+
+                    <button type="submit" formaction="/LoanTypeMvc/Edit/@loanCode" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Update
+                    </button>
+
+                    <button type="submit" formaction="/LoanTypeMvc/Delete/@loanCode" class="btn btn-danger"
+                            formmethod="post" onclick="return confirm('Are you sure you want to delete this loan type? This action cannot be undone.');">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                    <a href="@Url.Action("LoanTypeManagement")" class="btn btn-secondary">
+                        <i class="fas fa-times"></i> Clear
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <hr />
+
+    <h4>Loan Types List</h4>
+
+    <!-- Search Bar (matching Account Setup style) -->
+    <div style="text-align: right; margin-bottom: 15px;">
+        <div style="display: inline-block; width: 300px;">
+            <div class="input-group">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search loan types..." value="@Context.Request.Query["searchTerm"]">
+                <button class="btn btn-info" type="button" id="searchButton">
+                    <i class="fas fa-search"></i> Search
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loan Types Table (matching Account Setup style) -->
+    <div style="overflow-x: auto; width: 100%;">
+        <table class="loan-types-table" border="1" cellpadding="5" cellspacing="0" width="100%" style="border-collapse:collapse; min-width: 1000px;">
+            <thead>
+                <tr>
+                    <th>Loan Code</th>
+                    <th>Loan Type</th>
+                    <th>Max Amount</th>
+                    <th>Repay Period</th>
+                    <th>Interest</th>
+                    <th>Priority</th>
+                    <th>Total Loans</th>
+                    <th>Active Loans</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (ViewBag.LoanTypes != null && ((IEnumerable<dynamic>)ViewBag.LoanTypes).Any())
+                {
+                    foreach (var item in ViewBag.LoanTypes)
+                    {
+                        var statusClass = "";
+                        var statusText = "";
+
+                        if (item.ApprovalStatus == "Active")
+                        {
+                            statusClass = "badge-success";
+                            statusText = "Active";
+                        }
+                        else if (item.ApprovalStatus == "Pending")
+                        {
+                            statusClass = "badge-warning";
+                            statusText = "Pending";
+                        }
+                        else
+                        {
+                            statusClass = "badge-secondary";
+                            statusText = item.ApprovalStatus ?? "Draft";
+                        }
+
+                        <tr data-status="@(item.ApprovalStatus ?? "Draft")">
+                            <td><strong>@item.LoanCode</strong></td>
+                            <td>@item.LoanType</td>
+                            <td>@(item.MaxAmount?.ToString("N2") ?? "-")</td>
+                            <td>@(item.RepayPeriod?.ToString() ?? "-") months</td>
+                            <td>@(item.Interest ?? "-")</td>
+                            <td>
+                                <span class="badge bg-@(item.Priority <= 3 ? "danger" : item.Priority <= 6 ? "warning" : "info")">
+                                    @item.Priority
+                                </span>
+                            </td>
+                            <td>@item.TotalLoans</td>
+                            <td>@item.ActiveLoans</td>
+                            <td>
+                                <span class="badge @statusClass">
+                                    <span class="status-indicator status-@(item.ApprovalStatus?.ToLower() ?? "inactive")"></span>
+                                    @statusText
+                                </span>
+                            </td>
+                            <td>
+                                <a href="@Url.Action("LoanTypeManagement", new { loanCode = item.LoanCode })"
+                                   class="btn btn-sm btn-primary" title="Edit">
+                                    <i class="fas fa-edit">Select</i>
+                                </a>                                
+
+                                @* Approve Button in Table - Only for Pending items *@
+                                @if (item.ApprovalStatus == "Pending")
+                                {
+                                    <form method="post" action="@Url.Action("Approve", new { loanCode = item.LoanCode })" style="display: inline;">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-success approve-btn"
+                                                title="Approve this loan type" onclick="return confirm('Approve this loan type? It will become active and available for use.');">
+                                            <i class="fas fa-check-circle"></i> Approve
+                                        </button>
+                                    </form>
+                                }
+
+                                @* Delete Button - Only if no loans are using this type *@
+                                @if (item.TotalLoans == 0)
+                                {
+                                    <a href="@Url.Action("Delete", new { loanCode = item.LoanCode })"
+                                       class="btn btn-sm btn-danger" title="Delete"
+                                       onclick="return confirm('Are you sure you want to delete this loan type? This action cannot be undone.');">
+                                        <i class="fas fa-trash">Delete</i>
+                                    </a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="10" style="text-align:center; padding:20px;">
+                            <em>No loan types found. Please add your first loan type.</em>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function() {
+            // Handle Guarantor checkbox
+            var guarantorHidden = $('#GuarantorHidden');
+            var guarantorCheckbox = $('#GuarantorCheckbox');
+
+            if (guarantorHidden.length && guarantorCheckbox.length) {
+                if (guarantorHidden.val() === 'Y') {
+                    guarantorCheckbox.prop('checked', true);
+                }
+
+                guarantorCheckbox.change(function() {
+                    guarantorHidden.val($(this).is(':checked') ? 'Y' : 'N');
+                });
+            }
+
+            // Check for duplicate loan code (only for new records)
+            $('#LoanCode').on('blur', function() {
+                var loanCode = $(this).val();
+                if (loanCode.length > 0 && $('#LoanCode').prop('readonly') == false) {
+                    $.get('@Url.Action("CheckDuplicate")', { loanCode: loanCode }, function(data) {
+                        if (data.exists) {
+                            toastr.warning('Loan code already exists. Please choose a different code.');
+                        }
+                    });
+                }
+            });
+
+            // Form validation
+            $('#loanTypeForm').submit(function(e) {
+                var isValid = true;
+                var formAction = $(this).attr('action');
+
+                if (formAction && formAction.includes('Create')) {
+                    if ($('#LoanCode').val().trim() === '') {
+                        toastr.error('Loan Code is required');
+                        isValid = false;
+                    }
+                }
+
+                if ($('#LoanType').val().trim() === '') {
+                    toastr.error('Loan Type Name is required');
+                    isValid = false;
+                }
+
+                if ($('#LoanAcc').val() === '') {
+                    toastr.error('Loan Control Account is required');
+                    isValid = false;
+                }
+
+                if (!isValid) {
+                    e.preventDefault();
+                }
+            });
+
+            // Search functionality
+            $('#searchButton').click(function() {
+                var searchTerm = $('#searchInput').val();
+                window.location.href = '@Url.Action("SearchResults")?searchTerm=' + encodeURIComponent(searchTerm);
+            });
+
+            $('#searchInput').keypress(function(e) {
+                if (e.which == 13) {
+                    $('#searchButton').click();
+                }
+            });
+
+            // Find button functionality
+            $('#findButton').click(function() {
+                var searchBy = $('#searchBy').val();
+                var searchFind = $('#searchFind').val();
+
+                if (searchFind.trim() !== '') {
+                    toastr.info('Searching for ' + searchBy + ': ' + searchFind);
+                    $('#searchInput').val(searchFind);
+                    filterTable(searchFind);
+                }
+            });
+
+            // Filter functionality
+            $('.filter-btn').click(function() {
+                var filter = $(this).data('filter');
+
+                $('.filter-btn').css('opacity', '0.7');
+                $(this).css('opacity', '1');
+
+                $('#loanTypesTable tbody tr').each(function() {
+                    var row = $(this);
+                    var status = row.data('status');
+
+                    if (filter === 'all') {
+                        row.show();
+                    } else if (filter === 'active' && status === 'Active') {
+                        row.show();
+                    } else if (filter === 'pending' && status === 'Pending') {
+                        row.show();
+                    } else if (filter === 'inactive' && status !== 'Active' && status !== 'Pending') {
+                        row.show();
+                    } else {
+                        row.hide();
+                    }
+                });
+            });
+
+            // Simple table filter function
+            function filterTable(searchTerm) {
+                searchTerm = searchTerm.toLowerCase();
+
+                $('#loanTypesTable tbody tr').each(function() {
+                    var row = $(this);
+                    var text = row.text().toLowerCase();
+
+                    if (text.indexOf(searchTerm) > -1) {
+                        row.show();
+                    } else {
+                        row.hide();
+                    }
+                });
+            }
+
+            // Auto-clear alerts after 5 seconds
+            setTimeout(function() {
+                $('.alert').fadeOut('slow');
+            }, 5000);
+
+            // Show warning for critical field changes
+            $('input[readonly], input[disabled]').each(function() {
+                if ($(this).prop('disabled') || $(this).prop('readonly')) {
+                    $(this).tooltip({
+                        title: 'This field cannot be modified because the loan type is in use',
+                        placement: 'top'
+                    });
+                }
+            });
+
+            // Highlight the selected filter
+            $('.filter-btn[data-filter="all"]').css('opacity', '1');
+        });
+    </script>
+}

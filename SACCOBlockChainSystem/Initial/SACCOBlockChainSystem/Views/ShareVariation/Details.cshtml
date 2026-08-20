@@ -1,0 +1,285 @@
+﻿@model SACCOBlockChainSystem.Models.Sharetype
+
+@{
+    ViewData["Title"] = $"Share Variation Details - {Model?.SharesCode}";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@if (Model == null)
+{
+    <div class="alert alert-warning">
+        <i class="bi bi-exclamation-triangle"></i> Share variation not found.
+    </div>
+    <a href="@Url.Action("Index")" class="btn btn-primary">
+        <i class="bi bi-arrow-left"></i> Back to List
+    </a>
+}
+else
+{
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h3 class="card-title">
+                <i class="bi bi-bar-chart-line-fill"></i> Share Variation Details - @Model.SharesCode
+            </h3>
+            <div class="card-tools">
+                <a href="@Url.Action("Index")" class="btn btn-light btn-sm">
+                    <i class="bi bi-arrow-left"></i> Back to List
+                </a>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="info-box bg-light">
+                        <div class="info-box-content">
+                            <span class="info-box-text">Share Code</span>
+                            <span class="info-box-number">@Model.SharesCode</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="info-box bg-light">
+                        <div class="info-box-content">
+                            <span class="info-box-text">Share Type</span>
+                            <span class="info-box-number">@Model.SharesType</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="info-box bg-info">
+                        <div class="info-box-content">
+                            <span class="info-box-text">Account Number</span>
+                            <span class="info-box-number">@Model.SharesAcc</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-box bg-secondary">
+                        <div class="info-box-content">
+                            <span class="info-box-text">Contra Account</span>
+                            <span class="info-box-number">@(string.IsNullOrEmpty(Model.ContraAcc) ? "N/A" : Model.ContraAcc)</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="info-box bg-secondary">
+                        <div class="info-box-content">
+                            <span class="info-box-text">Company Code</span>
+                            <span class="info-box-number">@Model.CompanyCode</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature Flags -->
+            <div class="card mt-3">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">Features & Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="feature-box">
+                                <i class="bi bi-star-fill @(Model.IsMainShares ? "text-success" : "text-secondary")" style="font-size: 2rem;"></i>
+                                <p><strong>Main Shares</strong></p>
+                                <span class="badge @(Model.IsMainShares ? "bg-success" : "bg-secondary")">
+                                    @(Model.IsMainShares ? "Enabled" : "Disabled")
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="feature-box">
+                                <i class="bi bi-shield-check @(Model.UsedToGuarantee ? "text-info" : "text-secondary")" style="font-size: 2rem;"></i>
+                                <p><strong>Used for Guarantee</strong></p>
+                                <span class="badge @(Model.UsedToGuarantee ? "bg-info" : "bg-secondary")">
+                                    @(Model.UsedToGuarantee ? "Enabled" : "Disabled")
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="feature-box">
+                                <i class="bi bi-arrow-left-right @(Model.UsedToOffset ? "text-warning" : "text-secondary")" style="font-size: 2rem;"></i>
+                                <p><strong>Used for Offset</strong></p>
+                                <span class="badge @(Model.UsedToOffset ? "bg-warning" : "bg-secondary")">
+                                    @(Model.UsedToOffset ? "Enabled" : "Disabled")
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="feature-box">
+                                <i class="bi bi-cash @(Model.Withdrawable ? "text-danger" : "text-secondary")" style="font-size: 2rem;"></i>
+                                <p><strong>Withdrawable</strong></p>
+                                <span class="badge @(Model.Withdrawable ? "bg-danger" : "bg-secondary")">
+                                    @(Model.Withdrawable ? "Enabled" : "Disabled")
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial Limits -->
+            <div class="card mt-3">
+                <div class="card-header bg-warning">
+                    <h5 class="card-title mb-0">Financial Limits & Ratios</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Minimum Amount</span>
+                                    <span class="info-box-number">@Model.MinAmount.ToString("N2")</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Maximum Amount</span>
+                                    <span class="info-box-number">@(Model.MaxAmount.HasValue? Model.MaxAmount.Value.ToString("N2") : "Unlimited")</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Interest Rate</span>
+                                    <span class="info-box-number">@(Model.Interest.HasValue? Model.Interest.Value.ToString("N2") + "%" : "N/A")</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Loan to Share Ratio</span>
+                                    <span class="info-box-number">@(Model.LoanToShareRatio.HasValue? Model.LoanToShareRatio.Value.ToString("N2") : "N/A")</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Place Period (Months)</span>
+                                    <span class="info-box-number">@(Model.PlacePeriod.HasValue? Model.PlacePeriod.Value.ToString() : "N/A")</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Priority Level</span>
+                                    <span class="info-box-number">@Model.Priority</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Settings -->
+            <div class="card mt-3">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">Additional Settings</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Lower Limit</span>
+                                    <span class="info-box-number">@Model.LowerLimit.ToString("N2")</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Else Ratio</span>
+                                    <span class="info-box-number">@Model.ElseRatio.ToString("N2")</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text">PPACC</span>
+                                    <span class="info-box-number">@(string.IsNullOrEmpty(Model.Ppacc) ? "N/A" : Model.Ppacc)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Is Share Capital</span>
+                                    <span class="info-box-number">
+                                        @if (Model.Issharecapital == 1)
+                                        {
+                                            <span class="badge bg-success">Yes</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">No</span>
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Loan Guarantee</span>
+                                    <span class="info-box-number">
+                                        @if (Model.Loanquaranto)
+                                        {
+                                            <span class="badge bg-info">Yes</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">No</span>
+                                        }
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="info-box bg-light">
+                                <div class="info-box-content">
+                                    <span class="info-box-text">Audit Date</span>
+                                    <span class="info-box-number">@(Model.AuditDateTime?.ToString("dd-MMM-yyyy HH:mm") ?? "N/A")</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    .feature-box {
+        text-align: center;
+        padding: 15px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        background: #f8f9fa;
+    }
+
+        .feature-box i {
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .feature-box p {
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+</style>

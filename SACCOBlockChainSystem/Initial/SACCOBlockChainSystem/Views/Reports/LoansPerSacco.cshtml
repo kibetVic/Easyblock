@@ -1,0 +1,591 @@
+﻿@using System.Security.Claims
+@model SACCOBlockChainSystem.Models.ViewModels.LoansPerSaccoIndexViewModel
+@{
+    ViewData["Title"] = "Loans Per SACCO Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var hasData = Model != null && Model.HasData;
+    var reportDate = Model?.ReportDate ?? (ViewBag.ReportDate as DateTime? ?? DateTime.Now);
+    var companyName = Model?.CompanyName ?? ViewBag.CompanyName ?? "";
+}
+
+<style media="print">
+    .app-sidebar, .app-header, .main-footer, .sidebar-wrapper, .navbar,
+    .breadcrumb, .footer, [data-lte-toggle="sidebar"], .brand-link,
+    .sidebar-footer, .no-print {
+        display: none !important;
+    }
+
+    .app-main, .app-content, .content-wrapper, .main-content {
+        margin-left: 0 !important;
+        padding: 20px !important;
+        width: 100% !important;
+    }
+
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .card-header {
+        background-color: #17a2b8 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+        .table th {
+            background-color: #f2f2f2 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+    .btn, .export-buttons, #exportExcelBtn, #exportPdfBtn {
+        display: none !important;
+    }
+
+    body {
+        background: white !important;
+        font-size: 11pt;
+    }
+
+    .bg-info {
+        background-color: #17a2b8 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+</style>
+
+<div class="card">
+    <div class="card-header bg-info text-white">
+        <h3 class="card-title">
+            <i class="fas fa-file-invoice me-2"></i>Loans Per SACCO Report
+        </h3>
+    </div>
+
+    <div class="card-body">
+        <!-- Filter Section - Hidden when printing -->
+        <div class="row mb-4 no-print">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Report Date</h5>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="LoansPerSacco" method="post" id="reportForm">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">As At Date</label>
+                                        <input type="date" name="reportDate" id="reportDate"
+                                               class="form-control"
+                                               value="@reportDate.ToString("yyyy-MM-dd")"
+                                               required />
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">&nbsp;</label>
+                                        <div>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-search me-1"></i>Generate Report
+                                            </button>
+                                            <button type="button" class="btn btn-success" id="exportExcelBtn" onclick="exportLoansPerSaccoToExcel(); return false;">
+                                                <i class="fas fa-file-excel me-1"></i>Excel
+                                            </button>
+                                            <button type="button" class="btn btn-danger" id="exportPdfBtn" onclick="exportLoansPerSaccoToPdf(); return false;">
+                                                <i class="fas fa-file-pdf me-1"></i>PDF
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Export Forms -->
+                        <form asp-action="ExportLoansPerSaccoToExcel" method="post" id="excelForm" style="display:none;">
+                            <input type="hidden" name="reportDate" id="excelReportDate" />
+                        </form>
+                        <form asp-action="ExportLoansPerSaccoToPdf" method="post" id="pdfForm" style="display:none;">
+                            <input type="hidden" name="reportDate" id="pdfReportDate" />
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (hasData)
+        {
+            <!-- SACCO Header -->
+            <div class="text-center mb-4">
+                <h2 class="display-6 fw-bold">@companyName.ToUpper()</h2>
+                <h4 class="text-muted">LOANS REPORT AS AT @reportDate.ToString("dd/MM/yyyy")</h4>
+                <hr class="my-3" />
+            </div>
+
+            <!-- Summary Cards -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="small-box bg-success">
+                        <div class="inner">
+                            <h3>@Model.TotalCompletedLoans</h3>
+                            <p>Completed Loans</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-warning">
+                        <div class="inner">
+                            <h3>@Model.TotalIncompleteLoans</h3>
+                            <p>Loans in Progress</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-spinner"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-info">
+                        <div class="inner">
+                            <h3>@Model.TotalLoans</h3>
+                            <p>Total Loans</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-file-invoice"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-danger">
+                        <div class="inner">
+                            <h3>@Model.TotalOutstandingBalance.ToString("N0")</h3>
+                            <p>Outstanding Balance</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-money-bill"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Completed Loans Section - Exactly as in the image -->
+            @if (Model.CompletedLoans.Any())
+            {
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <h4 class="fw-bold">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            COMPLETED LOANS: @Model.TotalCompletedLoans
+                        </h4>
+                    </div>
+                </div>
+
+                <div class="table-responsive mb-5">
+                    <table class="table table-bordered table-striped table-hover">
+                        <thead class="bg-success text-white">
+                            <tr>
+                                <th>MemberNo</th>
+                                <th>LoanNo</th>
+                                <th>Names</th>
+                                <th>LoanCode</th>
+                                <th>ApplicDate</th>
+                                <th class="text-center">RepayPeriod</th>
+                                <th class="text-end">LoanAmt</th>
+                                <th class="text-end">Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.CompletedLoans)
+                            {
+                                <tr>
+                                    <td>@item.MemberNo</td>
+                                    <td>@item.LoanNo</td>
+                                    <td>@item.FullName</td>
+                                    <td>@item.LoanCode</td>
+                                    <td>@item.ApplicDate?.ToString("dd/MM/yyyy")</td>
+                                    <td class="text-center">@item.RepayPeriod</td>
+                                    <td class="text-end">@item.LoanAmt.ToString("N2")</td>
+                                    <td class="text-end text-success fw-bold">@item.Balance.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="bg-light fw-bold">
+                            <tr>
+                                <td colspan="6" class="text-end">GRAND TOTAL:</td>
+                                <td class="text-end">@Model.TotalCompletedLoanAmount.ToString("N2")</td>
+                                <td class="text-end">0.00</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+
+            <!-- Incomplete Loans Section -->
+            @if (Model.IncompleteLoans.Any())
+            {
+                <div class="row mb-3">
+                    <div class="col-md-12">
+                        <h4 class="fw-bold">
+                            <i class="fas fa-spinner text-warning me-2"></i>
+                            LOANS IN PROGRESS: @Model.TotalIncompleteLoans
+                        </h4>
+                    </div>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped table-hover">
+                        <thead class="bg-warning">
+                            <tr>
+                                <th>MemberNo</th>
+                                <th>LoanNo</th>
+                                <th>Names</th>
+                                <th>LoanCode</th>
+                                <th>ApplicDate</th>
+                                <th class="text-center">RepayPeriod</th>
+                                <th class="text-end">LoanAmt</th>
+                                <th class="text-end">Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.IncompleteLoans)
+                            {
+                                <tr>
+                                    <td>@item.MemberNo</td>
+                                    <td>@item.LoanNo</td>
+                                    <td>@item.FullName</td>
+                                    <td>@item.LoanCode</td>
+                                    <td>@item.ApplicDate?.ToString("dd/MM/yyyy")</td>
+                                    <td class="text-center">@item.RepayPeriod</td>
+                                    <td class="text-end">@item.LoanAmt.ToString("N2")</td>
+                                    <td class="text-end text-danger fw-bold">@item.Balance.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="bg-light fw-bold">
+                            <tr>
+                                <td colspan="6" class="text-end">GRAND TOTAL:</td>
+                                <td class="text-end">@Model.TotalIncompleteLoanAmount.ToString("N2")</td>
+                                <td class="text-end text-danger">@Model.TotalOutstandingBalance.ToString("N2")</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+
+            <!-- Report Information -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="small text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Generated By: @User.Identity.Name on @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") |
+                        As At: @Model.ReportDate.ToString("dd/MM/yyyy") |
+                        Company: @companyName
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info text-center py-5">
+                <i class="fas fa-file-invoice fa-3x mb-3"></i>
+                <h5>No Loans Found</h5>
+                <p>There are no loans recorded in the system as at @reportDate.ToString("dd/MM/yyyy")
+                    <br>Select the date and click "Generate Report" to view loans data.</p>
+            </div>
+        }
+    </div>
+</div>
+ 
+@section Scripts {
+    <script>
+        (function() {
+            'use strict';
+
+            // DOM ready helper
+            function domReady(fn) {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', fn);
+                } else {
+                    fn();
+                }
+            }
+
+            domReady(function() {
+                // Get all required elements
+                const exportExcelBtn = document.getElementById('exportExcelBtn');
+                const exportPdfBtn = document.getElementById('exportPdfBtn');
+                const reportDate = document.getElementById('reportDate');
+                const excelReportDate = document.getElementById('excelReportDate');
+                const pdfReportDate = document.getElementById('pdfReportDate');
+                const excelForm = document.getElementById('excelForm');
+                const pdfForm = document.getElementById('pdfForm');
+                const reportForm = document.getElementById('reportForm');
+
+                // Export to Excel
+                if (exportExcelBtn) {
+                    exportExcelBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (!reportDate) {
+                            alert('Report date input not found');
+                            return;
+                        }
+
+                        const date = reportDate.value;
+                        if (!date) {
+                            alert('Please select a report date');
+                            return;
+                        }
+
+                        if (!excelReportDate) {
+                            alert('Excel form hidden input not found');
+                            return;
+                        }
+
+                        if (!excelForm) {
+                            alert('Excel form not found');
+                            return;
+                        }
+
+                        // Set the date value and submit
+                        excelReportDate.value = date;
+                        excelForm.submit();
+                    });
+                }
+
+                // Export to PDF
+                if (exportPdfBtn) {
+                    exportPdfBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (!reportDate) {
+                            alert('Report date input not found');
+                            return;
+                        }
+
+                        const date = reportDate.value;
+                        if (!date) {
+                            alert('Please select a report date');
+                            return;
+                        }
+
+                        if (!pdfReportDate) {
+                            alert('PDF form hidden input not found');
+                            return;
+                        }
+
+                        if (!pdfForm) {
+                            alert('PDF form not found');
+                            return;
+                        }
+
+                        // Set the date value and submit
+                        pdfReportDate.value = date;
+                        pdfForm.submit();
+                    });
+                }
+
+                // Handle report form submission
+                if (reportForm) {
+                    reportForm.addEventListener('submit', function(e) {
+                        if (!reportDate) return;
+
+                        const date = reportDate.value;
+                        if (!date) {
+                            e.preventDefault();
+                            alert('Please select a report date');
+                            return false;
+                        }
+                    });
+                }
+
+                // Add print button handler if not using onclick
+                const printBtn = document.querySelector('button[onclick="window.print()"]');
+                if (printBtn && !printBtn.hasAttribute('data-handler-attached')) {
+                    printBtn.setAttribute('data-handler-attached', 'true');
+                    // Already has onclick, but we can enhance it
+                    printBtn.addEventListener('click', function(e) {
+                        // Ensure print works
+                        setTimeout(function() {
+                            window.print();
+                        }, 100);
+                    });
+                }
+            });
+
+            // Global fallback functions - These will work even if event listeners fail
+            window.exportLoansPerSaccoToExcel = function() {
+                const reportDate = document.getElementById('reportDate');
+                const excelReportDate = document.getElementById('excelReportDate');
+                const excelForm = document.getElementById('excelForm');
+
+                if (!reportDate || !excelReportDate || !excelForm) {
+                    alert('Export form not properly configured');
+                    return false;
+                }
+
+                const date = reportDate.value;
+                if (!date) {
+                    alert('Please select a report date');
+                    return false;
+                }
+
+                excelReportDate.value = date;
+                excelForm.submit();
+                return false;
+            };
+
+            window.exportLoansPerSaccoToPdf = function() {
+                const reportDate = document.getElementById('reportDate');
+                const pdfReportDate = document.getElementById('pdfReportDate');
+                const pdfForm = document.getElementById('pdfForm');
+
+                if (!reportDate || !pdfReportDate || !pdfForm) {
+                    alert('Export form not properly configured');
+                    return false;
+                }
+
+                const date = reportDate.value;
+                if (!date) {
+                    alert('Please select a report date');
+                    return false;
+                }
+
+                pdfReportDate.value = date;
+                pdfForm.submit();
+                return false;
+            };
+
+            // Set onclick attributes as backup
+            domReady(function() {
+                const excelBtn = document.getElementById('exportExcelBtn');
+                const pdfBtn = document.getElementById('exportPdfBtn');
+
+                // Only set onclick if not already set and button exists
+                if (excelBtn && !excelBtn.hasAttribute('onclick')) {
+                    excelBtn.setAttribute('onclick', 'exportLoansPerSaccoToExcel(); return false;');
+                }
+
+                if (pdfBtn && !pdfBtn.hasAttribute('onclick')) {
+                    pdfBtn.setAttribute('onclick', 'exportLoansPerSaccoToPdf(); return false;');
+                }
+
+                // Add visual feedback for buttons
+                if (excelBtn) {
+                    excelBtn.addEventListener('click', function() {
+                        this.classList.add('btn-success');
+                        setTimeout(() => {
+                            this.classList.remove('btn-success');
+                            this.classList.add('btn-success');
+                        }, 200);
+                    });
+                }
+
+                if (pdfBtn) {
+                    pdfBtn.addEventListener('click', function() {
+                        this.classList.add('btn-danger');
+                        setTimeout(() => {
+                            this.classList.remove('btn-danger');
+                            this.classList.add('btn-danger');
+                        }, 200);
+                    });
+                }
+            });
+
+            // Debug helper - log when buttons are clicked
+            domReady(function() {
+                const excelBtn = document.getElementById('exportExcelBtn');
+                const pdfBtn = document.getElementById('exportPdfBtn');
+
+                if (excelBtn) {
+                    excelBtn.addEventListener('click', function() {
+                        console.log('Excel export initiated at:', new Date().toLocaleTimeString());
+                    });
+                }
+
+                if (pdfBtn) {
+                    pdfBtn.addEventListener('click', function() {
+                        console.log('PDF export initiated at:', new Date().toLocaleTimeString());
+                    });
+                }
+            });
+        })();
+    </script>
+}
+
+
+<style>
+    .small-box {
+        border-radius: 0.25rem;
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+        display: block;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+        .small-box > .inner {
+            padding: 10px;
+        }
+
+        .small-box h3 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 0 0 10px;
+            padding: 0;
+            white-space: nowrap;
+            color: white;
+        }
+
+        .small-box p {
+            color: white;
+            font-size: 1rem;
+        }
+
+        .small-box .icon {
+            color: rgba(0,0,0,0.15);
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            transition: all .3s linear;
+            z-index: 0;
+        }
+
+            .small-box .icon > i {
+                font-size: 70px;
+            }
+
+        .small-box:hover .icon {
+            font-size: 75px;
+        }
+
+    .bg-success {
+        background-color: #28a745 !important;
+    }
+
+    .bg-warning {
+        background-color: #ffc107 !important;
+        color: #212529 !important;
+    }
+
+    .bg-info {
+        background-color: #17a2b8 !important;
+    }
+
+    @@media (max-width: 767px) {
+        .small-box {
+            text-align: center;
+        }
+
+            .small-box .icon {
+                display: none;
+            }
+    }
+</style>

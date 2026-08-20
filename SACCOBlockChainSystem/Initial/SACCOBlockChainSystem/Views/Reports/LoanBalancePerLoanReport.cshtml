@@ -1,0 +1,197 @@
+@model SACCOBlockChainSystem.Models.ViewModels.LoanBalancePerLoanIndexViewModel
+@{
+    ViewData["Title"] = "Loan Balances Per Loan Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Loan Balances Per Loan Report</h4>
+        </div>
+        <div class="card-body">
+            <!-- Filter Form -->
+            <form method="post" class="mb-4">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">As At Date</label>
+                        <input type="date" name="asAtDate" class="form-control" value="@Model.AsAtDate.ToString("yyyy-MM-dd")" />
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">Generate Report</button>
+                        <button type="button" id="exportExcelBtn" class="btn btn-success me-2">Export to Excel</button>
+                        <button type="button" id="exportPdfBtn" class="btn btn-danger">Export to PDF</button>
+                    </div>
+                </div>
+            </form>
+
+            @if (Model.HasData)
+            {
+                <!-- Report Header -->
+                <div class="text-center mb-4">
+                    <h4>@Model.CompanyName.ToUpper()</h4>
+                    <h5>LOAN BALANCES PER LOAN AS AT @Model.AsAtDate.ToString("dd/MM/yyyy HH:mm:ss")</h5>
+                    <p>Printed By: @Model.PrintedBy On: @Model.GeneratedOn.ToString("dd-MMM-yyyy HH:mm")</p>
+                </div>
+
+                <!-- Statistics Summary -->
+                <div class="row mb-4">
+                    <div class="col-md-2">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h5>Total Loans</h5>
+                                <h3>@Model.TotalLoans.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h5>Active Loans</h5>
+                                <h3>@Model.ActiveLoansCount.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-2">
+                        <div class="card bg-secondary text-white">
+                            <div class="card-body text-center">
+                                <h5>Closed Loans</h5>
+                                <h3>@Model.ClosedLoansCount.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h5>Total Loan Balance</h5>
+                                <h3>@Model.TotalLoanBalance.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body text-center">
+                                <h5>Total Arrears</h5>
+                                <h3>@Model.TotalArrears.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="table-responsive">
+                    <table id="loanBalanceTable" class="table table-bordered table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>MemberNo</th>
+                                <th>Names</th>
+                                <th>LoanNo</th>
+                                <th>Loan Name</th>
+                                <th>Loan Code</th>
+                                <th class="text-end">Unpaid Interest</th>
+                                <th class="text-end">Paid Interest</th>
+                                <th class="text-end">Amount Issued</th>
+                                <th class="text-end">Loan Balance</th>
+                                <th class="text-end">Amount Paid</th>
+                                <th class="text-end">Arrears</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var loan in Model.Loans)
+                            {
+                                <tr>
+                                    <td>@loan.MemberNo</td>
+                                    <td>@loan.Names</td>
+                                    <td>@loan.LoanNo</td>
+                                    <td>@loan.LoanName</td>
+                                    <td>@loan.LoanCode</td>
+                                    <td class="text-end">@loan.UnpaidInterest.ToString("N2")</td>
+                                    <td class="text-end">@loan.PaidInterest.ToString("N2")</td>
+                                    <td class="text-end">@loan.AmountIssued.ToString("N2")</td>
+                                    <td class="text-end">@loan.LoanBalance.ToString("N2")</td>
+                                    <td class="text-end">@loan.AmountPaid.ToString("N2")</td>
+                                    <td class="text-end">@loan.Arrears.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-secondary fw-bold">
+                            <tr>
+                                <td colspan="5" class="text-end">GRAND TOTAL:</td>
+                                <td class="text-end">@Model.TotalUnpaidInterest.ToString("N2")</td>
+                                <td class="text-end">@Model.TotalPaidInterest.ToString("N2")</td>
+                                <td class="text-end">@Model.TotalAmountIssued.ToString("N2")</td>
+                                <td class="text-end">@Model.TotalLoanBalance.ToString("N2")</td>
+                                <td class="text-end">@Model.TotalAmountPaid.ToString("N2")</td>
+                                <td class="text-end">@Model.TotalArrears.ToString("N2")</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info text-center">
+                    @(ViewBag.Message ?? "No data found for the selected date. Please select a date and click 'Generate Report'.")
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
+
+    <script>
+        $(document).ready(function() {
+            $('#loanBalanceTable').DataTable({
+                pageLength: 25,
+                order: [[3, 'asc']], // Sort by Loan Name
+                language: {
+                    search: "Search:",
+                    lengthMenu: "Show _MENU_ entries per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ entries"
+                }
+            });
+
+            // Export to Excel
+            $('#exportExcelBtn').click(function() {
+                var asAtDate = $('input[name="asAtDate"]').val();
+                if (!asAtDate) {
+                    alert('Please select a date first');
+                    return;
+                }
+                var form = $('<form>', {
+                    'method': 'post',
+                    'action': '@Url.Action("ExportLoanBalancePerLoanToExcel", "LoanReport")'
+                });
+                form.append($('<input>', {
+                    'type': 'hidden',
+                    'name': 'asAtDate',
+                    'value': asAtDate
+                }));
+                form.appendTo('body').submit();
+            });
+
+            // Export to PDF
+            $('#exportPdfBtn').click(function() {
+                var asAtDate = $('input[name="asAtDate"]').val();
+                if (!asAtDate) {
+                    alert('Please select a date first');
+                    return;
+                }
+                var form = $('<form>', {
+                    'method': 'post',
+                    'action': '@Url.Action("ExportLoanBalancePerLoanToPdf", "LoanReport")'
+                });
+                form.append($('<input>', {
+                    'type': 'hidden',
+                    'name': 'asAtDate',
+                    'value': asAtDate
+                }));
+                form.appendTo('body').submit();
+            });
+        });
+    </script>
+}

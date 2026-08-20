@@ -1,0 +1,800 @@
+﻿@using System.Security.Claims
+@model IEnumerable<SACCOBlockChainSystem.Models.ViewModels.LoanIssuedReportViewModel>
+@{
+    ViewData["Title"] = "Loans Issued Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var hasData = Model != null && Model.Any();
+    var startDate = ViewBag.StartDate as DateTime? ?? DateTime.Now.AddMonths(-1);
+    var endDate = ViewBag.EndDate as DateTime? ?? DateTime.Now;
+}
+
+<!-- Print-friendly CSS -->
+<style media="print">
+    /* Hide sidebar, header, footer and navigation elements */
+    .app-sidebar,
+    .app-header,
+    .main-footer,
+    .sidebar-wrapper,
+    .navbar,
+    .breadcrumb,
+    .footer,
+    [data-lte-toggle="sidebar"],
+    .brand-link,
+    .sidebar-footer,
+    .no-print {
+        display: none !important;
+    }
+
+    /* Adjust main content for printing */
+    .app-main,
+    .app-content,
+    .content-wrapper,
+    .main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+        width: 100% !important;
+    }
+
+    /* Card styling for print */
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .card-header {
+        background-color: #007bff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Table styling for print */
+    .table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+        .table th {
+            background-color: #f2f2f2 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+    /* Hide buttons when printing */
+    .btn,
+    .export-buttons,
+    #exportExcelBtn,
+    #exportPdfBtn,
+    .dt-buttons,
+    .dataTables_filter,
+    .dataTables_length,
+    .dataTables_info,
+    .dataTables_paginate {
+        display: none !important;
+    }
+
+    /* Full width */
+    .container-fluid {
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    /* Table overflow */
+    .table-responsive {
+        overflow: visible !important;
+    }
+
+    /* Page break settings */
+    table {
+        page-break-inside: auto;
+    }
+
+    tr {
+        page-break-inside: avoid;
+        page-break-after: auto;
+    }
+
+    thead {
+        display: table-header-group;
+    }
+
+    tfoot {
+        display: table-footer-group;
+    }
+
+    /* Body print settings */
+    body {
+        background: white !important;
+        font-size: 11pt;
+    }
+
+    a {
+        text-decoration: none !important;
+    }
+
+    /* Ensure colors print correctly */
+    .bg-primary {
+        background-color: #007bff !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .text-white {
+        color: white !important;
+    }
+
+    .bg-light {
+        background-color: #f8f9fa !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+</style>
+
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h3 class="card-title">
+            <i class="fas fa-file-invoice me-2"></i>Loans Issued Report
+        </h3>
+    </div>
+
+    <div class="card-body">
+        <!-- Date Range Filter - Hidden when printing -->
+        <div class="row mb-4 no-print">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Filter by Date Issued</h5>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="LoansIssued" method="post" id="reportForm">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">Start Date</label>
+                                        <input type="date" name="startDate" id="startDate"
+                                               class="form-control"
+                                               value="@startDate.ToString("yyyy-MM-dd")"
+                                               required />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">End Date</label>
+                                        <input type="date" name="endDate" id="endDate"
+                                               class="form-control"
+                                               value="@endDate.ToString("yyyy-MM-dd")"
+                                               required />
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">&nbsp;</label>
+                                        <div>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-search me-1"></i>Generate Report
+                                            </button>
+                                            <button type="button" class="btn btn-success" id="exportExcelBtn" onclick="exportLoansToExcel(); return false;">
+                                                <i class="fas fa-file-excel me-1"></i>Excel
+                                            </button>
+                                            <button type="button" class="btn btn-danger" id="exportPdfBtn" onclick="exportLoansToPdf(); return false;">
+                                                <i class="fas fa-file-pdf me-1"></i>PDF
+                                            </button>
+                                             
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Export Forms -->
+                        <form asp-action="ExportToExcel" method="post" id="excelForm" style="display:none;">
+                            <input type="hidden" name="startDate" id="excelStartDate" />
+                            <input type="hidden" name="endDate" id="excelEndDate" />
+                        </form>
+                        <form asp-action="ExportToPdf" method="post" id="pdfForm" style="display:none;">
+                            <input type="hidden" name="startDate" id="pdfStartDate" />
+                            <input type="hidden" name="endDate" id="pdfEndDate" />
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (hasData)
+        {
+            <!-- Summary Cards - Hidden when printing -->
+            <div class="row mb-4 no-print">
+                <div class="col-md-3">
+                    <div class="small-box bg-info">
+                        <div class="inner">
+                            <h3>@Model.Count()</h3>
+                            <p>Total Loans Issued</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-file-invoice"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-success">
+                        <div class="inner">
+                            <h3>@(ViewBag.TotalLoanApplied?.ToString("N0") ?? "0")</h3>
+                            <p>Total Loan Applied</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-money-bill"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-warning">
+                        <div class="inner">
+                            <h3>@(ViewBag.TotalApprovedAmount?.ToString("N0") ?? "0")</h3>
+                            <p>Total Approved Amount</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-danger">
+                        <div class="inner">
+                            @{
+                                var approvalRate = ViewBag.TotalLoanApplied != null && ViewBag.TotalLoanApplied > 0
+                                ? (ViewBag.TotalApprovedAmount / ViewBag.TotalLoanApplied * 100)
+                                : 0;
+                            }
+                            <h3>@approvalRate.ToString("N2")%</h3>
+                            <p>Approval Rate</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-percentage"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Report Period - Always show -->
+        <div class="alert @(hasData ? "alert-info" : "alert-secondary")">
+            <i class="fas fa-calendar-alt me-2"></i>
+            <strong>Report Period:</strong> @startDate.ToString("dd/MM/yyyy") - @endDate.ToString("dd/MM/yyyy")
+            <span class="ms-3"><strong>Generated:</strong> @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss")</span>
+            @if (!hasData)
+            {
+                <span class="ms-3 badge bg-warning">No records found for this period</span>
+            }
+        </div>
+
+        <!-- Loans Table - Always show table structure -->
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped table-hover" id="loansTable">
+                <thead class="text-black">
+                    <tr>
+                        <th class="text-center" style="width: 50px;">No.</th>
+                        <th>Member No</th>
+                        <th>Loan No</th>
+                        <th>Member Name</th>
+                        <th>Application Date</th>
+                        <th>Appraisal Date</th>
+                        <th>Endorsement Date</th>
+                        <th>Date Issued</th>
+                        <th class="text-end">Period (Months)</th>
+                        <th class="text-end">Loan Applied</th>
+                        <th class="text-end">Approved Amount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (hasData)
+                    {
+                        int counter = 1;
+                        @foreach (var item in Model)
+                        {
+                            <tr>
+                                <td class="text-center">@counter</td>
+                                <td>@item.MemberNo</td>
+                                <td>@item.LoanNo</td>
+                                <td>@item.Name</td>
+                                <td>@item.ApplicationDate?.ToString("dd/MM/yyyy")</td>
+                                <td>@item.AppraisalDate?.ToString("dd/MM/yyyy")</td>
+                                <td>@item.EndorsementDate?.ToString("dd/MM/yyyy")</td>
+                                <td>@item.DateIssued?.ToString("dd/MM/yyyy")</td>
+                                <td class="text-end">@item.LoanPeriodMonths</td>
+                                <td class="text-end">@item.LoanApplied.ToString("N2")</td>
+                                <td class="text-end">@item.ApprovedAmount.ToString("N2")</td>
+                            </tr>
+                            counter++;
+                        }
+                    }
+                    else
+                    {
+                        <!-- Empty row with dashes to show structure when no data -->
+                        <tr>
+                            <td class="text-center">-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td>-</td>
+                            <td class="text-end">-</td>
+                            <td class="text-end">-</td>
+                            <td class="text-end">-</td>
+                        </tr>
+                    }
+                </tbody>
+                @if (hasData)
+                {
+                    <tfoot class="bg-light fw-bold">
+                        <tr>
+                            <td colspan="9" class="text-end">GRAND TOTALS:</td>
+                            <td class="text-end text-primary">@(ViewBag.TotalLoanApplied?.ToString("N2") ?? "0.00")</td>
+                            <td class="text-end text-success">@(ViewBag.TotalApprovedAmount?.ToString("N2") ?? "0.00")</td>
+                        </tr>
+                    </tfoot>
+                }
+            </table>
+        </div>
+
+        @if (hasData)
+        {
+            <!-- Additional Statistics -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Summary Statistics</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td width="60%">Average Loan Applied:</td>
+                                    <td class="text-end fw-bold">@(Model.Average(l => l.LoanApplied).ToString("N2"))</td>
+                                </tr>
+                                <tr>
+                                    <td>Average Approved Amount:</td>
+                                    <td class="text-end fw-bold">@(Model.Average(l => l.ApprovedAmount).ToString("N2"))</td>
+                                </tr>
+                                <tr>
+                                    <td>Average Loan Period:</td>
+                                    <td class="text-end fw-bold">@(Model.Average(l => l.LoanPeriodMonths).ToString("N1")) Months</td>
+                                </tr>
+                                <tr>
+                                    <td>Highest Loan Applied:</td>
+                                    <td class="text-end fw-bold">@(Model.Max(l => l.LoanApplied).ToString("N2"))</td>
+                                </tr>
+                                <tr>
+                                    <td>Highest Approved Amount:</td>
+                                    <td class="text-end fw-bold">@(Model.Max(l => l.ApprovedAmount).ToString("N2"))</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Report Information</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td width="40%">Generated By:</td>
+                                    <td class="fw-bold">
+                                        @{
+                                            var userName = User.Identity.IsAuthenticated ? User.Identity.Name : "System";
+                                        }
+                                        @userName
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Company:</td>
+                                    <td class="fw-bold">
+                                        @{
+                                            var companyName = "N/A";
+                                            if (User.Identity.IsAuthenticated)
+                                            {
+                                                var claim = User.FindFirst("CompanyName");
+                                                if (claim != null)
+                                                {
+                                                    companyName = claim.Value;
+                                                }
+                                            }
+                                        }
+                                        @companyName
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Company Code:</td>
+                                    <td class="fw-bold">
+                                        @{
+                                            var companyCode = "N/A";
+                                            if (User.Identity.IsAuthenticated)
+                                            {
+                                                var claim = User.FindFirst("CompanyCode");
+                                                if (claim != null)
+                                                {
+                                                    companyCode = claim.Value;
+                                                }
+                                            }
+                                        }
+                                        @companyCode
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>Total Records:</td>
+                                    <td class="fw-bold">@(hasData? Model.Count().ToString() : "0")</td>
+                                </tr>
+                                <tr>
+                                    <td>Report Period:</td>
+                                    <td class="fw-bold">@startDate.ToString("dd/MM/yyyy") - @endDate.ToString("dd/MM/yyyy")</td>
+                                </tr>
+                                <tr>
+                                    <td>Export Format:</td>
+                                    <td>
+                                        <span class="badge bg-success">Excel</span>
+                                        <span class="badge bg-danger">PDF</span> 
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function() {
+            'use strict';
+
+            function domReady(fn) {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', fn);
+                } else {
+                    fn();
+                }
+            }
+
+            domReady(function() {
+                // Get all required elements
+                const exportExcelBtn = document.getElementById('exportExcelBtn');
+                const exportPdfBtn = document.getElementById('exportPdfBtn');
+                const startDate = document.getElementById('startDate');
+                const endDate = document.getElementById('endDate');
+                const excelStartDate = document.getElementById('excelStartDate');
+                const excelEndDate = document.getElementById('excelEndDate');
+                const pdfStartDate = document.getElementById('pdfStartDate');
+                const pdfEndDate = document.getElementById('pdfEndDate');
+                const excelForm = document.getElementById('excelForm');
+                const pdfForm = document.getElementById('pdfForm');
+                const loansTable = document.getElementById('loansTable');
+
+                // Date validation function
+                function validateDates() {
+                    if (!startDate || !endDate) return false;
+
+                    const start = new Date(startDate.value);
+                    const end = new Date(endDate.value);
+
+                    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+                        alert('Please enter valid dates');
+                        return false;
+                    }
+
+                    if (start > end) {
+                        alert('Start date cannot be greater than end date');
+                        return false;
+                    }
+
+                    return true;
+                }
+
+                // Initialize datepickers with change validation
+                if (startDate) {
+                    startDate.addEventListener('change', validateDates);
+                }
+
+                if (endDate) {
+                    endDate.addEventListener('change', validateDates);
+                }
+
+                // Export to Excel
+                if (exportExcelBtn) {
+                    exportExcelBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+
+                        if (!validateDates()) return;
+
+                        if (!startDate || !endDate) {
+                            alert('Date inputs not found');
+                            return;
+                        }
+
+                        const sDate = startDate.value;
+                        const eDate = endDate.value;
+
+                        if (!sDate || !eDate) {
+                            alert('Please select both start and end dates');
+                            return;
+                        }
+
+                        if (!excelStartDate || !excelEndDate || !excelForm) {
+                            alert('Export form not properly configured');
+                            return;
+                        }
+
+                        excelStartDate.value = sDate;
+                        excelEndDate.value = eDate;
+                        excelForm.submit();
+                    });
+                }
+
+                // Export to PDF
+                if (exportPdfBtn) {
+                    exportPdfBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+
+                        if (!validateDates()) return;
+
+                        if (!startDate || !endDate) {
+                            alert('Date inputs not found');
+                            return;
+                        }
+
+                        const sDate = startDate.value;
+                        const eDate = endDate.value;
+
+                        if (!sDate || !eDate) {
+                            alert('Please select both start and end dates');
+                            return;
+                        }
+
+                        if (!pdfStartDate || !pdfEndDate || !pdfForm) {
+                            alert('Export form not properly configured');
+                            return;
+                        }
+
+                        pdfStartDate.value = sDate;
+                        pdfEndDate.value = eDate;
+                        pdfForm.submit();
+                    });
+                }
+
+                // Handle report form submission
+                const reportForm = document.getElementById('reportForm');
+                if (reportForm) {
+                    reportForm.addEventListener('submit', function(e) {
+                        if (!validateDates()) {
+                            e.preventDefault();
+                        }
+                    });
+                }
+
+                // Initialize DataTable if available
+                @if (hasData)
+                {
+                        <text>
+                        if (loansTable && typeof $.fn !== 'undefined' && $.fn.DataTable) {
+                            try {
+                                const table = $(loansTable).DataTable({
+                                    pageLength: 25,
+                                    ordering: true,
+                                    dom: 'Bfrtip',
+                                    buttons: [
+                                        {
+                                            extend: 'copy',
+                                            text: '<i class="fas fa-copy"></i> Copy',
+                                            className: 'btn btn-sm btn-secondary'
+                                        },
+                                        {
+                                            extend: 'csv',
+                                            text: '<i class="fas fa-file-csv"></i> CSV',
+                                            className: 'btn btn-sm btn-info'
+                                        },
+                                        {
+                                            extend: 'print',
+                                            text: '<i class="fas fa-print"></i> Print',
+                                            className: 'btn btn-sm btn-primary'
+                                        }
+                                    ],
+                                    responsive: true,
+                                    language: {
+                                        search: "Search:",
+                                        lengthMenu: "Show _MENU_ entries",
+                                        info: "Showing _START_ to _END_ of _TOTAL_ entries"
+                                    }
+                                });
+                            } catch (error) {
+                                console.error('DataTable initialization error:', error);
+                            }
+                        }
+                        </text>
+                }
+            });
+
+            // Global fallback functions
+            window.exportLoansToExcel = function() {
+                const startDate = document.getElementById('startDate');
+                const endDate = document.getElementById('endDate');
+                const excelStartDate = document.getElementById('excelStartDate');
+                const excelEndDate = document.getElementById('excelEndDate');
+                const excelForm = document.getElementById('excelForm');
+
+                if (!startDate || !endDate || !excelStartDate || !excelEndDate || !excelForm) {
+                    alert('Export form not found');
+                    return;
+                }
+
+                const sDate = startDate.value;
+                const eDate = endDate.value;
+
+                if (!sDate || !eDate) {
+                    alert('Please select both start and end dates');
+                    return;
+                }
+
+                if (new Date(sDate) > new Date(eDate)) {
+                    alert('Start date cannot be greater than end date');
+                    return;
+                }
+
+                excelStartDate.value = sDate;
+                excelEndDate.value = eDate;
+                excelForm.submit();
+            };
+
+            window.exportLoansToPdf = function() {
+                const startDate = document.getElementById('startDate');
+                const endDate = document.getElementById('endDate');
+                const pdfStartDate = document.getElementById('pdfStartDate');
+                const pdfEndDate = document.getElementById('pdfEndDate');
+                const pdfForm = document.getElementById('pdfForm');
+
+                if (!startDate || !endDate || !pdfStartDate || !pdfEndDate || !pdfForm) {
+                    alert('Export form not found');
+                    return;
+                }
+
+                const sDate = startDate.value;
+                const eDate = endDate.value;
+
+                if (!sDate || !eDate) {
+                    alert('Please select both start and end dates');
+                    return;
+                }
+
+                if (new Date(sDate) > new Date(eDate)) {
+                    alert('Start date cannot be greater than end date');
+                    return;
+                }
+
+                pdfStartDate.value = sDate;
+                pdfEndDate.value = eDate;
+                pdfForm.submit();
+            };
+
+            // Set onclick attributes as backup
+            domReady(function() {
+                const excelBtn = document.getElementById('exportExcelBtn');
+                const pdfBtn = document.getElementById('exportPdfBtn');
+
+                if (excelBtn && !excelBtn.hasAttribute('onclick')) {
+                    excelBtn.setAttribute('onclick', 'exportLoansToExcel(); return false;');
+                }
+
+                if (pdfBtn && !pdfBtn.hasAttribute('onclick')) {
+                    pdfBtn.setAttribute('onclick', 'exportLoansToPdf(); return false;');
+                }
+            });
+        })();
+    </script>
+}
+
+<style>
+    /* Small box styling */
+    .small-box {
+        border-radius: 0.25rem;
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+        display: block;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+        .small-box > .inner {
+            padding: 10px;
+        }
+
+        .small-box > .small-box-footer {
+            background: rgba(0,0,0,0.1);
+            color: rgba(255,255,255,0.8);
+            display: block;
+            padding: 3px 0;
+            position: relative;
+            text-align: center;
+            text-decoration: none;
+            z-index: 10;
+        }
+
+            .small-box > .small-box-footer:hover {
+                background: rgba(0,0,0,0.15);
+                color: #fff;
+            }
+
+        .small-box h3 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin: 0 0 10px;
+            padding: 0;
+            white-space: nowrap;
+            color: white;
+        }
+
+        .small-box p {
+            color: white;
+            font-size: 1rem;
+        }
+
+        .small-box .icon {
+            color: rgba(0,0,0,0.15);
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            transition: all .3s linear;
+            z-index: 0;
+        }
+
+            .small-box .icon > i {
+                font-size: 70px;
+            }
+
+        .small-box:hover .icon {
+            font-size: 75px;
+        }
+
+    @@media (max-width: 767px) {
+        .small-box
+
+    {
+        text-align: center;
+    }
+
+    .small-box .icon {
+        display: none;
+    }
+
+    .small-box p {
+        font-size: 12px;
+    }
+
+    }
+
+    /* Table styling */
+    .table thead th {
+        vertical-align: middle;
+    }
+
+    .table tfoot td {
+        font-weight: bold;
+    }
+
+    .btn-group .btn {
+        margin-right: 5px;
+    }
+
+    .dataTables_filter {
+        margin-bottom: 10px;
+    }
+
+    .dataTables_length {
+        margin-bottom: 10px;
+    }
+
+    .dt-buttons {
+        margin-bottom: 10px;
+    }
+</style>

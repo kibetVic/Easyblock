@@ -1,0 +1,290 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.MemberWithdrawalDTO
+@{
+    ViewData["Title"] = "Edit Withdrawal Request";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var member = ViewBag.Member as SACCOBlockChainSystem.Models.Member;
+    var calculation = ViewBag.Calculation as SACCOBlockChainSystem.Models.DTOs.WithdrawalCalculationDTO;
+    var memberNo = ViewBag.MemberNo as string;
+    var memberName = ViewBag.MemberName as string;
+    var withdrawalNo = ViewBag.WithdrawalNo as string;
+    var netPayableAmount = ViewBag.NetPayableAmount as decimal? ?? 0;
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center">
+                <a asp-action="Details" asp-route-id="@ViewContext.RouteData.Values["id"]" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Back to Details
+                </a>
+                <h2 class="page-title mb-0">
+                    <i class="bi bi-pencil-square me-2"></i>Edit Withdrawal Request
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle-fill me-2"></i>
+        Editing withdrawal: <strong>@withdrawalNo</strong>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <!-- Left Column - Member Summary -->
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-person-badge me-2"></i>Member Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted">Withdrawal Number:</label>
+                        <p class="fw-bold mb-0">@withdrawalNo</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted">Member Number:</label>
+                        <p class="fw-bold mb-0">@memberNo</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted">Full Name:</label>
+                        <p class="fw-bold mb-0">@memberName</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted">ID Number:</label>
+                        <p class="mb-0">@member?.Idno</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted">Phone:</label>
+                        <p class="mb-0">@member?.PhoneNo</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-calculator me-2"></i>Withdrawal Calculation
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="text-muted">Total Shares Value:</label>
+                        <p class="fw-bold mb-0 text-primary">KES @calculation?.TotalSharesValue.ToString("N2")</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted">Total Deposits:</label>
+                        <p class="fw-bold mb-0 text-primary">KES @calculation?.TotalDeposits.ToString("N2")</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted text-danger">Outstanding Loans:</label>
+                        <p class="fw-bold mb-0 text-danger">KES @calculation?.OutstandingLoans.ToString("N2")</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="text-muted">Penalties/Deductions:</label>
+                        <p class="fw-bold mb-0 text-danger">KES @calculation?.PenaltiesAndDeductions.ToString("N2")</p>
+                    </div>
+                    <hr />
+                    <div class="mb-3">
+                        <label class="fw-bold">Current Net Payable Amount:</label>
+                        <p class="fw-bold mb-0 text-success fs-4">KES @netPayableAmount.ToString("N2")</p>
+                    </div>
+                    @if (calculation?.NetPayableAmount != netPayableAmount && calculation != null)
+                    {
+                        <div class="alert alert-warning mt-2">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <strong>Note:</strong> The calculated amount has changed to <strong>KES @calculation.NetPayableAmount.ToString("N2")</strong> due to recent transactions.
+                        </div>
+                    }
+                    @if (!calculation.IsEligibleForWithdrawal)
+                    {
+                        <div class="alert alert-warning mt-3">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            @calculation.EligibilityMessage
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Column - Edit Form -->
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-pencil-square me-2"></i>Edit Withdrawal Details
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@ViewContext.RouteData.Values["id"]" />
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" style="display: none;"></div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="WithdrawalType" class="form-label fw-bold">Withdrawal Type *</label>
+                                <select asp-for="WithdrawalType" class="form-select" required>
+                                    <option value="Voluntary">Voluntary</option>
+                                    <option value="Retirement">Retirement</option>
+                                    <option value="Transfer">Transfer to Another SACCO</option>
+                                </select>
+                                <span asp-validation-for="WithdrawalType" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="WithdrawalDate" class="form-label fw-bold">Withdrawal Date *</label>
+                                <input asp-for="WithdrawalDate" type="date" class="form-control" required />
+                                <span asp-validation-for="WithdrawalDate" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label asp-for="PaymentMethod" class="form-label fw-bold">Payment Method</label>
+                                <select asp-for="PaymentMethod" class="form-select" id="paymentMethod">
+                                    <option value="">-- Select Payment Method --</option>
+                                    <option value="Bank Transfer">Bank Transfer</option>
+                                    <option value="Cheque">Cheque</option>
+                                    <option value="Cash">Cash</option>
+                                    <option value="Mobile Money">Mobile Money</option>
+                                </select>
+                                <span asp-validation-for="PaymentMethod" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Bank Transfer Details -->
+                        <div id="bankDetails" style="display: none;">
+                            <div class="card bg-light mb-3">
+                                <div class="card-header">
+                                    <i class="bi bi-building me-2"></i>Bank Transfer Details
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label asp-for="BankName" class="form-label">Bank Name</label>
+                                            <input asp-for="BankName" class="form-control" />
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label asp-for="BankAccountNo" class="form-label">Account Number</label>
+                                            <input asp-for="BankAccountNo" class="form-control" />
+                                        </div>
+                                        <div class="col-md-12 mb-3">
+                                            <label asp-for="AccountName" class="form-label">Account Name</label>
+                                            <input asp-for="AccountName" class="form-control" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cheque Details -->
+                        <div id="chequeDetails" style="display: none;">
+                            <div class="card bg-light mb-3">
+                                <div class="card-header">
+                                    <i class="bi bi-journal me-2"></i>Cheque Details
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <label asp-for="ChequeNo" class="form-label">Cheque Number</label>
+                                            <input asp-for="ChequeNo" class="form-control" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Mobile Money Details -->
+                        <div id="mobileDetails" style="display: none;">
+                            <div class="card bg-light mb-3">
+                                <div class="card-header">
+                                    <i class="bi bi-phone me-2"></i>Mobile Money Details
+                                </div>
+                                <div class="card-body">
+                                    <div class="row">
+                                        <div class="col-md-12 mb-3">
+                                            <label asp-for="MobileNo" class="form-label">Mobile Number</label>
+                                            <input asp-for="MobileNo" class="form-control" placeholder="0712345678" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label asp-for="Remarks" class="form-label">Remarks</label>
+                                <textarea asp-for="Remarks" class="form-control" rows="3" placeholder="Any additional information..."></textarea>
+                                <span asp-validation-for="Remarks" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label asp-for="DocumentPath" class="form-label">Supporting Document</label>
+                                <input asp-for="DocumentPath" class="form-control" placeholder="Path to uploaded document" />
+                                <small class="text-muted">Upload the withdrawal application letter or other supporting documents</small>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning mt-3">
+                            <i class="bi bi-info-circle-fill me-2"></i>
+                            <strong>Note:</strong> Editing this withdrawal will update the request. The withdrawal will remain in pending status until approved.
+                        </div>
+
+                        <hr />
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a asp-action="Details" asp-route-id="@ViewContext.RouteData.Values["id"]" class="btn btn-secondary">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save me-2"></i>Save Changes
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function() {
+            // Initialize payment method display based on current value
+            var currentMethod = $('#paymentMethod').val();
+            if (currentMethod) {
+                showPaymentDetails(currentMethod);
+            }
+
+            $('#paymentMethod').on('change', function() {
+                var method = $(this).val();
+                showPaymentDetails(method);
+            });
+        });
+
+        function showPaymentDetails(method) {
+            $('#bankDetails, #chequeDetails, #mobileDetails').hide();
+
+            if (method === 'Bank Transfer') {
+                $('#bankDetails').show();
+            } else if (method === 'Cheque') {
+                $('#chequeDetails').show();
+            } else if (method === 'Mobile Money') {
+                $('#mobileDetails').show();
+            }
+        }
+    </script>
+}

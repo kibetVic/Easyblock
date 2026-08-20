@@ -1,0 +1,151 @@
+﻿@model IEnumerable<dynamic>
+@{
+    ViewData["Title"] = "Loans Needing Guarantors";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var maxGuarantors = ViewBag.MaxGuarantors as int? ?? 5;
+}
+
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex align-items-center mb-4">
+                <a asp-action="AllLoans" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Back to Dashboard
+                </a>
+                <h2 class="page-title mb-0">
+                    <i class="bi bi-people me-2"></i>Loans Needing Guarantors
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info text-center py-5">
+            <i class="bi bi-info-circle fs-1"></i>
+            <h5 class="mt-3">No loans currently need guarantors</h5>
+            <p class="mb-0">All loans requiring guarantors have been fully assigned.</p>
+            <p class="mt-2 text-muted">Maximum of @maxGuarantors guarantor(s) allowed per loan.</p>
+            <hr />
+            <p class="mt-2">To assign guarantors, loans must be in <strong>Draft</strong> or <strong>Submitted</strong> status.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="bi bi-list-check me-2"></i>Loans Requiring Guarantor Assignment
+                </h5>
+                <small class="text-muted">Maximum @maxGuarantors guarantor(s) allowed per loan</small>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Loan No</th>
+                                <th>Member</th>
+                                <th>Loan Type</th>
+                                <th>Amount</th>
+                                <th>Loan Status</th>
+                                <th>Guarantors Progress</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var loan in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@loan.LoanNo</strong>
+                                    </td>
+                                    <td>@loan.MemberName</td>
+                                    <td>@loan.LoanType</td>
+                                    <td class="text-end">KES @loan.PrincipalAmount.ToString("N0")</td>
+                                    <td>
+                                        <span class="badge @(loan.LoanStatus == "Draft" ? "bg-warning" : "bg-info")">
+                                            @loan.LoanStatus
+                                        </span>
+                                    </td>
+                                    <td style="min-width: 180px;">
+                                        <div class="d-flex align-items-center">
+                                            <div class="progress flex-grow-1" style="height: 8px;">
+                                                @{
+                                                    var percentage = loan.RequiredGuarantors > 0 ?
+                                                    (loan.ApprovedGuarantors * 100 / loan.RequiredGuarantors) : 0;
+                                                }
+                                                <div class="progress-bar @(percentage == 100 ? "bg-success" : "bg-info")"
+                                                     role="progressbar" style="width: @percentage%;">
+                                                </div>
+                                            </div>
+                                            <span class="ms-2 small">
+                                                @loan.ApprovedGuarantors / @loan.RequiredGuarantors Approved
+                                            </span>
+                                        </div>
+                                        <small class="text-muted">
+                                            Assigned: @loan.AssignedGuarantors | Remaining: @loan.RemainingRequired
+                                        </small>
+                                    </td>
+                                    <td>
+                                        @if (loan.RemainingRequired > 0)
+                                        {
+                                            <span class="badge bg-warning">
+                                                <i class="bi bi-exclamation-triangle"></i> Needs @loan.RemainingRequired
+                                            </span>
+                                        }
+                                        else if (loan.ApprovedGuarantors < loan.RequiredGuarantors)
+                                        {
+                                            <span class="badge bg-info">
+                                                <i class="bi bi-hourglass-split"></i> Awaiting Approval
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">
+                                                <i class="bi bi-check-circle"></i> Ready to Submit
+                                            </span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <a asp-action="AssignGuarantor"
+                                           asp-route-loanNo="@loan.LoanNo"
+                                           class="btn btn-sm btn-primary">
+                                            <i class="bi bi-person-plus"></i> Manage Guarantors
+                                        </a>
+                                        @if (loan.ApprovedGuarantors == loan.RequiredGuarantors && loan.RequiredGuarantors > 0)
+                                        {
+                                            <form asp-action="SubmitWithGuarantors" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="loanNo" value="@loan.LoanNo" />
+                                                <button type="submit" class="btn btn-sm btn-success">
+                                                    <i class="bi bi-check-circle"></i> Submit
+                                                </button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="alert alert-info mt-3">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <strong>Note:</strong> Only loans in <strong>Draft</strong> or <strong>Submitted</strong> status can have guarantors assigned.
+            Once guarantors are assigned and approved, you can submit the loan for processing.
+        </div>
+    }
+</div>

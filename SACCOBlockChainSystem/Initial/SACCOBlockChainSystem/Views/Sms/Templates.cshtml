@@ -1,0 +1,421 @@
+﻿@model List<SACCOBlockChainSystem.Models.SmsTemplate>
+@{
+    ViewData["Title"] = "SMS Templates";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <a asp-action="Index" class="btn btn-outline-secondary me-3">
+                        <i class="bi bi-arrow-left"></i> Back to Messages
+                    </a>
+                    <h2 class="page-title d-inline-block mb-0">
+                        <i class="bi bi-file-text me-2"></i>SMS Templates
+                    </h2>
+                </div>
+                <a asp-action="CreateTemplate" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>Create Template
+                </a>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-table me-2"></i>SMS Templates
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="templatesTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Template Code</th>
+                            <th>Template Name</th>
+                            <th>Description</th>
+                            <th>Content Preview</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                    </thead>
+                    <tbody>
+                        @if (Model.Any())
+                        {
+                            @foreach (var template in Model)
+                            {
+                                <tr>
+                                    <td>
+                                        <code>@template.TemplateCode</code>
+                                    </td>
+                                    <td>
+                                        <strong>@template.TemplateName</strong>
+                                    </td>
+                                    <td>
+                                        @(template.Description?.Length > 50 ? template.Description.Substring(0, 50) + "..." : template.Description ?? "-")
+                                    </td>
+                                    <td>
+                                        @{
+                                            var preview = template.TemplateContent?.Length > 60 ? template.TemplateContent.Substring(0, 60) + "..." : template.TemplateContent;
+                                        }
+                                        <span class="text-muted">@preview</span>
+                                    </td>
+                                    <td>
+                                        @if (template.IsActive)
+                                        {
+                                            <span class="badge bg-success">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-info" onclick="viewTemplate(@template.Id)" title="View">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                            <a asp-action="EditTemplate" asp-route-id="@template.Id" class="btn btn-sm btn-outline-warning" title="Edit">
+                                                <i class="bi bi-pencil"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteTemplate(@template.Id, '@template.TemplateName')" title="Delete">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-success" onclick="testTemplate(@template.Id)" title="Test Template">
+                                                <i class="bi bi-send"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    <i class="bi bi-info-circle me-2"></i>No SMS templates found
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Template Modal -->
+<div class="modal fade" id="viewTemplateModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-file-text me-2"></i>Template Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="templateDetails">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Test SMS Modal -->
+<div class="modal fade" id="testSmsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-send me-2"></i>Test SMS Template
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Template Placeholders:</strong><br />
+                    Use <code>{{PlaceholderName}}</code> in your template. Common placeholders:
+                    <ul class="mt-2 mb-0">
+                        <li><code>{{FullName}}</code> - Member's full name</li>
+                        <li><code>{{MemberNo}}</code> - Member number</li>
+                        <li><code>{{Amount}}</code> - Transaction amount</li>
+                        <li><code>{{CompanyName}}</code> - SACCO name</li>
+                        <li><code>{{Date}}</code> - Current date</li>
+                    </ul>
+                </div>
+                <form id="testSmsForm">
+                    <input type="hidden" id="testTemplateId" />
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Phone Number *</label>
+                        <input type="tel" id="testPhoneNumber" class="form-control" placeholder="e.g., 0712345678" required />
+                        <small class="text-muted">Enter a valid phone number to receive the test SMS</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Recipient Name</label>
+                        <input type="text" id="testRecipientName" class="form-control" placeholder="Test User" value="Test User" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Test Parameters (JSON)</label>
+                        <textarea id="testParameters" class="form-control" rows="5"
+                                  placeholder='{"FullName":"John Doe","MemberNo":"M001","Amount":"5000","Date":"' + new Date().toISOString().split('T')[0] + '"}'>{
+    "FullName": "John Doe",
+    "MemberNo": "M001",
+    "Amount": "5000",
+    "Date": "@DateTime.Now.ToString("yyyy-MM-dd")"
+}</textarea>
+                        <small class="text-muted">Enter JSON key-value pairs to replace placeholders</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="sendTestSms()">
+                    <i class="bi bi-send me-1"></i> Send Test SMS
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentTemplate = null;
+
+        $(document).ready(function() {
+            $('#templatesTable').DataTable({
+                pageLength: 10,
+                ordering: true,
+                responsive: true,
+                language: {
+                    lengthMenu: "Show _MENU_ templates per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ templates",
+                    infoEmpty: "No templates found",
+                    zeroRecords: "No matching templates found"
+                }
+            });
+        });
+
+        async function viewTemplate(id) {
+            try {
+                const response = await fetch(`/Sms/GetTemplate/${id}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    const template = data.template;
+                    const detailsHtml = `
+                        <div class="mb-3">
+                            <label class="fw-bold text-muted">Template Code:</label>
+                            <p><code>${template.templateCode}</code></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold text-muted">Template Name:</label>
+                            <p><strong>${template.templateName}</strong></p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold text-muted">Description:</label>
+                            <p>${template.description || '-'}</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold text-muted">Status:</label>
+                            <p>${template.isActive ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'}</p>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold text-muted">Template Content:</label>
+                            <div class="alert alert-light border">
+                                <pre class="mb-0" style="white-space: pre-wrap; font-family: monospace;">${escapeHtml(template.templateContent)}</pre>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="fw-bold text-muted">Placeholders Found:</label>
+                            <div id="placeholdersList" class="mt-2"></div>
+                        </div>
+                    `;
+                    $('#templateDetails').html(detailsHtml);
+
+                    // Extract and display placeholders
+                    const placeholders = extractPlaceholders(template.templateContent);
+                    if (placeholders.length > 0) {
+                        let placeholdersHtml = '<div class="d-flex flex-wrap gap-2">';
+                        placeholders.forEach(p => {
+                            placeholdersHtml += `<span class="badge bg-info"><code>{{${p}}}</code></span>`;
+                        });
+                        placeholdersHtml += '</div>';
+                        $('#placeholdersList').html(placeholdersHtml);
+                    } else {
+                        $('#placeholdersList').html('<span class="text-muted">No placeholders found</span>');
+                    }
+
+                    $('#viewTemplateModal').modal('show');
+                } else {
+                    showToast('error', data.message || 'Failed to load template');
+                }
+            } catch (error) {
+                console.error('Error loading template:', error);
+                showToast('error', 'Error loading template details');
+            }
+        }
+
+        function extractPlaceholders(content) {
+            const regex = /{{(.*?)}}/g;
+            const placeholders = [];
+            let match;
+            while ((match = regex.exec(content)) !== null) {
+                if (!placeholders.includes(match[1])) {
+                    placeholders.push(match[1]);
+                }
+            }
+            return placeholders;
+        }
+
+        async function deleteTemplate(id, templateName) {
+            if (!confirm(`Are you sure you want to delete template "${templateName}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/Sms/DeleteTemplate/${id}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    }
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showToast('success', data.message);
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showToast('error', data.message);
+                }
+            } catch (error) {
+                console.error('Error deleting template:', error);
+                showToast('error', 'Error deleting template');
+            }
+        }
+
+        function testTemplate(id) {
+            $('#testTemplateId').val(id);
+            $('#testSmsModal').modal('show');
+        }
+
+        async function sendTestSms() {
+            const templateId = $('#testTemplateId').val();
+            const phoneNumber = $('#testPhoneNumber').val();
+            const recipientName = $('#testRecipientName').val();
+            let parameters = {};
+
+            try {
+                const paramsText = $('#testParameters').val();
+                if (paramsText) {
+                    parameters = JSON.parse(paramsText);
+                }
+            } catch (e) {
+                showToast('error', 'Invalid JSON in parameters');
+                return;
+            }
+
+            if (!phoneNumber) {
+                showToast('error', 'Please enter a phone number');
+                return;
+            }
+
+            // Validate phone number format (Kenyan format)
+            const phoneRegex = /^(0|\+254)?[7][0-9]{8}$/;
+            if (!phoneRegex.test(phoneNumber)) {
+                showToast('error', 'Please enter a valid Kenyan phone number (e.g., 0712345678)');
+                return;
+            }
+
+            const submitBtn = event.target;
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Sending...';
+
+            try {
+                const response = await fetch('/Sms/SendTestSms', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    body: JSON.stringify({
+                        templateId: parseInt(templateId),
+                        phoneNumber: phoneNumber,
+                        recipientName: recipientName,
+                        parameters: parameters
+                    })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    showToast('success', data.message);
+                    $('#testSmsModal').modal('hide');
+                    $('#testPhoneNumber').val('');
+                } else {
+                    showToast('error', data.message);
+                }
+            } catch (error) {
+                console.error('Error sending test SMS:', error);
+                showToast('error', 'Error sending test SMS');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        }
+
+        function showToast(type, message) {
+            const toastHtml = `
+                <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0 position-fixed bottom-0 end-0 m-3" role="alert" style="z-index: 9999;">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                            ${escapeHtml(message)}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            $('body').append(toastHtml);
+            const toast = $('.toast').last();
+            const bsToast = new bootstrap.Toast(toast[0]);
+            bsToast.show();
+            toast.on('hidden.bs.toast', function() { $(this).remove(); });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+    </script>
+}

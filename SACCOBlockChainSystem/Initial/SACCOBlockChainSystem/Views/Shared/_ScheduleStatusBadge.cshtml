@@ -1,0 +1,15 @@
+﻿@model string
+
+@{
+    var badgeClass = Model switch
+    {
+        "Paid" => "bg-success",
+        "Pending" => "bg-secondary",
+        "Partial" => "bg-info",
+        "Overdue" => "bg-danger",
+        "Defaulted" => "bg-dark",
+        _ => "bg-secondary"
+    };
+}
+
+<span class="badge @badgeClass">@Model</span>

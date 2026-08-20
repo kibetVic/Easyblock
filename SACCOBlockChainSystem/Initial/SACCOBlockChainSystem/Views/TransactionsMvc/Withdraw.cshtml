@@ -1,0 +1,273 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.WithdrawalDTO
+
+@{
+    ViewData["Title"] = "Withdraw Funds";
+    var isAdmin = ViewBag.IsAdmin ?? false;
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h4><i class="fas fa-hand-holding-usd"></i> Withdraw Funds</h4>
+                </div>
+                <div class="card-body">
+                    @if (isAdmin)
+                    {
+                        <!-- Member Search for Admin/Staff -->
+                        <div class="form-group">
+                            <label for="memberSearch">Search Member *</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="memberSearch"
+                                       placeholder="Enter member number, name, or ID number...">
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-secondary" type="button" id="searchMemberBtn">
+                                        <i class="fas fa-search"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="searchResults" class="mt-2" style="display: none;">
+                                <div class="list-group" id="memberResults"></div>
+                            </div>
+                        </div>
+                    }
+
+                    <form id="withdrawForm" method="post">
+                        <!-- Hidden field for MemberNo -->
+                        <input type="hidden" asp-for="MemberNo" id="MemberNo" />
+
+                        @if (!isAdmin && ViewBag.CurrentMember != null)
+                        {
+                            <!-- Display current member info for regular users -->
+                            <div class="alert alert-info">
+                                <h6>Account Information:</h6>
+                                <p><strong>Member No:</strong> @ViewBag.CurrentMember.MemberNo</p>
+                                <p><strong>Name:</strong> @ViewBag.CurrentMember.Surname @ViewBag.CurrentMember.OtherNames</p>
+                                <p><strong>Current Balance:</strong> @(ViewBag.CurrentBalance?.ToString("C") ?? "KES 0.00")</p>
+                            </div>
+                        }
+
+                        <!-- Selected Member Display -->
+                        <div class="form-group" id="selectedMemberInfo" style="display: none;">
+                            <label>Selected Member:</label>
+                            <div class="alert alert-success">
+                                <div id="memberDetails">
+                                    <!-- Member details will be loaded here -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="Amount">Withdrawal Amount (KES) *</label>
+                            <input asp-for="Amount" class="form-control" min="100" step="100" required
+                                   oninput="checkBalance()" />
+                            <span asp-validation-for="Amount" class="text-danger"></span>
+                            <small class="form-text text-muted" id="balanceInfo"></small>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="PaymentMode">Payment Method *</label>
+                            <select asp-for="PaymentMode" class="form-control" required>
+                                <option value="">Select Method</option>
+                                <option value="CASH">Cash</option>
+                                <option value="MPESA">M-Pesa</option>
+                                <option value="BANK">Bank Transfer</option>
+                                <option value="CHEQUE">Cheque</option>
+                            </select>
+                            <span asp-validation-for="PaymentMode" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="ReceiptNo">Receipt Number (Optional)</label>
+                            <input asp-for="ReceiptNo" class="form-control" placeholder="Enter receipt number if available" />
+                            <span asp-validation-for="ReceiptNo" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="Purpose">Purpose (Optional)</label>
+                            <input asp-for="Purpose" class="form-control" placeholder="e.g., Emergency, Loan repayment" />
+                            <span asp-validation-for="Purpose" class="text-danger"></span>
+                        </div>
+
+                        <div class="form-group">
+                            <label asp-for="ContactInfo">Contact Info (Optional)</label>
+                            <input asp-for="ContactInfo" class="form-control" placeholder="Phone number or email" />
+                            <span asp-validation-for="ContactInfo" class="text-danger"></span>
+                        </div>
+
+                        <input type="hidden" asp-for="ProcessedBy" value="@User.Identity.Name" />
+
+                        <div class="form-group mt-4">
+                            <button type="submit" class="btn btn-success btn-lg" id="submitBtn" disabled="@(isAdmin ? "disabled" : null)">
+                                <i class="fas fa-paper-plane"></i> Process Withdrawal
+                            </button>
+                            <a href="@Url.Action("Index")" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Success/Error Messages -->
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div class="alert alert-success alert-dismissible fade show mt-3" role="alert">
+                    <i class="fas fa-check-circle"></i> @TempData["SuccessMessage"]
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            }
+
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show mt-3" role="alert">
+                    <i class="fas fa-exclamation-circle"></i> @TempData["ErrorMessage"]
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            var isAdmin = @Json.Serialize(isAdmin);
+            var selectedMember = null;
+            var currentBalance = 0;
+
+            if (isAdmin) {
+                // Setup member search for admin
+                setupMemberSearch();
+            } else {
+                // For regular users, set their member number
+                var currentMemberNo = '@(ViewBag.CurrentMember?.MemberNo ?? "")';
+                if (currentMemberNo) {
+                    $('#MemberNo').val(currentMemberNo);
+                    $('#submitBtn').prop('disabled', false);
+                    currentBalance = @(ViewBag.CurrentBalance ?? 0);
+                    updateBalanceInfo();
+                }
+            }
+
+            // Form submission
+            $('#withdrawForm').on('submit', function(e) {
+                if (isAdmin && !$('#MemberNo').val()) {
+                    e.preventDefault();
+                    showAlert('error', 'Please select a member first.');
+                    return false;
+                }
+
+                var amount = parseFloat($('#Amount').val()) || 0;
+                if (amount > currentBalance) {
+                    e.preventDefault();
+                    showAlert('error', 'Withdrawal amount cannot exceed current balance.');
+                    return false;
+                }
+
+                return true;
+            });
+
+            // Amount validation
+            $('#Amount').on('input', function() {
+                checkBalance();
+            });
+
+            // Setup member search (similar to deposit)
+            function setupMemberSearch() {
+                // Same implementation as in deposit.cshtml
+                var searchTimeout;
+                $('#memberSearch').on('input', function() {
+                    clearTimeout(searchTimeout);
+                    var searchTerm = $(this).val().trim();
+                    if (searchTerm.length >= 2) {
+                        searchTimeout = setTimeout(function() {
+                            searchMembers(searchTerm);
+                        }, 500);
+                    } else {
+                        $('#searchResults').hide();
+                    }
+                });
+
+                // ... rest of setupMemberSearch function
+            }
+
+            function loadMemberDetails(memberNo) {
+                $.ajax({
+                    url: '@Url.Action("GetMemberDetails", "TransactionsMvc")',
+                    type: 'GET',
+                    data: { memberNo: memberNo },
+                    beforeSend: function() {
+                        $('#memberDetails').html('<div class="text-center"><i class="fas fa-spinner fa-spin"></i> Loading details...</div>');
+                        $('#selectedMemberInfo').show();
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            var member = response.data;
+                            selectedMember = member;
+                            currentBalance = member.currentBalance;
+
+                            // Display member details
+                            var detailsHtml = `
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong>Member No:</strong> ${member.memberNo}</p>
+                                        <p><strong>Name:</strong> ${member.fullName}</p>
+                                        <p><strong>ID Number:</strong> ${member.idNumber || 'N/A'}</p>
+                                        <p><strong>Phone:</strong> ${member.phone || 'N/A'}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p><strong>Email:</strong> ${member.email || 'N/A'}</p>
+                                        <p><strong>Current Balance:</strong> <span class="badge bg-success">KES ${member.currentBalance.toLocaleString()}</span></p>
+                                        <p><strong>Available for Withdrawal:</strong> <span class="badge bg-info">KES ${(member.currentBalance - 100).toLocaleString()}</span></p>
+                                        <p><small class="text-muted">Minimum withdrawal: KES 100</small></p>
+                                    </div>
+                                </div>
+                            `;
+                            $('#memberDetails').html(detailsHtml);
+                            $('#submitBtn').prop('disabled', false);
+                            updateBalanceInfo();
+
+                            showAlert('success', `Member ${member.memberNo} selected. Current balance: KES ${member.currentBalance.toLocaleString()}`);
+                        }
+                    }
+                });
+            }
+
+            function updateBalanceInfo() {
+                var info = `Available balance: KES ${currentBalance.toLocaleString()}`;
+                if (currentBalance < 100) {
+                    info += ' (Insufficient funds for withdrawal)';
+                    $('#Amount').prop('max', 0);
+                } else {
+                    $('#Amount').prop('max', currentBalance);
+                }
+                $('#balanceInfo').text(info);
+            }
+
+            function checkBalance() {
+                var amount = parseFloat($('#Amount').val()) || 0;
+                if (amount > currentBalance) {
+                    $('#Amount').addClass('is-invalid');
+                    $('#balanceInfo').addClass('text-danger').text(
+                        `Amount exceeds available balance of KES ${currentBalance.toLocaleString()}`
+                    );
+                } else {
+                    $('#Amount').removeClass('is-invalid');
+                    $('#balanceInfo').removeClass('text-danger');
+                    updateBalanceInfo();
+                }
+            }
+
+            function showAlert(type, message) {
+                // Same implementation as in deposit.cshtml
+            }
+        });
+    </script>
+}

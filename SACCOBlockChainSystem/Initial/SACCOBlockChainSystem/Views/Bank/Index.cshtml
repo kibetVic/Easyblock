@@ -1,0 +1,677 @@
+﻿@model IEnumerable<SACCOBlockChainSystem.Models.DTOs.BankResponseDTO>
+@{
+    ViewData["Title"] = "Banks";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center">
+                    <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary me-3">
+                        <i class="bi bi-arrow-left"></i> Back to Dashboard
+                    </a>
+                    <h2 class="page-title mb-0">
+                        <i class="bi bi-bank me-2"></i>Banks
+                    </h2>
+                </div>
+                <button type="button" class="btn btn-primary" onclick="openCreateModal()">
+                    <i class="bi bi-plus-circle me-2"></i>Add New Bank
+                </button>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-list-check me-2"></i>Bank Accounts
+                    </h5>
+                    <small class="text-muted">Manage your company's bank accounts</small>
+                </div>
+                <div class="col-md-6">
+                    <form asp-action="Index" method="get" class="d-flex gap-2" id="searchForm">
+                        <div class="input-group">
+                            <input type="text" name="search" class="form-control" placeholder="Search by code, name, account or branch..." value="@ViewBag.CurrentSearch" id="searchInput" />
+                            <button type="submit" class="btn btn-outline-secondary">
+                                <i class="bi bi-search"></i>
+                            </button>
+                            @if (!string.IsNullOrEmpty(ViewBag.CurrentSearch))
+                            {
+                                <a asp-action="Index" class="btn btn-outline-danger">
+                                    <i class="bi bi-x-lg"></i> Clear
+                                </a>
+                            }
+                        </div>
+                        <div class="form-check form-switch d-flex align-items-center ms-3">
+                            <input class="form-check-input" type="checkbox" name="showInactive" id="showInactive" value="true" @(ViewBag.ShowInactive == true ? "checked" : "") onchange="this.form.submit()" />
+                            <label class="form-check-label ms-2" for="showInactive">Show Inactive</label>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            @if (!Model.Any())
+            {
+                <div class="alert alert-info text-center py-5">
+                    <i class="bi bi-info-circle fs-1"></i>
+                    <h5 class="mt-3">No banks found</h5>
+                    <p class="mb-0">Click "Add New Bank" to create your first bank account.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover" id="banksTable">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 8%">Bank Code</th>
+                                <th style="width: 18%">Bank Name</th>
+                                <th style="width: 12%">Account Number</th>
+                                <th style="width: 15%">Account Name</th>
+                                <th style="width: 12%">Branch</th>
+                                <th style="width: 15%">GL Account</th>
+                                <th style="width: 8%">Status</th>
+                                <th style="width: 12%" class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var bank in Model)
+                            {
+                                <tr class="@(!bank.IsActive ? "table-secondary" : "")" id="bank-row-@bank.Id">
+                                    <td><strong>@bank.BankCode</strong></td>
+                                    <td>@bank.BankName</td>
+                                    <td>@bank.AccountNumber</td>
+                                    <td>@(bank.AccountName ?? "-")</td>
+                                    <td>@(bank.Branch ?? "-")</td>
+                                    <td>
+                                        @if (!string.IsNullOrEmpty(bank.GlAccountNo))
+                                        {
+                                            <span class="badge bg-info">@bank.GlAccountNo</span>
+                                            <small class="text-muted d-block">@(bank.GlAccountName ?? "")</small>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Not assigned</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (bank.IsActive)
+                                        {
+                                            <span class="badge bg-success">Active</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        }
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-info" title="View Details" onclick="viewDetails(@bank.Id)">
+                                                <i class="bi bi-eye"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" title="Edit" onclick="openEditModal(@bank.Id)">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-warning" title="@(bank.IsActive ? "Deactivate" : "Activate")" onclick="toggleStatus(@bank.Id, '@bank.BankName', @bank.IsActive.ToString().ToLower())">
+                                                <i class="bi bi-power"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" title="Delete" onclick="deleteBank(@bank.Id, '@bank.BankName')">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="mt-3 text-muted">
+                    <small>Total: @Model.Count() bank(s)</small>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Create Bank Modal -->
+<div class="modal fade" id="createBankModal" tabindex="-1" aria-labelledby="createBankModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="createBankModalLabel">
+                    <i class="bi bi-plus-circle me-2"></i>Add New Bank
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="createBankForm">
+                @Html.AntiForgeryToken()
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="BankCode" class="form-label fw-bold">Bank Code *</label>
+                            <input type="text" class="form-control" id="BankCode" name="BankCode" required maxlength="50" />
+                            <small class="text-muted">Unique code for the bank (e.g., KCB, EQTY)</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="BankName" class="form-label fw-bold">Bank Name *</label>
+                            <input type="text" class="form-control" id="BankName" name="BankName" required maxlength="200" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="AccountNumber" class="form-label fw-bold">Account Number *</label>
+                            <input type="text" class="form-control" id="AccountNumber" name="AccountNumber" required maxlength="50" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="AccountName" class="form-label">Account Name</label>
+                            <input type="text" class="form-control" id="AccountName" name="AccountName" maxlength="100" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="Branch" class="form-label">Branch</label>
+                            <input type="text" class="form-control" id="Branch" name="Branch" maxlength="100" />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="SwiftCode" class="form-label">Swift Code</label>
+                            <input type="text" class="form-control" id="SwiftCode" name="SwiftCode" maxlength="50" />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="SortCode" class="form-label">Sort Code</label>
+                            <input type="text" class="form-control" id="SortCode" name="SortCode" maxlength="50" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="GlAccountNo" class="form-label">GL Account</label>
+                            <select class="form-select" id="GlAccountNo" name="GlAccountNo">
+                                <option value="">-- Select GL Account --</option>
+                            </select>
+                            <small class="text-muted">Select the GL account associated with this bank</small>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="IsActive" name="IsActive" value="true" checked />
+                                <label class="form-check-label" for="IsActive">
+                                    Active
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="Notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="Notes" name="Notes" rows="2" maxlength="500"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Bank</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Bank Modal -->
+<div class="modal fade" id="editBankModal" tabindex="-1" aria-labelledby="editBankModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="editBankModalLabel">
+                    <i class="bi bi-pencil-square me-2"></i>Edit Bank
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editBankForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="edit_Id" name="Id" />
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_BankCode" class="form-label fw-bold">Bank Code *</label>
+                            <input type="text" class="form-control" id="edit_BankCode" name="BankCode" required maxlength="50" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_BankName" class="form-label fw-bold">Bank Name *</label>
+                            <input type="text" class="form-control" id="edit_BankName" name="BankName" required maxlength="200" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_AccountNumber" class="form-label fw-bold">Account Number *</label>
+                            <input type="text" class="form-control" id="edit_AccountNumber" name="AccountNumber" required maxlength="50" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_AccountName" class="form-label">Account Name</label>
+                            <input type="text" class="form-control" id="edit_AccountName" name="AccountName" maxlength="100" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="edit_Branch" class="form-label">Branch</label>
+                            <input type="text" class="form-control" id="edit_Branch" name="Branch" maxlength="100" />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="edit_SwiftCode" class="form-label">Swift Code</label>
+                            <input type="text" class="form-control" id="edit_SwiftCode" name="SwiftCode" maxlength="50" />
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="edit_SortCode" class="form-label">Sort Code</label>
+                            <input type="text" class="form-control" id="edit_SortCode" name="SortCode" maxlength="50" />
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="edit_GlAccountNo" class="form-label">GL Account</label>
+                            <select class="form-select" id="edit_GlAccountNo" name="GlAccountNo">
+                                <option value="">-- Select GL Account --</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="edit_IsActive" name="IsActive" value="true" />
+                                <label class="form-check-label" for="edit_IsActive">
+                                    Active
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="edit_Notes" class="form-label">Notes</label>
+                            <textarea class="form-control" id="edit_Notes" name="Notes" rows="2" maxlength="500"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-warning">Update Bank</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- View Bank Modal -->
+<div class="modal fade" id="viewBankModal" tabindex="-1" aria-labelledby="viewBankModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="viewBankModalLabel">
+                    <i class="bi bi-eye me-2"></i>Bank Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="fw-bold text-muted">Bank Code:</label>
+                        <p class="mb-0" id="view_BankCode">-</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="fw-bold text-muted">Bank Name:</label>
+                        <p class="mb-0" id="view_BankName">-</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="fw-bold text-muted">Account Number:</label>
+                        <p class="mb-0" id="view_AccountNumber">-</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="fw-bold text-muted">Account Name:</label>
+                        <p class="mb-0" id="view_AccountName">-</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="fw-bold text-muted">Branch:</label>
+                        <p class="mb-0" id="view_Branch">-</p>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="fw-bold text-muted">Swift Code:</label>
+                        <p class="mb-0" id="view_SwiftCode">-</p>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="fw-bold text-muted">Sort Code:</label>
+                        <p class="mb-0" id="view_SortCode">-</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="fw-bold text-muted">GL Account:</label>
+                        <p class="mb-0" id="view_GlAccount">-</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="fw-bold text-muted">Status:</label>
+                        <p class="mb-0" id="view_Status">-</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12 mb-3">
+                        <label class="fw-bold text-muted">Notes:</label>
+                        <p class="mb-0" id="view_Notes">-</p>
+                    </div>
+                </div>
+                <hr />
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="fw-bold text-muted">Created By:</label>
+                        <p class="mb-0" id="view_CreatedBy">-</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="fw-bold text-muted">Created At:</label>
+                        <p class="mb-0" id="view_CreatedAt">-</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="fw-bold text-muted">Modified By:</label>
+                        <p class="mb-0" id="view_ModifiedBy">-</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="fw-bold text-muted">Modified At:</label>
+                        <p class="mb-0" id="view_ModifiedAt">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let glAccountsList = [];
+
+        $(document).ready(function() {
+            // Load GL Accounts
+            loadGlAccounts();
+
+            // Initialize DataTable
+            if ($.fn.DataTable) {
+                $('#banksTable').DataTable({
+                    pageLength: 10,
+                    ordering: true,
+                    responsive: true,
+                    searching: false,
+                    paging: true,
+                    language: {
+                        lengthMenu: "Show _MENU_ banks per page",
+                        info: "Showing _START_ to _END_ of _TOTAL_ banks",
+                        infoEmpty: "No banks found",
+                        zeroRecords: "No matching banks found"
+                    }
+                });
+            }
+
+            // Create Bank Form Submit
+            $('#createBankForm').on('submit', function(e) {
+                e.preventDefault();
+
+                var formData = $(this).serialize();
+
+                $.ajax({
+                    url: '@Url.Action("Create", "Bank")',
+                    type: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        if (response.success) {
+                            $('#createBankModal').modal('hide');
+                            showToast('success', response.message);
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            showToast('error', response.message);
+                        }
+                    },
+                    error: function() {
+                        showToast('error', 'An error occurred. Please try again.');
+                    }
+                });
+            });
+
+            // Edit Bank Form Submit
+            $('#editBankForm').on('submit', function(e) {
+                e.preventDefault();
+
+                var formData = $(this).serialize();
+
+                $.ajax({
+                    url: '@Url.Action("Edit", "Bank")',
+                    type: 'POST',
+                    data: formData,
+                    success: function(response) {
+                        if (response.success) {
+                            $('#editBankModal').modal('hide');
+                            showToast('success', response.message);
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1500);
+                        } else {
+                            showToast('error', response.message);
+                        }
+                    },
+                    error: function() {
+                        showToast('error', 'An error occurred. Please try again.');
+                    }
+                });
+            });
+        });
+
+        function loadGlAccounts() {
+            $.ajax({
+                url: '@Url.Action("GetGlAccounts", "Bank")',
+                type: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        glAccountsList = response.data;
+                        populateGlDropdown('#GlAccountNo', glAccountsList);
+                        populateGlDropdown('#edit_GlAccountNo', glAccountsList);
+                    }
+                },
+                error: function() {
+                    console.error('Error loading GL accounts');
+                }
+            });
+        }
+
+        function populateGlDropdown(selector, accounts) {
+            const $dropdown = $(selector);
+            $dropdown.empty();
+            $dropdown.append('<option value="">-- Select GL Account --</option>');
+
+            accounts.forEach(function(account) {
+                $dropdown.append(`<option value="${account.accNo}">${account.displayText}</option>`);
+            });
+        }
+
+        function openCreateModal() {
+            $('#createBankForm')[0].reset();
+            $('#GlAccountNo').val('');
+            $('#createBankModal').modal('show');
+        }
+
+        function openEditModal(id) {
+            $.ajax({
+                url: '@Url.Action("GetBankDetails", "Bank")',
+                type: 'GET',
+                data: { id: id },
+                success: function(response) {
+                    if (response.success) {
+                        var bank = response.bank;
+                        $('#edit_Id').val(bank.id);
+                        $('#edit_BankCode').val(bank.bankCode);
+                        $('#edit_BankName').val(bank.bankName);
+                        $('#edit_AccountNumber').val(bank.accountNumber);
+                        $('#edit_AccountName').val(bank.accountName || '');
+                        $('#edit_Branch').val(bank.branch || '');
+                        $('#edit_SwiftCode').val(bank.swiftCode || '');
+                        $('#edit_SortCode').val(bank.sortCode || '');
+                        $('#edit_GlAccountNo').val(bank.glAccountNo || '');
+                        $('#edit_IsActive').prop('checked', bank.isActive);
+                        $('#edit_Notes').val(bank.notes || '');
+                        $('#editBankModal').modal('show');
+                    } else {
+                        showToast('error', response.message);
+                    }
+                },
+                error: function() {
+                    showToast('error', 'Error loading bank details');
+                }
+            });
+        }
+
+        function viewDetails(id) {
+            $.ajax({
+                url: '@Url.Action("GetBankDetails", "Bank")',
+                type: 'GET',
+                data: { id: id },
+                success: function(response) {
+                    if (response.success) {
+                        var bank = response.bank;
+                        $('#view_BankCode').text(bank.bankCode);
+                        $('#view_BankName').text(bank.bankName);
+                        $('#view_AccountNumber').text(bank.accountNumber);
+                        $('#view_AccountName').text(bank.accountName || '-');
+                        $('#view_Branch').text(bank.branch || '-');
+                        $('#view_SwiftCode').text(bank.swiftCode || '-');
+                        $('#view_SortCode').text(bank.sortCode || '-');
+                        $('#view_Notes').text(bank.notes || '-');
+                        $('#view_CreatedBy').text(bank.createdBy || '-');
+                        $('#view_CreatedAt').text(bank.createdAt ? new Date(bank.createdAt).toLocaleString() : '-');
+                        $('#view_ModifiedBy').text(bank.modifiedBy || '-');
+                        $('#view_ModifiedAt').text(bank.modifiedAt ? new Date(bank.modifiedAt).toLocaleString() : '-');
+
+                        // Display GL Account
+                        if (bank.glAccountNo) {
+                            $('#view_GlAccount').html(`<strong>${bank.glAccountNo}</strong>${bank.glAccountName ? `<br><small>${bank.glAccountName}</small>` : ''}`);
+                        } else {
+                            $('#view_GlAccount').text('Not assigned');
+                        }
+
+                        var statusHtml = bank.isActive ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>';
+                        $('#view_Status').html(statusHtml);
+
+                        $('#viewBankModal').modal('show');
+                    } else {
+                        showToast('error', response.message);
+                    }
+                },
+                error: function() {
+                    showToast('error', 'Error loading bank details');
+                }
+            });
+        }
+
+        function toggleStatus(id, bankName, isActive) {
+            var action = isActive ? 'deactivate' : 'activate';
+            if (confirm(`Are you sure you want to ${action} bank '${bankName}'?`)) {
+                $.ajax({
+                    url: '@Url.Action("ToggleStatus", "Bank")',
+                    type: 'POST',
+                    data: { id: id },
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showToast('success', response.message);
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1000);
+                        } else {
+                            showToast('error', response.message);
+                        }
+                    },
+                    error: function() {
+                        showToast('error', 'An error occurred. Please try again.');
+                    }
+                });
+            }
+        }
+
+        function deleteBank(id, bankName) {
+            if (confirm(`Are you sure you want to delete bank '${bankName}'? This action cannot be undone.`)) {
+                $.ajax({
+                    url: '@Url.Action("Delete", "Bank")',
+                    type: 'POST',
+                    data: { id: id },
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            showToast('success', response.message);
+                            setTimeout(function() {
+                                location.reload();
+                            }, 1000);
+                        } else {
+                            showToast('error', response.message);
+                        }
+                    },
+                    error: function() {
+                        showToast('error', 'An error occurred. Please try again.');
+                    }
+                });
+            }
+        }
+
+        function showToast(type, message) {
+            var toastHtml = `
+                <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : 'danger'} border-0 position-fixed bottom-0 end-0 m-3" role="alert" aria-live="assertive" aria-atomic="true">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-triangle'} me-2"></i>
+                            ${message}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+
+            $('body').append(toastHtml);
+            var toast = $('.toast').last();
+            var bsToast = new bootstrap.Toast(toast[0]);
+            bsToast.show();
+
+            toast.on('hidden.bs.toast', function() {
+                $(this).remove();
+            });
+        }
+    </script>
+}

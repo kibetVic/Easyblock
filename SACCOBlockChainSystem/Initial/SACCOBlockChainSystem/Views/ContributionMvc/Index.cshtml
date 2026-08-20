@@ -1,0 +1,391 @@
+﻿﻿@using SACCOBlockChainSystem.Models.DTOs
+@model dynamic
+@{
+    ViewData["Title"] = "Contributions Dashboard";
+    var recentContributions = Model.RecentContributions as List<ContributionResponseDTO>;
+    var shareTypes = Model.ShareTypes as List<ShareTypeDTO>;
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="display-6">
+                    <i class="fas fa-tags"></i> Shares / Contribution Management
+                </h1>
+                <a asp-action="Add" class="btn btn-success btn-lg">
+                    <i class="fas fa-plus-circle"></i> <strong>+ New </strong>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search and Filter Section -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-search me-2"></i>Search Contributions</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                <input type="text" id="searchInput" class="form-control"
+                                       placeholder="Search by Member No, Member Name, Receipt No, Share Type..." autocomplete="off">
+                                <button class="btn btn-outline-secondary" type="button" onclick="clearSearch()">
+                                    <i class="fas fa-times"></i> Clear
+                                </button>
+                            </div>
+                            <small class="text-muted" id="searchStats"></small>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">From Date</label>
+                            <input type="date" id="fromDate" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">To Date</label>
+                            <input type="date" id="toDate" class="form-control">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">Share Type</label>
+                            <select id="shareTypeFilter" class="form-select">
+                                <option value="all">All Share Types</option>
+                                @if (shareTypes != null)
+                                {
+                                    foreach (var type in shareTypes)
+                                    {
+                                        <option value="@type.SharesCode">@type.SharesType</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small text-muted">Sort By</label>
+                            <select id="sortBy" class="form-select">
+                                <option value="date_desc">Latest First</option>
+                                <option value="date_asc">Oldest First</option>
+                                <option value="amount_desc">Highest Amount</option>
+                                <option value="amount_asc">Lowest Amount</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Contributions Table (Scrollable) -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history"></i> Contributions List
+                    </h5>
+                    <span class="badge bg-light text-dark" id="contributionCount">@(recentContributions?.Count ?? 0) contributions</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                        <table class="table table-striped table-hover mb-0" id="contributionsTable">
+                            <thead class="bg-light sticky-top" style="position: sticky; top: 0; z-index: 1;">
+                                <tr>
+                                    <th style="width: 50px;">#</th>
+                                    <th style="width: 100px;">Date</th>
+                                    <th style="width: 130px;">Member No</th>
+                                    <th style="width: 180px;">Member Name</th>
+                                    <th style="width: 120px;">Receipt No</th>
+                                    <th style="width: 150px;">Share Type</th>
+                                    <th style="width: 120px;" class="text-end">Amount</th>
+                                    <th style="width: 80px;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="contributionsTableBody">
+                                @if (recentContributions != null && recentContributions.Any())
+                                {
+                                    var counter = 1;
+                                    foreach (var contribution in recentContributions)
+                                    {
+                                        <tr data-id="@contribution.Id"
+                                            data-date="@contribution.TransactionDate.ToString("yyyy-MM-dd")"
+                                            data-memberno="@contribution.MemberNo"
+                                            data-membername="@contribution.MemberName"
+                                            data-receiptno="@contribution.ReceiptNo"
+                                            data-sharetype="@contribution.ShareTypeName"
+                                            data-sharescode="@contribution.SharesCode"
+                                            data-amount="@contribution.Amount"
+                                            data-createdby="@contribution.CreatedBy">
+                                            <td class="row-number">@counter</td>
+                                            <td>@contribution.TransactionDate.ToString("dd/MM/yyyy")</td>
+                                            <td>
+                                                <strong>@contribution.MemberNo</strong>
+                                                @if (!string.IsNullOrEmpty(contribution.BlockchainTxId))
+                                                {
+                                                    <span class="badge bg-success ms-1" title="On Blockchain">
+                                                        <i class="fas fa-link fa-xs"></i>
+                                                    </span>
+                                                }
+                                            </td>
+                                            <td class="member-name-cell">@(contribution.MemberName ?? contribution.MemberNo)</td>
+                                            <td><span class="badge bg-primary">@contribution.ReceiptNo</span></td>
+                                            <td class="share-type-cell">@contribution.ShareTypeName</td>
+                                            <td class="text-end amount-cell">@contribution.Amount.ToString("N0")</td>
+                                            <td>
+                                                <div class="btn-group btn-group-sm">
+                                                    <a asp-action="Details" asp-route-id="@contribution.Id"
+                                                       class="btn btn-sm btn-info" title="View Details">
+                                                        <i class="fas fa-eye">View</i>
+                                                    </a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        counter++;
+                                    }
+                                }
+                                else
+                                {
+                                    <tr id="noDataRow">
+                                        <td colspan="9" class="text-center py-4">
+                                            <i class="fas fa-info-circle fa-2x text-muted mb-3"></i>
+                                            <p class="text-muted">No contributions found in the last 30 days.</p>
+                                            <a asp-action="Add" class="btn btn-success">
+                                                <i class="fas fa-plus-circle"></i> Add First Contribution
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .sticky-top {
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .table-responsive::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    .table-responsive::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+    .highlight {
+        background-color: #fff3cd;
+        padding: 0 2px;
+        border-radius: 3px;
+        font-weight: bold;
+    }
+
+    /* Fixed table layout to prevent shifting */
+    table {
+        table-layout: fixed;
+        width: 100%;
+    }
+
+        table td, table th {
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+</style>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Initialize tooltips
+            $('[title]').tooltip();
+
+            // Bind search and filter events
+            $('#searchInput').on('keyup', filterContributions);
+            $('#shareTypeFilter').on('change', filterContributions);
+            $('#fromDate, #toDate').on('change', filterContributions);
+            $('#sortBy').on('change', sortTable);
+        });
+
+        function filterContributions() {
+            var searchTerm = $('#searchInput').val().toLowerCase();
+            var shareTypeFilter = $('#shareTypeFilter').val();
+            var fromDate = $('#fromDate').val();
+            var toDate = $('#toDate').val();
+
+            var visibleCount = 0;
+            var totalAmount = 0;
+
+            // Loop through all rows (except the noDataRow if it exists)
+            $('#contributionsTableBody tr').each(function() {
+                var row = $(this);
+
+                // Skip the no data row
+                if (row.attr('id') === 'noDataRow') {
+                    return;
+                }
+
+                var date = row.data('date');
+                var memberNo = row.data('memberno')?.toLowerCase() || '';
+                var memberName = row.data('membername')?.toLowerCase() || '';
+                var receiptNo = row.data('receiptno')?.toLowerCase() || '';
+                var shareType = row.data('sharetype')?.toLowerCase() || '';
+                var sharesCode = row.data('sharescode') || '';
+                var createdBy = row.data('createdby')?.toLowerCase() || '';
+                var amount = row.data('amount') || 0;
+
+                // Check search match
+                var matchesSearch = searchTerm === '' ||
+                    memberNo.includes(searchTerm) ||
+                    memberName.includes(searchTerm) ||
+                    receiptNo.includes(searchTerm) ||
+                    shareType.includes(searchTerm) ||
+                    createdBy.includes(searchTerm);
+
+                // Check share type filter
+                var matchesShareType = shareTypeFilter === 'all' || sharesCode === shareTypeFilter;
+
+                // Check date filter
+                var matchesDate = true;
+                if (fromDate && date < fromDate) matchesDate = false;
+                if (toDate && date > toDate) matchesDate = false;
+
+                if (matchesSearch && matchesShareType && matchesDate) {
+                    row.show();
+                    visibleCount++;
+                    totalAmount += amount;
+
+                    // Highlight search term in member name cell
+                    if (searchTerm !== '') {
+                        var memberNameCell = row.find('.member-name-cell');
+                        var originalName = row.data('membername');
+                        if (originalName && originalName.toLowerCase().includes(searchTerm)) {
+                            var regex = new RegExp(`(${searchTerm})`, 'gi');
+                            var highlightedName = originalName.replace(regex, '<span class="highlight">$1</span>');
+                            memberNameCell.html(highlightedName);
+                        } else {
+                            memberNameCell.html(originalName);
+                        }
+                    } else {
+                        // Restore original name
+                        var memberNameCell = row.find('.member-name-cell');
+                        var originalName = row.data('membername');
+                        memberNameCell.html(originalName);
+                    }
+                } else {
+                    row.hide();
+                }
+            });
+
+            // Update search stats
+            var totalRows = $('#contributionsTableBody tr:not(#noDataRow)').length;
+            $('#searchStats').html(`Showing ${visibleCount} of ${totalRows} contributions`);
+            $('#contributionCount').text(`${visibleCount} contributions`);
+            $('#totalAmount').text(totalAmount.toLocaleString());
+
+            // Show/hide no results message
+            if (visibleCount === 0 && totalRows > 0) {
+                if ($('#noResultsRow').length === 0) {
+                    $('#contributionsTableBody').append(`
+                        <tr id="noResultsRow">
+                            <td colspan="9" class="text-center py-4">
+                                <i class="fas fa-search fa-2x text-muted mb-3"></i>
+                                <p class="text-muted">No contributions match your search criteria.</p>
+                                <button class="btn btn-sm btn-primary" onclick="clearSearch()">
+                                    <i class="fas fa-times"></i> Clear Search
+                                </button>
+                            </td>
+                        </tr>
+                    `);
+                }
+            } else {
+                $('#noResultsRow').remove();
+            }
+
+            // Renumber visible rows
+            var rowNumber = 1;
+            $('#contributionsTableBody tr:visible').each(function() {
+                if ($(this).attr('id') !== 'noDataRow' && $(this).attr('id') !== 'noResultsRow') {
+                    $(this).find('.row-number').text(rowNumber);
+                    rowNumber++;
+                }
+            });
+        }
+
+        function sortTable() {
+            var sortBy = $('#sortBy').val();
+            var tbody = $('#contributionsTableBody');
+            var rows = tbody.find('tr:not(#noDataRow):not(#noResultsRow)').get();
+
+            rows.sort(function(a, b) {
+                var aVal, bVal;
+
+                switch(sortBy) {
+                    case 'date_desc':
+                        aVal = new Date($(a).data('date'));
+                        bVal = new Date($(b).data('date'));
+                        return bVal - aVal;
+                    case 'date_asc':
+                        aVal = new Date($(a).data('date'));
+                        bVal = new Date($(b).data('date'));
+                        return aVal - bVal;
+                    case 'amount_desc':
+                        aVal = $(a).data('amount');
+                        bVal = $(b).data('amount');
+                        return bVal - aVal;
+                    case 'amount_asc':
+                        aVal = $(a).data('amount');
+                        bVal = $(b).data('amount');
+                        return aVal - bVal;
+                    default:
+                        return 0;
+                }
+            });
+
+            // Reorder rows
+            $.each(rows, function(index, row) {
+                tbody.append(row);
+                $(row).find('.row-number').text(index + 1);
+            });
+
+            // Reapply filter to maintain visibility
+            filterContributions();
+        }
+
+        function clearSearch() {
+            $('#searchInput').val('');
+            $('#shareTypeFilter').val('all');
+            $('#fromDate').val('');
+            $('#toDate').val('');
+            $('#sortBy').val('date_desc');
+
+            // Restore all member names
+            $('#contributionsTableBody tr').each(function() {
+                var memberNameCell = $(this).find('.member-name-cell');
+                var originalName = $(this).data('membername');
+                if (originalName) {
+                    memberNameCell.html(originalName);
+                }
+            });
+
+            filterContributions();
+            sortTable();
+        }
+    </script>
+}

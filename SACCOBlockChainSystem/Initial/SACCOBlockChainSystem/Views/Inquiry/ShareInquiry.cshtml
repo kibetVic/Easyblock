@@ -1,0 +1,579 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.ShareInquiryResponseDTO
+
+@{
+    ViewData["Title"] = "Share Inquiry";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var hasResults = Model != null && Model.MemberNo != null;
+}
+
+<!-- Error Messages -->
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill"></i> @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill"></i> @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+<!-- Search Form Card -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <i class="bi bi-pie-chart-fill"></i> Share Balance Inquiry
+        </h3>
+        <div class="card-tools">
+            <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                <i class="bi bi-dash"></i>
+            </button>
+        </div>
+    </div>
+    <div class="card-body">
+        <form asp-action="ShareInquiry" method="post" id="shareInquiryForm">
+            @Html.AntiForgeryToken()
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="memberNo" class="control-label fw-bold">Member Number</label>
+                        <input type="text" id="memberNo" name="memberNo" class="form-control form-control-lg"
+                               placeholder="Enter Member Number" required
+                               value="@(hasResults? Model.MemberNo: "")" />
+                        <span class="text-muted">Enter the member number to view share details and transaction history</span>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button type="submit" class="btn btn-primary btn-lg form-control">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+                @if (hasResults)
+                {
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label>&nbsp;</label>
+                            <button type="button" class="btn btn-success btn-lg form-control" onclick="window.print()">
+                                <i class="bi bi-printer"></i> Print Report
+                            </button>
+                        </div>
+                    </div>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Results Section - Only shown when we have data -->
+@if (hasResults)
+{
+    <!-- Member Information Card -->
+    <div class="card mt-3">
+        <div class="card-header bg-primary text-white">
+            <h4 class="card-title mb-0">
+                <i class="bi bi-person-badge"></i> Member Information
+            </h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="info-box bg-light">
+                        <div class="info-box-content">
+                            <span class="info-box-text">Member Number</span>
+                            <span class="info-box-number">@Model.MemberNo</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="info-box bg-light">
+                        <div class="info-box-content">
+                            <span class="info-box-text">Member Name</span>
+                            <span class="info-box-number">@Model.MemberName</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="info-box bg-light">
+                        <div class="info-box-content">
+                            <span class="info-box-text">Inquiry Date</span>
+                            <span class="info-box-number">@Model.InquiryTimestamp.ToString("dd-MMM-yyyy HH:mm:ss")</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="info-box bg-light">
+                        <div class="info-box-content">
+                            <span class="info-box-text">Inquired By</span>
+                            <span class="info-box-number">@Model.InquiredBy</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Statistics Cards -->
+    <div class="row mt-3">
+        <div class="col-md-3">
+            <div class="small-box bg-info">
+                <div class="inner">
+                    <h3>@Model.TotalShareBalance.ToString("N2")</h3>
+                    <p>Total Share Balance</p>
+                </div>
+                <div class="icon">
+                    <i class="bi bi-pie-chart-fill"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="small-box bg-success">
+                <div class="inner">
+                    <h3>@Model.TotalShareCapital.ToString("N2")</h3>
+                    <p>Share Capital</p>
+                </div>
+                <div class="icon">
+                    <i class="bi bi-building"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="small-box bg-warning">
+                <div class="inner">
+                    <h3>@Model.TotalDeposits.ToString("N2")</h3>
+                    <p>Deposits</p>
+                </div>
+                <div class="icon">
+                    <i class="bi bi-cash-stack"></i>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="small-box bg-danger">
+                <div class="inner">
+                    <h3>@Model.LockedForGuarantees.ToString("N2")</h3>
+                    <p>Locked for Guarantees</p>
+                </div>
+                <div class="icon">
+                    <i class="bi bi-lock-fill"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="info-box bg-secondary">
+                <div class="info-box-content">
+                    <span class="info-box-text">Available Shares</span>
+                    <span class="info-box-number">@Model.AvailableShares.ToString("N2")</span>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="info-box bg-info">
+                <div class="info-box-content">
+                    <span class="info-box-text">Total Share Types</span>
+                    <span class="info-box-number">@Model.ShareTypeSummaries.Count</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Summary by Type -->
+    <div class="card mt-3">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-table"></i> Share Summary by Type
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover" id="summaryTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Share Code</th>
+                            <th>Share Type</th>
+                            <th class="text-end">Share Capital</th>
+                            <th class="text-end">Deposits</th>
+                            <th class="text-end">Total Shares</th>
+                            <th class="text-end">Reg Fees</th>
+                            <th class="text-end">Donations</th>
+                            <th class="text-end">Loan Alloc</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var shareType in Model.ShareTypeSummaries)
+                        {
+                            <tr>
+                                <td>@shareType.SharesCode</td>
+                                <td>@shareType.SharesType</td>
+                                <td class="text-end">@shareType.ShareCapital.ToString("N2")</td>
+                                <td class="text-end">@shareType.Deposits.ToString("N2")</td>
+                                <td class="text-end fw-bold">@shareType.TotalShares.ToString("N2")</td>
+                                <td class="text-end">@shareType.RegFees.ToString("N2")</td>
+                                <td class="text-end">@shareType.Donations.ToString("N2")</td>
+                                <td class="text-end">@shareType.LoanAllocations.ToString("N2")</td>
+                                <td class="text-center">
+                                    <button type="button" class="btn btn-sm btn-info" onclick="toggleTransactions('@shareType.SharesCode')">
+                                        <i class="bi bi-list-ul"></i> View Transactions
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-dark">
+                        <tr>
+                            <th colspan="2" class="text-end">Total:</th>
+                            <th class="text-end">@Model.ShareTypeSummaries.Sum(s => s.ShareCapital).ToString("N2")</th>
+                            <th class="text-end">@Model.ShareTypeSummaries.Sum(s => s.Deposits).ToString("N2")</th>
+                            <th class="text-end">@Model.ShareTypeSummaries.Sum(s => s.TotalShares).ToString("N2")</th>
+                            <th class="text-end">@Model.ShareTypeSummaries.Sum(s => s.RegFees).ToString("N2")</th>
+                            <th class="text-end">@Model.ShareTypeSummaries.Sum(s => s.Donations).ToString("N2")</th>
+                            <th class="text-end">@Model.ShareTypeSummaries.Sum(s => s.LoanAllocations).ToString("N2")</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Transactions Details for each Share Type (Hidden initially) -->
+    @foreach (var shareType in Model.ShareTypeSummaries)
+    {
+        <div id="transactions-@shareType.SharesCode" class="card mt-2" style="display:none;">
+            <div class="card-header bg-light">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-list-ul"></i> @shareType.SharesType Transactions (@shareType.SharesCode)
+                    </h5>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="hideTransactions('@shareType.SharesCode')">
+                        <i class="bi bi-x-lg"></i> Close
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (shareType.Transactions.Any())
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm table-bordered table-striped" id="transTable-@shareType.SharesCode">
+                            <thead>
+                                <tr>
+                                    <th>Transaction Date</th>
+                                    <th>Type</th>
+                                    <th class="text-end">Amount</th>
+                                    <th class="text-end">Share Capital</th>
+                                    <th class="text-end">Deposits</th>
+                                    <th>Receipt No</th>
+                                    <th>Remarks</th>
+                                    <th>Blockchain Tx</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var trans in shareType.Transactions.OrderByDescending(t => t.TransactionDate))
+                                {
+                                    <tr>
+                                        <td>@trans.TransactionDate.ToString("dd-MMM-yyyy")</td>
+                                        <td>
+                                            @if (trans.TransactionType == "Contribution")
+                                            {
+                                                <span class="badge bg-success">@trans.TransactionType</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-info">@trans.TransactionType</span>
+                                            }
+                                    </td>
+                                    <td class="text-end">@trans.Amount.ToString("N2")</td>
+                                    <td class="text-end">@trans.ShareCapital.ToString("N2")</td>
+                                    <td class="text-end">@trans.Deposits.ToString("N2")</td>
+                                    <td>@(string.IsNullOrEmpty(trans.ReceiptNo) ? "-" : trans.ReceiptNo)</td>
+                                    <td>@(string.IsNullOrEmpty(trans.Remarks) ? "-" : trans.Remarks)</td>
+                                    <td>
+                                        <code class="small">
+                                            @(string.IsNullOrEmpty(trans.BlockchainTxId) ? "N/A" :
+                                                                            (trans.BlockchainTxId.Length > 12 ? trans.BlockchainTxId.Substring(0, 12) + "..." : trans.BlockchainTxId))
+                            </code>
+                        </td>
+                    </tr>
+                                        }
+                            </tbody>
+                            <tfoot class="bg-light">
+                                <tr>
+                                    <th colspan="2" class="text-end">Total:</th>
+                                    <th class="text-end">@shareType.Transactions.Sum(t => t.Amount).ToString("N2")</th>
+                                    <th class="text-end">@shareType.Transactions.Sum(t => t.ShareCapital).ToString("N2")</th>
+                                    <th class="text-end">@shareType.Transactions.Sum(t => t.Deposits).ToString("N2")</th>
+                                    <th colspan="3"></th>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i> No transactions found for this share type.
+                    </div>
+                }
+            </div>
+        </div>
+    }
+
+    <!-- All Transactions Combined View -->
+    <div class="card mt-3">
+        <div class="card-header bg-success text-white">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-receipt"></i> All Share Transactions (Combined)
+            </h5>
+            <div class="card-tools">
+                <button type="button" class="btn btn-tool text-white" data-card-widget="collapse">
+                    <i class="bi bi-dash"></i>
+                </button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-bordered table-hover table-striped" id="allTransactionsTable">
+                    <thead>
+                        <tr>
+                            <th>Transaction Date</th>
+                            <th>Share Type</th>
+                            <th>Transaction Type</th>
+                            <th class="text-end">Amount</th>
+                            <th class="text-end">Share Capital</th>
+                            <th class="text-end">Deposits</th>
+                            <th>Receipt No</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            var allTransactions = Model.ShareTypeSummaries
+                            .SelectMany(s => s.Transactions.Select(t => new { s.SharesType, t }))
+                            .OrderByDescending(x => x.t.TransactionDate)
+                            .ToList();
+                        }
+                        @foreach (var item in allTransactions)
+                        {
+                            <tr>
+                                <td>@item.t.TransactionDate.ToString("dd-MMM-yyyy")</td>
+                                <td>@item.SharesType</td>
+                                <td>
+                                    @if (item.t.TransactionType == "Contribution")
+                                    {
+                                        <span class="badge bg-success">@item.t.TransactionType</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-info">@item.t.TransactionType</span>
+                                    }
+                                </td>
+                                <td class="text-end">@item.t.Amount.ToString("N2")</td>
+                                <td class="text-end">@item.t.ShareCapital.ToString("N2")</td>
+                                <td class="text-end">@item.t.Deposits.ToString("N2")</td>
+                                <td>@(string.IsNullOrEmpty(item.t.ReceiptNo) ? "-" : item.t.ReceiptNo)</td>
+                                <td>@(string.IsNullOrEmpty(item.t.Remarks) ? "-" : item.t.Remarks)</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="table-dark">
+                        <tr>
+                            <th colspan="3" class="text-end">Grand Total:</th>
+                            <th class="text-end">@allTransactions.Sum(x => x.t.Amount).ToString("N2")</th>
+                            <th class="text-end">@allTransactions.Sum(x => x.t.ShareCapital).ToString("N2")</th>
+                            <th class="text-end">@allTransactions.Sum(x => x.t.Deposits).ToString("N2")</th>
+                            <th colspan="2"></th>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+}
+else if (ViewBag.Searched == true)
+{
+    <!-- No Results Found Message -->
+    <div class="alert alert-warning mt-3">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+        No share contributions found for the entered member number. Please check the member number and try again.
+    </div>
+}
+
+@section Scripts {
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Initialize DataTables for tables with many rows
+            @if (hasResults)
+            {
+                    <text>
+                    $('#allTransactionsTable').DataTable({
+                        "order": [[0, "desc"]],
+                        "pageLength": 25,
+                        "responsive": true,
+                        "language": {
+                            "search": "Search Transactions:"
+                        }
+                    });
+
+                    $('#summaryTable').DataTable({
+                        "pageLength": 10,
+                        "responsive": true,
+                        "ordering": true
+                    });
+                    </text>
+            }
+
+            // Autocomplete for member number
+            $('#memberNo').autocomplete({
+                source: '@Url.Action("GetMembers", "Lookup")',
+                minLength: 2,
+                select: function(event, ui) {
+                    $('#memberNo').val(ui.item.value);
+                    return false;
+                }
+            });
+        });
+
+        function toggleTransactions(shareCode) {
+            var div = document.getElementById('transactions-' + shareCode);
+            if (div.style.display === 'none' || div.style.display === '') {
+                // Hide all other transaction divs first
+                @foreach (var shareType in Model?.ShareTypeSummaries ?? new List<SACCOBlockChainSystem.Models.DTOs.ShareTypeSummaryDTO>())
+                {
+                        <text>
+                        var otherDiv = document.getElementById('transactions-@shareType.SharesCode');
+                        if (otherDiv) otherDiv.style.display = 'none';
+                        </text>
+                }
+                div.style.display = 'block';
+                // Scroll to the div
+                div.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            } else {
+                div.style.display = 'none';
+            }
+        }
+
+        function hideTransactions(shareCode) {
+            document.getElementById('transactions-' + shareCode).style.display = 'none';
+        }
+    </script>
+}
+
+<style>
+    .small-box {
+        border-radius: 0.25rem;
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+        display: block;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+        .small-box .inner {
+            padding: 10px;
+        }
+
+        .small-box h3 {
+            font-size: 2.2rem;
+            font-weight: bold;
+            margin: 0 0 10px 0;
+            white-space: nowrap;
+            padding: 0;
+        }
+
+        .small-box p {
+            font-size: 1rem;
+        }
+
+        .small-box .icon {
+            color: rgba(0,0,0,0.15);
+            position: absolute;
+            right: 10px;
+            top: 5px;
+            z-index: 0;
+            font-size: 5rem;
+        }
+
+    .info-box {
+        display: flex;
+        min-height: 90px;
+        background: #fff;
+        width: 100%;
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+        border-radius: 0.25rem;
+        margin-bottom: 1rem;
+    }
+
+    .info-box-content {
+        padding: 1rem;
+        flex: 1;
+    }
+
+    .info-box-text {
+        display: block;
+        font-size: 0.875rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+
+    .info-box-number {
+        display: block;
+        font-size: 1.5rem;
+        font-weight: 700;
+    }
+
+    .bg-info {
+        background-color: #17a2b8 !important;
+        color: white;
+    }
+
+    .bg-success {
+        background-color: #28a745 !important;
+        color: white;
+    }
+
+    .bg-warning {
+        background-color: #ffc107 !important;
+        color: #1f2d3d;
+    }
+
+    .bg-danger {
+        background-color: #dc3545 !important;
+        color: white;
+    }
+
+    .bg-secondary {
+        background-color: #6c757d !important;
+        color: white;
+    }
+
+    .bg-light {
+        background-color: #f8f9fa !important;
+        color: #1f2d3d;
+    }
+
+    .bg-primary {
+        background-color: #007bff !important;
+        color: white;
+    }
+
+    .bg-dark {
+        background-color: #343a40 !important;
+        color: white;
+    }
+</style>

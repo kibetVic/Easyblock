@@ -1,0 +1,511 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.SmsSettingDTO
+@{
+    ViewData["Title"] = "SMS Settings";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var companyName = ViewBag.CompanyName as string ?? "JUHUDI SACCO";
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center">
+                <a asp-action="Index" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Back to Messages
+                </a>
+                <h2 class="page-title mb-0">
+                    <i class="bi bi-gear me-2"></i>SMS Settings - @companyName
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-envelope-paper me-2"></i>SMS Configuration
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Settings" method="post" id="settingsForm">
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" style="display: none;"></div>
+
+                        <!-- Company Info Card -->
+                        <div class="alert alert-info mb-3">
+                            <i class="bi bi-building me-2"></i>
+                            <strong>Company:</strong> @companyName
+                            <br />
+                            <small class="text-muted">SMS Sender ID will be based on your company name</small>
+                        </div>
+
+                        <!-- Provider Selection -->
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <div class="card bg-light">
+                                    <div class="card-body">
+                                        <div class="form-check form-switch mb-3">
+                                            <input asp-for="IsEnabled" class="form-check-input" type="checkbox" id="isEnabled">
+                                            <label class="form-check-label fw-bold" for="isEnabled">
+                                                <i class="bi bi-toggle-on me-1"></i> Enable SMS Service
+                                            </label>
+                                            <small class="text-muted d-block">Enable or disable SMS notifications globally</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="Provider" class="form-label fw-bold">SMS Provider *</label>
+                                <select asp-for="Provider" class="form-select" id="providerSelect" required>
+                                    <option value="">-- Select Provider --</option>
+                                    <option value="AfricaTalking">Africa's Talking</option>
+                                    <option value="Twilio">Twilio</option>
+                                    <option value="Simulate">Simulate (Test Mode)</option>
+                                </select>
+                                <span asp-validation-for="Provider" class="text-danger"></span>
+                                <small class="text-muted">Select your SMS service provider</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="SenderId" class="form-label fw-bold">Sender ID / From</label>
+                                <div class="input-group">
+                                    <input asp-for="SenderId" class="form-control" placeholder="Auto-generated from company name" />
+                                    <button type="button" class="btn btn-outline-secondary" onclick="resetToCompanyName()">
+                                        <i class="bi bi-arrow-repeat"></i> Reset
+                                    </button>
+                                </div>
+                                <span asp-validation-for="SenderId" class="text-danger"></span>
+                                <small class="text-muted">
+                                    <i class="bi bi-building me-1"></i>
+                                    Based on company name: <strong id="companyNamePreview">@companyName</strong>
+                                    <br />
+                                    Max 11 characters, uppercase only
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label asp-for="Username" class="form-label fw-bold">Username</label>
+                                <input asp-for="Username" class="form-control" placeholder="Your username" />
+                                <span asp-validation-for="Username" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="ShortCode" class="form-label fw-bold">Short Code</label>
+                                <input asp-for="ShortCode" class="form-control" placeholder="e.g., 12345" />
+                                <span asp-validation-for="ShortCode" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <!-- Africa's Talking Specific Fields -->
+                        <div id="africaTalkingFields" style="display: none;">
+                            <div class="card bg-light mb-3">
+                                <div class="card-header">
+                                    <i class="bi bi-phone me-2"></i>Africa's Talking Configuration
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-3">
+                                        <div class="col-md-12">
+                                            <label asp-for="ApiKey" class="form-label fw-bold">API Key</label>
+                                            <input asp-for="ApiKey" class="form-control" placeholder="Enter your Africa's Talking API key" />
+                                            <span asp-validation-for="ApiKey" class="text-danger"></span>
+                                            <small class="text-muted">Find this in your Africa's Talking dashboard</small>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-12">
+                                            <label asp-for="ApiEndpoint" class="form-label fw-bold">API Endpoint</label>
+                                            <input asp-for="ApiEndpoint" class="form-control" placeholder="https://api.africastalking.com/version1/messaging" />
+                                            <span asp-validation-for="ApiEndpoint" class="text-danger"></span>
+                                            <small class="text-muted">Default: https://api.africastalking.com/version1/messaging</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Twilio Specific Fields -->
+                        <div id="twilioFields" style="display: none;">
+                            <div class="card bg-light mb-3">
+                                <div class="card-header">
+                                    <i class="bi bi-cloud me-2"></i>Twilio Configuration
+                                </div>
+                                <div class="card-body">
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label asp-for="ApiKey" class="form-label fw-bold">Account SID</label>
+                                            <input asp-for="ApiKey" class="form-control" placeholder="Enter your Twilio Account SID" />
+                                            <span asp-validation-for="ApiKey" class="text-danger"></span>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label asp-for="ApiSecret" class="form-label fw-bold">Auth Token</label>
+                                            <input asp-for="ApiSecret" class="form-control" placeholder="Enter your Twilio Auth Token" />
+                                            <span asp-validation-for="ApiSecret" class="text-danger"></span>
+                                        </div>
+                                    </div>
+                                    <div class="row mb-3">
+                                        <div class="col-md-12">
+                                            <label asp-for="ApiEndpoint" class="form-label fw-bold">API Endpoint</label>
+                                            <input asp-for="ApiEndpoint" class="form-control" placeholder="https://api.twilio.com/2010-04-01" />
+                                            <span asp-validation-for="ApiEndpoint" class="text-danger"></span>
+                                            <small class="text-muted">Default: https://api.twilio.com/2010-04-01</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cost Configuration -->
+                        <div class="card bg-light mb-3">
+                            <div class="card-header">
+                                <i class="bi bi-calculator me-2"></i>Cost Configuration
+                            </div>
+                            <div class="card-body">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label asp-for="CostPerSms" class="form-label fw-bold">Cost per SMS (KES)</label>
+                                        <div class="input-group">
+                                            <span class="input-group-text">KES</span>
+                                            <input asp-for="CostPerSms" class="form-control" type="number" step="0.01" min="0" />
+                                        </div>
+                                        <span asp-validation-for="CostPerSms" class="text-danger"></span>
+                                        <small class="text-muted">Cost per SMS message for reporting purposes</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notification Events - Complete List -->
+                        <div class="card bg-light mb-3">
+                            <div class="card-header">
+                                <i class="bi bi-bell me-2"></i>Notification Events
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input asp-for="SendOnRegistration" class="form-check-input" type="checkbox" id="sendOnRegistration">
+                                            <label class="form-check-label" for="sendOnRegistration">
+                                                <i class="bi bi-person-plus me-1"></i> Member Registration
+                                            </label>
+                                            <br />
+                                            <small class="text-muted ms-4">Send welcome SMS when a new member registers</small>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input asp-for="SendOnWithdrawal" class="form-check-input" type="checkbox" id="sendOnWithdrawal">
+                                            <label class="form-check-label" for="sendOnWithdrawal">
+                                                <i class="bi bi-person-x me-1"></i> Withdrawal Requests
+                                            </label>
+                                            <br />
+                                            <small class="text-muted ms-4">Send SMS when withdrawal is created/approved/completed</small>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input asp-for="SendOnLoanApproval" class="form-check-input" type="checkbox" id="sendOnLoanApproval">
+                                            <label class="form-check-label" for="sendOnLoanApproval">
+                                                <i class="bi bi-calculator me-1"></i> Loan Approvals
+                                            </label>
+                                            <br />
+                                            <small class="text-muted ms-4">Send SMS when loan is approved or disbursed</small>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input asp-for="SendOnLoanRepayment" class="form-check-input" type="checkbox" id="sendOnLoanRepayment">
+                                            <label class="form-check-label" for="sendOnLoanRepayment">
+                                                <i class="bi bi-cash-stack me-1"></i> Loan Repayments
+                                            </label>
+                                            <br />
+                                            <small class="text-muted ms-4">Send SMS when loan repayment is received</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check mb-2">
+                                            <input asp-for="SendOnShareTransfer" class="form-check-input" type="checkbox" id="sendOnShareTransfer">
+                                            <label class="form-check-label" for="sendOnShareTransfer">
+                                                <i class="bi bi-arrow-left-right me-1"></i> Share Transfers
+                                            </label>
+                                            <br />
+                                            <small class="text-muted ms-4">Send SMS when shares are transferred</small>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input asp-for="SendOnContribution" class="form-check-input" type="checkbox" id="sendOnContribution">
+                                            <label class="form-check-label" for="sendOnContribution">
+                                                <i class="bi bi-cash-stack me-1"></i> Contributions
+                                            </label>
+                                            <br />
+                                            <small class="text-muted ms-4">Send SMS when contributions are received</small>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input asp-for="SendOnDeposits" class="form-check-input" type="checkbox" id="sendOnDeposits">
+                                            <label class="form-check-label" for="sendOnDeposits">
+                                                <i class="bi bi-bank me-1"></i> Deposits
+                                            </label>
+                                            <br />
+                                            <small class="text-muted ms-4">Send SMS when deposits are made</small>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input asp-for="SendOnAGM" class="form-check-input" type="checkbox" id="sendOnAGM">
+                                            <label class="form-check-label" for="sendOnAGM">
+                                                <i class="bi bi-calendar-event me-1"></i> AGM Notifications
+                                            </label>
+                                            <br />
+                                            <small class="text-muted ms-4">Send SMS for Annual General Meeting announcements</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-1"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <i class="bi bi-save me-2"></i>Save Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Help Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-question-circle me-2"></i>Help & Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info small">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <strong>Getting Started with SMS:</strong>
+                        <ul class="mt-2 mb-0">
+                            <li>Select your SMS provider (Africa's Talking or Twilio)</li>
+                            <li>Enter your API credentials from your provider dashboard</li>
+                            <li>Configure which events should trigger SMS notifications</li>
+                            <li>Test your configuration by sending a test SMS</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-warning small mt-3">
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Important Notes:</strong>
+                        <ul class="mt-2 mb-0">
+                            <li>Test mode will simulate sending without actually sending SMS</li>
+                            <li>Each SMS sent will be recorded in the blockchain</li>
+                            <li>Ensure you have sufficient credits with your provider</li>
+                            <li>International numbers may incur additional charges</li>
+                        </ul>
+                    </div>
+
+                    <div class="mt-3">
+                        <button type="button" class="btn btn-outline-primary w-100" onclick="testSms()">
+                            <i class="bi bi-send me-1"></i> Send Test SMS
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Status Card -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-graph-up me-2"></i>Current Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <strong>Service Status:</strong>
+                        @if (Model.IsEnabled)
+                        {
+                            <span class="badge bg-success">Enabled</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-danger">Disabled</span>
+                        }
+                    </div>
+                    <div class="mb-2">
+                        <strong>Provider:</strong>
+                        <span>@(string.IsNullOrEmpty(Model.Provider) ? "Not configured" : Model.Provider)</span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Sender ID:</strong>
+                        <span>@(string.IsNullOrEmpty(Model.SenderId) ? "Not set" : Model.SenderId)</span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Cost per SMS:</strong>
+                        <span>KES @Model.CostPerSms.ToString("N2")</span>
+                    </div>
+                    <div class="mb-2">
+                        <strong>Notifications:</strong>
+                        <ul class="mb-0">
+                            <li>Registration: @(Model.SendOnRegistration ? "Yes" : "No")</li>
+                            <li>Withdrawal: @(Model.SendOnWithdrawal ? "Yes" : "No")</li>
+                            <li>Loan Approval: @(Model.SendOnLoanApproval ? "Yes" : "No")</li>
+                            <li>Loan Repayment: @(Model.SendOnLoanRepayment ? "Yes" : "No")</li>
+                            <li>Share Transfer: @(Model.SendOnShareTransfer ? "Yes" : "No")</li>
+                            <li>Contribution: @(Model.SendOnContribution ? "Yes" : "No")</li>
+                            <li>Deposits: @(Model.SendOnDeposits ? "Yes" : "No")</li>
+                            <li>AGM: @(Model.SendOnAGM ? "Yes" : "No")</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        let currentCompanyName = '@companyName';
+
+        $(document).ready(function() {
+            // Toggle provider fields based on selection
+            const provider = $('#providerSelect').val();
+            toggleProviderFields(provider);
+
+            $('#providerSelect').on('change', function() {
+                const selectedProvider = $(this).val();
+                toggleProviderFields(selectedProvider);
+            });
+
+            // If Sender ID is empty, set from company name
+            if (!$('#SenderId').val()) {
+                resetToCompanyName();
+            }
+        });
+
+        function resetToCompanyName() {
+            let senderId = currentCompanyName.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            if (senderId.length > 11) {
+                senderId = senderId.substring(0, 11);
+            }
+            $('#SenderId').val(senderId);
+        }
+
+        function toggleProviderFields(provider) {
+            $('#africaTalkingFields, #twilioFields').hide();
+
+            if (provider === 'AfricaTalking') {
+                $('#africaTalkingFields').show();
+            } else if (provider === 'Twilio') {
+                $('#twilioFields').show();
+            }
+        }
+
+        async function testSms() {
+            const isEnabled = $('#isEnabled').is(':checked');
+            if (!isEnabled) {
+                alert('Please enable SMS service before testing');
+                return;
+            }
+
+            const provider = $('#providerSelect').val();
+            if (!provider) {
+                alert('Please select an SMS provider');
+                return;
+            }
+
+            const phoneNumber = prompt('Enter a phone number to send test SMS (e.g., 0712345678):');
+            if (!phoneNumber) return;
+
+            const testMessage = 'This is a test SMS from ' + currentCompanyName + ' System. If you received this, your SMS configuration is working correctly!';
+
+            const submitBtn = $('#submitBtn');
+            const originalText = submitBtn.html();
+            submitBtn.prop('disabled', true);
+            submitBtn.html('<span class="spinner-border spinner-border-sm me-2"></span>Sending...');
+
+            try {
+                const response = await fetch('/Sms/Send', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    body: JSON.stringify({
+                        phoneNumber: phoneNumber,
+                        recipientName: 'Test User',
+                        message: testMessage,
+                        messageType: 'Test',
+                        reference: 'TEST_SMS'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    alert('Test SMS sent successfully! Check your phone in a few moments.');
+                } else {
+                    alert('Failed to send test SMS: ' + (data.message || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error sending test SMS:', error);
+                alert('Error sending test SMS. Please check your configuration.');
+            } finally {
+                submitBtn.prop('disabled', false);
+                submitBtn.html(originalText);
+            }
+        }
+
+        // Form validation
+        $('#settingsForm').on('submit', function(e) {
+            const provider = $('#providerSelect').val();
+            const isEnabled = $('#isEnabled').is(':checked');
+
+            if (isEnabled) {
+                if (!provider) {
+                    e.preventDefault();
+                    alert('Please select an SMS provider');
+                    return false;
+                }
+
+                if (provider === 'AfricaTalking') {
+                    const apiKey = $('#ApiKey').val();
+                    if (!apiKey) {
+                        e.preventDefault();
+                        alert('Please enter your Africa\'s Talking API Key');
+                        return false;
+                    }
+                } else if (provider === 'Twilio') {
+                    const apiKey = $('#ApiKey').val();
+                    const apiSecret = $('#ApiSecret').val();
+                    if (!apiKey || !apiSecret) {
+                        e.preventDefault();
+                        alert('Please enter both Account SID and Auth Token for Twilio');
+                        return false;
+                    }
+                }
+            }
+
+            const confirmMessage = isEnabled
+                ? 'Are you sure you want to save these SMS settings? This will enable SMS notifications.'
+                : 'Are you sure you want to disable SMS service?';
+
+            return confirm(confirmMessage);
+        });
+    </script>
+}

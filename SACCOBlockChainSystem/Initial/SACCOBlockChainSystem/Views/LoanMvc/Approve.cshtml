@@ -1,0 +1,321 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.LoanApprovalDTO
+@{
+    ViewData["Title"] = "Loan Approval";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var loan = ViewBag.Loan as SACCOBlockChainSystem.Models.Loan;
+    var appraisal = ViewBag.Appraisal as SACCOBlockChainSystem.Models.Appraisal;
+    var previousApprovals = ViewBag.PreviousApprovals as List<SACCOBlockChainSystem.Models.Endmain>;
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex align-items-center">
+            <a asp-action="Details" asp-route-loanNo="@Model.LoanNo" class="btn btn-outline-secondary me-3">
+                <i class="bi bi-arrow-left"></i> Back to Loan
+            </a>
+            <h2 class="page-title mb-0">
+                <i class="bi bi-check2-circle me-2"></i>Loan Approval
+            </h2>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    @if (ViewBag.SuccessMessage != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            @ViewBag.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            @ViewBag.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- Left Column - Loan Summary -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Loan Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Loan Number:</span>
+                    <strong>@loan?.LoanNo</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Member Number:</span>
+                    <span>@loan?.MemberNo</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Loan Code:</span>
+                    <span>@loan?.LoanCode</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Applied Amount:</span>
+                    <strong class="text-primary">KES @(loan?.LoanAmt?.ToString("N2") ?? "0.00")</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Recommended Amount:</span>
+                    <strong>KES @(appraisal?.AmtRecommended?.ToString("N2") ?? "0.00")</strong>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Interest Rate:</span>
+                    <span>@(appraisal?.Interest?.ToString("N2") ?? "0")% p.a.</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Repayment Period:</span>
+                    <span>@(loan?.RepayPeriod?.ToString() ?? "0") months</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Net Monthly Salary:</span>
+                    <span>KES @(appraisal?.NetMonthlySalary?.ToString("N2") ?? "0.00")</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Existing Loan Obligations:</span>
+                    <span>KES @(appraisal?.Loans?.ToString("N2") ?? "0.00")</span>
+                </div>
+            </div>
+        </div>
+
+        @if (previousApprovals != null && previousApprovals.Any())
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Previous Approvals</h5>
+                </div>
+                <div class="card-body">
+                    @foreach (var approval in previousApprovals)
+                    {
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <strong>Minute No: @approval.MinuteNo</strong>
+                                <span class="badge bg-@(approval.Accepted == "Yes" ? "success" : "danger")">
+                                    @(approval.Accepted == "Yes" ? "Approved" : approval.Accepted)
+                                </span>
+                            </div>
+                            <small class="text-muted">By: @approval.ChairSigned</small><br>
+                            <small class="text-muted">@(approval.MeetingDate?.ToString("dd MMM yyyy HH:mm") ?? "N/A")</small>
+                            @if (!string.IsNullOrEmpty(approval.Reasons))
+                            {
+                                <p class="mt-2 mb-0 small">@approval.Reasons</p>
+                            }
+                        </div>
+                        @if (!approval.Equals(previousApprovals.Last()))
+                        {
+                            <hr>
+                        }
+                    }
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Right Column - Approval Form -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Approval Decision</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Approve" method="post" id="approvalForm">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" asp-for="LoanNo" />
+                    <input type="hidden" asp-for="CompanyCode" />
+                    <input type="hidden" asp-for="ApprovalLevel" />
+                    <input type="hidden" asp-for="ApprovedBy" />
+                    <input type="hidden" asp-for="IsFinalApproval" />
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <!-- Decision -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-12">
+                            <label class="form-label fw-bold">Approval Decision *</label>
+                            <div class="d-flex gap-4">
+                                <div class="form-check">
+                                    <input type="radio" asp-for="ApprovalStatus" value="Approved"
+                                           class="form-check-input" id="statusApproved" checked>
+                                    <label class="form-check-label" for="statusApproved">
+                                        <span class="badge bg-success p-2">Approve</span>
+                                    </label>
+                                </div>
+                                <div class="form-check">
+                                    <input type="radio" asp-for="ApprovalStatus" value="Rejected"
+                                           class="form-check-input" id="statusRejected">
+                                    <label class="form-check-label" for="statusRejected">
+                                        <span class="badge bg-danger p-2">Reject</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Approval Details (shown when Approved selected) -->
+                    <div id="approvalDetails">
+                        <h6 class="text-uppercase text-muted mb-3">Approval Terms</h6>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
+                                <label asp-for="ApprovedAmount" class="form-label">Approved Amount</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">KES</span>
+                                    <input asp-for="ApprovedAmount" class="form-control" type="number" step="0.01"
+                                           value="@(appraisal?.AmtRecommended)" />
+                                </div>
+                                <span asp-validation-for="ApprovedAmount" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="ApprovedInterestRate" class="form-label">Interest Rate</label>
+                                <div class="input-group">
+                                    <input asp-for="ApprovedInterestRate" class="form-control" type="number" step="0.01"
+                                           value="@(appraisal?.Interest ?? 0)" />
+                                    <span class="input-group-text">%</span>
+                                </div>
+                                <span asp-validation-for="ApprovedInterestRate" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <label asp-for="ApprovedPeriod" class="form-label">Repayment Period</label>
+                                <div class="input-group">
+                                    <input asp-for="ApprovedPeriod" class="form-control" type="number" min="1"
+                                           value="@(loan?.RepayPeriod)" />
+                                    <span class="input-group-text">months</span>
+                                </div>
+                                <span asp-validation-for="ApprovedPeriod" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Rejection Details (shown when Rejected selected) -->
+                    <div id="rejectionDetails" style="display: none;">
+                        <h6 class="text-uppercase text-muted mb-3">Rejection Information</h6>
+
+                        <div class="mb-4">
+                            <label asp-for="RejectionReason" class="form-label">Reason for Rejection *</label>
+                            <textarea asp-for="RejectionReason" class="form-control" rows="4"
+                                      placeholder="Provide detailed reason for rejection"></textarea>
+                            <span asp-validation-for="RejectionReason" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <!-- Comments -->
+                    <div class="mb-4">
+                        <label asp-for="ApprovalComments" class="form-label">Approval Comments</label>
+                        <textarea asp-for="ApprovalComments" class="form-control" rows="3"
+                                  placeholder="Add any comments or conditions"></textarea>
+                        <span asp-validation-for="ApprovalComments" class="text-danger"></span>
+                    </div>
+
+                    <!-- Approval Summary -->
+                    <div id="approvalSummary" class="alert alert-info d-none">
+                        <h6 class="alert-heading">Approval Summary</h6>
+                        <div id="summaryDetails"></div>
+                    </div>
+
+                    <hr>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <button type="button" class="btn btn-secondary" onclick="history.back()">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <i class="bi bi-check-circle me-2"></i>Submit Decision
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function() {
+            // Toggle between approval and rejection forms
+            $('input[name="ApprovalStatus"]').on('change', function() {
+                var status = $(this).val();
+
+                if (status === 'Rejected') {
+                    $('#approvalDetails').slideUp();
+                    $('#rejectionDetails').slideDown();
+                    $('#approvalSummary').addClass('d-none');
+
+                    // Make rejection reason required
+                    $('#RejectionReason').attr('required', true);
+                    $('#ApprovedAmount, #ApprovedInterestRate, #ApprovedPeriod').removeAttr('required');
+                } else if (status === 'Approved') {
+                    $('#approvalDetails').slideDown();
+                    $('#rejectionDetails').slideUp();
+
+                    // Make approval fields required
+                    $('#ApprovedAmount, #ApprovedInterestRate, #ApprovedPeriod').attr('required', true);
+                    $('#RejectionReason').removeAttr('required');
+
+                    updateApprovalSummary();
+                    $('#approvalSummary').removeClass('d-none');
+                } else {
+                    $('#approvalDetails').slideUp();
+                    $('#rejectionDetails').slideUp();
+                    $('#approvalSummary').addClass('d-none');
+                }
+            });
+
+            // Update approval summary when values change
+            $('#ApprovedAmount, #ApprovedInterestRate, #ApprovedPeriod').on('input', updateApprovalSummary);
+
+            function updateApprovalSummary() {
+                var amount = parseFloat($('#ApprovedAmount').val()) || 0;
+                var rate = parseFloat($('#ApprovedInterestRate').val()) || 0;
+                var period = parseInt($('#ApprovedPeriod').val()) || 0;
+
+                if (amount > 0 && rate > 0 && period > 0) {
+                    var monthlyRate = rate / 100 / 12;
+                    var emi = amount * monthlyRate * Math.pow(1 + monthlyRate, period) /
+                             (Math.pow(1 + monthlyRate, period) - 1);
+                    var totalInterest = (emi * period) - amount;
+                    var totalRepayable = amount + totalInterest;
+
+                    $('#summaryDetails').html(`
+                        <div class="row mt-2">
+                            <div class="col-6">Loan Amount:</div>
+                            <div class="col-6 fw-bold">KES ${amount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</div>
+                            <div class="col-6">Interest Rate:</div>
+                            <div class="col-6 fw-bold">${rate}% p.a.</div>
+                            <div class="col-6">Monthly Payment:</div>
+                            <div class="col-6 fw-bold">KES ${emi.toFixed(2).toLocaleString()}</div>
+                            <div class="col-6">Total Interest:</div>
+                            <div class="col-6 fw-bold">KES ${totalInterest.toFixed(2).toLocaleString()}</div>
+                            <div class="col-6">Total Repayable:</div>
+                            <div class="col-6 fw-bold text-primary">KES ${totalRepayable.toFixed(2).toLocaleString()}</div>
+                        </div>
+                    `);
+                }
+            }
+
+            // Set initial state
+            $('#statusApproved').trigger('change');
+
+            // Form validation
+            $('#approvalForm').on('submit', function(e) {
+                var status = $('input[name="ApprovalStatus"]:checked').val();
+
+                if (status === 'Rejected' && !$('#RejectionReason').val().trim()) {
+                    e.preventDefault();
+                    alert('Please provide a reason for rejection');
+                    return false;
+                }
+
+                return confirm('Are you sure you want to submit this approval decision?');
+            });
+        });
+    </script>
+}

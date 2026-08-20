@@ -1,0 +1,210 @@
+@model SACCOBlockChainSystem.Models.ViewModels.RejectedLoansIndexViewModel
+@{
+    ViewData["Title"] = "Rejected Loans Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .rejected-row {
+        background-color: #fff3f3 !important;
+    }
+    .rejected-badge {
+        background-color: #dc3545;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: bold;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header bg-danger text-white">
+            <h4 class="mb-0"><i class="fas fa-ban me-2"></i>Rejected Loans Report</h4>
+        </div>
+        <div class="card-body">
+            <!-- Filter Form -->
+            <form method="post" class="mb-4">
+                <div class="row align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Start Date</label>
+                        <input type="date" name="startDate" class="form-control" value="@Model.StartDate.ToString("yyyy-MM-dd")" required />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">End Date</label>
+                        <input type="date" name="endDate" class="form-control" value="@Model.EndDate.ToString("yyyy-MM-dd")" required />
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-danger me-2">
+                            <i class="fas fa-search me-1"></i>Generate Report
+                        </button>
+                        <button type="button" id="exportExcelBtn" class="btn btn-success me-2">
+                            <i class="fas fa-file-excel me-1"></i>Export to Excel
+                        </button>
+                        <button type="button" id="exportPdfBtn" class="btn btn-danger">
+                            <i class="fas fa-file-pdf me-1"></i>Export to PDF
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            @if (Model.HasData)
+            {
+                <!-- Report Header -->
+                <div class="text-center mb-4">
+                    <h4>@Model.CompanyName.ToUpper()</h4>
+                    <h5 class="text-danger">REJECTED LOANS REPORT</h5>
+                    <p>Period: @Model.StartDate.ToString("dd/MM/yyyy") - @Model.EndDate.ToString("dd/MM/yyyy")</p>
+                    <p>Printed By: @Model.PrintedBy On: @Model.GeneratedOn.ToString("dd-MMM-yyyy HH:mm")</p>
+                </div>
+
+                <!-- Statistics Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-ban"></i> Total Rejected Loans</h5>
+                                <h3>@Model.TotalRejectedLoans.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-users"></i> Affected Members</h5>
+                                <h3>@Model.UniqueMembers.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-money-bill-wave"></i> Total Amount Rejected</h5>
+                                <h3>@Model.TotalAmountRejected.ToString("N2")</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Table -->
+                <div class="table-responsive">
+                    <table id="rejectedTable" class="table table-bordered table-striped table-hover">
+                        <thead class="table-danger">
+                            <tr>
+                                <th>MemberNo</th>
+                                <th>Names</th>
+                                <th>LoanNo</th>
+                                <th class="text-end">Amt Rejected</th>
+                                <th class="text-center">Rejected Date</th>
+                                <th>Loan Name</th>
+                                <th>Reasons</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var item in Model.RejectedLoans)
+                            {
+                                <tr class="rejected-row">
+                                    <td>@item.MemberNo</td>
+                                    <td>@item.Names</td>
+                                    <td>@item.LoanNo</td>
+                                    <td class="text-end text-danger fw-bold">@item.AmtRejected.ToString("N2")</td>
+                                    <td class="text-center">@(item.RejectedDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                    <td>@item.LoanName</td>
+                                    <td>@item.Reasons</td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-secondary fw-bold">
+                            <tr>
+                                <td colspan="3" class="text-end">TOTAL:</td>
+                                <td class="text-end text-danger">@Model.TotalAmountRejected.ToString("N2")</td>
+                                <td colspan="3"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    @(ViewBag.Message ?? "No rejected loans found for the selected date range. Please select a date range and click 'Generate Report'.")
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
+
+    <script>
+        $(document).ready(function() {
+            $('#rejectedTable').DataTable({
+                pageLength: 25,
+                order: [[4, 'desc']], // Sort by Rejected Date descending
+                language: {
+                    search: "Search:",
+                    lengthMenu: "Show _MENU_ entries per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ rejected loans"
+                },
+                columnDefs: [
+                    { orderable: false, targets: 6 } // Disable sorting on Reasons column
+                ]
+            });
+
+            // Export to Excel
+            $('#exportExcelBtn').click(function() {
+                var startDate = $('input[name="startDate"]').val();
+                var endDate = $('input[name="endDate"]').val();
+                if (!startDate || !endDate) {
+                    alert('Please select both start and end dates first');
+                    return;
+                }
+                var form = $('<form>', {
+                    'method': 'post',
+                    'action': '@Url.Action("ExportRejectedLoansToExcel", "LoanReport")'
+                });
+                form.append($('<input>', {
+                    'type': 'hidden',
+                    'name': 'startDate',
+                    'value': startDate
+                }));
+                form.append($('<input>', {
+                    'type': 'hidden',
+                    'name': 'endDate',
+                    'value': endDate
+                }));
+                form.appendTo('body').submit();
+            });
+
+            // Export to PDF
+            $('#exportPdfBtn').click(function() {
+                var startDate = $('input[name="startDate"]').val();
+                var endDate = $('input[name="endDate"]').val();
+                if (!startDate || !endDate) {
+                    alert('Please select both start and end dates first');
+                    return;
+                }
+                var form = $('<form>', {
+                    'method': 'post',
+                    'action': '@Url.Action("ExportRejectedLoansToPdf", "LoanReport")'
+                });
+                form.append($('<input>', {
+                    'type': 'hidden',
+                    'name': 'startDate',
+                    'value': startDate
+                }));
+                form.append($('<input>', {
+                    'type': 'hidden',
+                    'name': 'endDate',
+                    'value': endDate
+                }));
+                form.appendTo('body').submit();
+            });
+        });
+    </script>
+}

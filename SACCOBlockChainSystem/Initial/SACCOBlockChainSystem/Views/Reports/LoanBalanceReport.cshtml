@@ -1,0 +1,622 @@
+@model SACCOBlockChainSystem.Models.ViewModels.LoanBalanceIndexViewModel
+@{
+    ViewData["Title"] = "Loan Balance Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var hasData = Model != null && Model.Loans != null && Model.Loans.Any();
+    var asAtDate = Model?.AsAtDate ?? (ViewBag.AsAtDate as DateTime? ?? DateTime.Now);
+    var companyName = Model?.CompanyName ?? ViewBag.CompanyName ?? "";
+}
+
+<style media="print">
+    .app-sidebar, .app-header, .main-footer, .sidebar-wrapper, .navbar,
+    .breadcrumb, .footer, [data-lte-toggle="sidebar"], .brand-link,
+    .sidebar-footer, .no-print {
+        display: none !important;
+    }
+
+    .app-main, .app-content, .content-wrapper, .main-content {
+        margin-left: 0 !important;
+        padding: 20px !important;
+        width: 100% !important;
+    }
+
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .card-header {
+        background-color: #17a2b8 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+        .table th {
+            background-color: #f2f2f2 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+    .btn, .export-buttons, #exportExcelBtn, #exportPdfBtn {
+        display: none !important;
+    }
+
+    body {
+        background: white !important;
+        font-size: 10pt;
+    }
+</style>
+
+<div class="card">
+    <div class="card-header bg-info text-white">
+        <h3 class="card-title">
+            <i class="fas fa-chart-line me-2"></i>Loan Balance Report
+        </h3>
+    </div>
+
+    <div class="card-body">
+        <!-- Filter Section -->
+        <div class="row mb-4 no-print">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i>As At Date</h5>
+                    </div>
+                    <div class="card-body">
+                        <form asp-controller="LoanReport" asp-action="LoanBalanceReport" method="post" id="reportForm">
+                            @Html.AntiForgeryToken()
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">As At Date</label>
+                                        <input type="date" name="asAtDate" id="asAtDate"
+                                               class="form-control"
+                                               value="@asAtDate.ToString("yyyy-MM-dd")"
+                                               required />
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">&nbsp;</label>
+                                        <div>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-search me-1"></i>Run Report
+                                            </button>
+                                            <button type="button" class="btn btn-success" id="exportExcelBtn" onclick="exportLoanBalanceToExcel(); return false;">
+                                                <i class="fas fa-file-excel me-1"></i>Excel
+                                            </button>
+                                            <button type="button" class="btn btn-danger" id="exportPdfBtn" onclick="exportLoanBalanceToPdf(); return false;">
+                                                <i class="fas fa-file-pdf me-1"></i>PDF
+                                            </button>
+                                           
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Export Forms -->
+                        <form asp-controller="LoanReport" asp-action="ExportLoanBalanceToExcel" method="post" id="excelForm" style="display:none;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="asAtDate" id="excelAsAtDate" />
+                        </form>
+                        <form asp-controller="LoanReport" asp-action="ExportLoanBalanceToPdf" method="post" id="pdfForm" style="display:none;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="asAtDate" id="pdfAsAtDate" />
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (hasData)
+        {
+            <!-- Report Header -->
+            <div class="text-center mb-4">
+                <h2 class="display-6 fw-bold">@companyName.ToUpper()</h2>
+                <h4 class="text-muted">LOAN BALANCES AS AT @asAtDate.ToString("dd/MM/yyyy HH:mm:ss")</h4>
+                <hr class="my-3" />
+            </div>
+
+            <!-- Summary Statistics -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="small-box bg-primary">
+                        <div class="inner">
+                            <h3>@Model.TotalLoans</h3>
+                            <p>Total Loans</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-file-invoice"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-success">
+                        <div class="inner">
+                            <h3>@Model.ActiveLoansCount</h3>
+                            <p>Active Loans</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-secondary">
+                        <div class="inner">
+                            <h3>@Model.ClosedLoansCount</h3>
+                            <p>Closed Loans</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="small-box bg-warning">
+                        <div class="inner">
+                            <h3>@Model.TotalArrears.ToString("N2")</h3>
+                            <p>Total Arrears</p>
+                        </div>
+                        <div class="icon">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loans Table -->
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover" id="loansTable">
+                    <thead class="bg-info text-white">
+                        <tr>
+                            <th>MemberNo</th>
+                            <th>Names</th>
+                            <th>LoanNo</th>
+                            <th>LoanType</th>
+                            <th class="text-end">Unpaid Interest</th>
+                            <th class="text-end">Paid Interest</th>
+                            <th class="text-end">Amount Issued</th>
+                            <th class="text-end">Loan Balance</th>
+                            <th class="text-end">Amount Paid</th>
+                            <th class="text-end">Arrears</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Loans)
+                        {
+                            <tr>
+                                <td>@item.MemberNo</td>
+                                <td>@item.Names</td>
+                                <td>@item.LoanNo</td>
+                                <td>@item.LoanType</td>
+                                <td class="text-end">@item.UnpaidInterest.ToString("N2")</td>
+                                <td class="text-end">@item.PaidInterest.ToString("N2")</td>
+                                <td class="text-end">@item.AmountIssued.ToString("N2")</td>
+                                <td class="text-end fw-bold">@item.LoanBalance.ToString("N2")</td>
+                                <td class="text-end">@item.AmountPaid.ToString("N2")</td>
+                                <td class="text-end text-danger">@item.Arrears.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                    <tfoot class="bg-light fw-bold">
+                        <tr>
+                            <td colspan="4" class="text-end">GRAND TOTAL:</td>
+                            <td class="text-end">@Model.TotalUnpaidInterest.ToString("N2")</td>
+                            <td class="text-end">@Model.TotalPaidInterest.ToString("N2")</td>
+                            <td class="text-end">@Model.TotalAmountIssued.ToString("N2")</td>
+                            <td class="text-end">@Model.TotalLoanBalance.ToString("N2")</td>
+                            <td class="text-end">@Model.TotalAmountPaid.ToString("N2")</td>
+                            <td class="text-end">@Model.TotalArrears.ToString("N2")</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Report Footer -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="small text-muted text-center">
+                        <i class="fas fa-info-circle"></i>
+                        Generated By: @Model.PrintedBy on @Model.GeneratedOn.ToString("dd/MM/yyyy HH:mm:ss")<br />
+                        As At: @Model.AsAtDate.ToString("dd/MM/yyyy HH:mm:ss") |
+                        Company: @Model.CompanyName |
+                        Total Loans: @Model.TotalLoans
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info text-center py-5">
+                <i class="fas fa-chart-line fa-3x mb-3"></i>
+                <h5>No Active Loans Found</h5>
+                <p>There are no active/disbursed loans as at @asAtDate.ToString("dd/MM/yyyy")</p>
+                <p class="small">Click "Run Report" to view loan balances.</p>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function() {
+            'use strict';
+
+            function domReady(fn) {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', fn);
+                } else {
+                    fn();
+                }
+            }
+
+            domReady(function() {
+                const exportExcelBtn = document.getElementById('exportExcelBtn');
+                const exportPdfBtn = document.getElementById('exportPdfBtn');
+                const asAtDate = document.getElementById('asAtDate');
+                const excelAsAtDate = document.getElementById('excelAsAtDate');
+                const pdfAsAtDate = document.getElementById('pdfAsAtDate');
+                const excelForm = document.getElementById('excelForm');
+                const pdfForm = document.getElementById('pdfForm');
+                const reportForm = document.getElementById('reportForm');
+                const loansTable = document.getElementById('loansTable');
+
+                function validateDate() {
+                    if (!asAtDate) {
+                        alert('As At Date input not found');
+                        return false;
+                    }
+
+                    const date = asAtDate.value;
+                    if (!date) {
+                        alert('Please select an as at date');
+                        asAtDate.focus();
+                        return false;
+                    }
+
+                    if (isNaN(new Date(date).getTime())) {
+                        alert('Please enter a valid date');
+                        return false;
+                    }
+
+                    return true;
+                }
+
+                if (asAtDate) {
+                    asAtDate.addEventListener('change', validateDate);
+                }
+
+                // Excel Export
+                if (exportExcelBtn) {
+                    exportExcelBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (!validateDate()) return;
+
+                        const originalText = exportExcelBtn.innerHTML;
+                        exportExcelBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                        exportExcelBtn.disabled = true;
+                        exportExcelBtn.style.opacity = '0.8';
+
+                        excelAsAtDate.value = asAtDate.value;
+
+                        console.log('Exporting Loan Balance to Excel with date:', asAtDate.value);
+                        excelForm.submit();
+
+                        setTimeout(function() {
+                            exportExcelBtn.innerHTML = originalText;
+                            exportExcelBtn.disabled = false;
+                            exportExcelBtn.style.opacity = '1';
+                        }, 3000);
+                    });
+                }
+
+                // PDF Export
+                if (exportPdfBtn) {
+                    exportPdfBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (!validateDate()) return;
+
+                        const originalText = exportPdfBtn.innerHTML;
+                        exportPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                        exportPdfBtn.disabled = true;
+                        exportPdfBtn.style.opacity = '0.8';
+
+                        pdfAsAtDate.value = asAtDate.value;
+
+                        console.log('Exporting Loan Balance to PDF with date:', asAtDate.value);
+                        pdfForm.submit();
+
+                        setTimeout(function() {
+                            exportPdfBtn.innerHTML = originalText;
+                            exportPdfBtn.disabled = false;
+                            exportPdfBtn.style.opacity = '1';
+                        }, 3000);
+                    });
+                }
+
+                // Report Form Submission
+                if (reportForm) {
+                    reportForm.addEventListener('submit', function(e) {
+                        if (!validateDate()) {
+                            e.preventDefault();
+                            return false;
+                        }
+                    });
+                }
+
+                // Print button enhancement
+                const printBtn = document.querySelector('button[onclick="window.print()"]');
+                if (printBtn && !printBtn.hasAttribute('data-handler-attached')) {
+                    printBtn.setAttribute('data-handler-attached', 'true');
+                    printBtn.addEventListener('click', function(e) {
+                        const originalText = this.innerHTML;
+                        this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Preparing Print...';
+                        this.disabled = true;
+
+                        setTimeout(function() {
+                            window.print();
+                            setTimeout(function() {
+                                printBtn.innerHTML = originalText;
+                                printBtn.disabled = false;
+                            }, 1000);
+                        }, 100);
+                    });
+                }
+
+                @if (hasData)
+                {
+                        <text>
+                        if (loansTable && typeof $.fn !== 'undefined' && $.fn.DataTable) {
+                            try {
+                                $(loansTable).DataTable({
+                                    pageLength: 25,
+                                    ordering: true,
+                                    responsive: true,
+                                    language: {
+                                        search: "Search:",
+                                        lengthMenu: "Show _MENU_ entries",
+                                        info: "Showing _START_ to _END_ of _TOTAL_ entries"
+                                    }
+                                });
+                                console.log('DataTable initialized');
+                            } catch (error) {
+                                console.error('DataTable error:', error);
+                            }
+                        }
+                        </text>
+                }
+
+                // Set default date to today if empty
+                if (asAtDate && !asAtDate.value) {
+                    const today = new Date();
+                    const year = today.getFullYear();
+                    const month = String(today.getMonth() + 1).padStart(2, '0');
+                    const day = String(today.getDate()).padStart(2, '0');
+                    asAtDate.value = `${year}-${month}-${day}`;
+                }
+            });
+
+            // Global fallback functions
+            window.exportLoanBalanceToExcel = function() {
+                const asAtDate = document.getElementById('asAtDate');
+                const excelAsAtDate = document.getElementById('excelAsAtDate');
+                const excelForm = document.getElementById('excelForm');
+                const btn = document.getElementById('exportExcelBtn');
+
+                if (!asAtDate) {
+                    alert('As At Date input not found');
+                    return false;
+                }
+
+                const date = asAtDate.value;
+                if (!date) {
+                    alert('Please select an as at date');
+                    asAtDate.focus();
+                    return false;
+                }
+
+                if (isNaN(new Date(date).getTime())) {
+                    alert('Please enter a valid date');
+                    return false;
+                }
+
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                    btn.disabled = true;
+                    btn.style.opacity = '0.8';
+                    btn.setAttribute('data-original-text', originalText);
+                }
+
+                excelAsAtDate.value = date;
+                excelForm.submit();
+
+                setTimeout(function() {
+                    if (btn) {
+                        const originalText = btn.getAttribute('data-original-text') || '<i class="fas fa-file-excel me-1"></i>Excel';
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    }
+                }, 3000);
+
+                return false;
+            };
+
+            window.exportLoanBalanceToPdf = function() {
+                const asAtDate = document.getElementById('asAtDate');
+                const pdfAsAtDate = document.getElementById('pdfAsAtDate');
+                const pdfForm = document.getElementById('pdfForm');
+                const btn = document.getElementById('exportPdfBtn');
+
+                if (!asAtDate) {
+                    alert('As At Date input not found');
+                    return false;
+                }
+
+                const date = asAtDate.value;
+                if (!date) {
+                    alert('Please select an as at date');
+                    asAtDate.focus();
+                    return false;
+                }
+
+                if (isNaN(new Date(date).getTime())) {
+                    alert('Please enter a valid date');
+                    return false;
+                }
+
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                    btn.disabled = true;
+                    btn.style.opacity = '0.8';
+                    btn.setAttribute('data-original-text', originalText);
+                }
+
+                pdfAsAtDate.value = date;
+                pdfForm.submit();
+
+                setTimeout(function() {
+                    if (btn) {
+                        const originalText = btn.getAttribute('data-original-text') || '<i class="fas fa-file-pdf me-1"></i>PDF';
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                        btn.style.opacity = '1';
+                    }
+                }, 3000);
+
+                return false;
+            };
+
+            domReady(function() {
+                const excelBtn = document.getElementById('exportExcelBtn');
+                const pdfBtn = document.getElementById('exportPdfBtn');
+
+                if (excelBtn && !excelBtn.hasAttribute('onclick')) {
+                    excelBtn.setAttribute('onclick', 'exportLoanBalanceToExcel(); return false;');
+                }
+
+                if (pdfBtn && !pdfBtn.hasAttribute('onclick')) {
+                    pdfBtn.setAttribute('onclick', 'exportLoanBalanceToPdf(); return false;');
+                }
+
+                // Keyboard shortcuts
+                document.addEventListener('keydown', function(e) {
+                    const tag = e.target.tagName.toLowerCase();
+                    if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+
+                    if (e.ctrlKey && e.key === 'e') {
+                        e.preventDefault();
+                        if (excelBtn) excelBtn.click();
+                    }
+                    if (e.ctrlKey && e.key === 'p') {
+                        e.preventDefault();
+                        if (pdfBtn) pdfBtn.click();
+                    }
+                });
+            });
+
+            // Add loading indicator CSS
+            if (!document.getElementById('export-loading-styles')) {
+                const style = document.createElement('style');
+                style.id = 'export-loading-styles';
+                style.textContent = `
+                    .fa-spinner, .fa-spin { animation: spin 1s linear infinite; }
+                    @@keyframes spin { to { transform: rotate(360deg); } }
+                    button:disabled { cursor: not-allowed; opacity: 0.7; }
+                `;
+                document.head.appendChild(style);
+            }
+
+            // Debug logging
+            domReady(function() {
+                console.log('Loan Balance Report Loaded');
+                console.log('Excel button:', !!document.getElementById('exportExcelBtn'));
+                console.log('PDF button:', !!document.getElementById('exportPdfBtn'));
+                console.log('Has data:', @Json.Serialize(hasData));
+            });
+        })();
+    </script>
+}
+
+<style>
+    .small-box {
+        border-radius: 0.25rem;
+        box-shadow: 0 0 1px rgba(0,0,0,.125), 0 1px 3px rgba(0,0,0,.2);
+        display: block;
+        margin-bottom: 20px;
+        position: relative;
+    }
+
+        .small-box > .inner {
+            padding: 10px;
+        }
+
+        .small-box h3 {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0 0 10px;
+            padding: 0;
+            white-space: nowrap;
+            color: white;
+        }
+
+        .small-box p {
+            color: white;
+            font-size: 1rem;
+            margin-bottom: 0;
+        }
+
+        .small-box .icon {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            color: rgba(0,0,0,0.15);
+            font-size: 70px;
+        }
+
+    .bg-primary {
+        background-color: #007bff !important;
+    }
+
+    .bg-success {
+        background-color: #28a745 !important;
+    }
+
+    .bg-info {
+        background-color: #17a2b8 !important;
+    }
+
+    .bg-warning {
+        background-color: #ffc107 !important;
+        color: #212529;
+    }
+
+    .bg-secondary {
+        background-color: #6c757d !important;
+    }
+
+    .text-danger {
+        color: #dc3545 !important;
+        font-weight: bold;
+    }
+
+    @@media print {
+        .small-box {
+            box-shadow: none;
+            border: 1px solid #ddd;
+        }
+    }
+</style>

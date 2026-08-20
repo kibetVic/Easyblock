@@ -1,0 +1,590 @@
+﻿@using System.Security.Claims
+@model SACCOBlockChainSystem.Models.ViewModels.PartiallyPaidSharesIndexViewModel
+@{
+    ViewData["Title"] = "Partially Paid Shares Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var hasData = Model != null && Model.Members != null && Model.Members.Any();
+    var reportDate = Model?.ReportDate ?? (ViewBag.ReportDate as DateTime? ?? DateTime.Now);
+    var companyName = Model?.CompanyName ?? ViewBag.CompanyName ?? "";
+}
+
+<style media="print">
+    .app-sidebar, .app-header, .main-footer, .sidebar-wrapper, .navbar,
+    .breadcrumb, .footer, [data-lte-toggle="sidebar"], .brand-link,
+    .sidebar-footer, .no-print {
+        display: none !important;
+    }
+
+    .app-main, .app-content, .content-wrapper, .main-content {
+        margin-left: 0 !important;
+        padding: 20px !important;
+        width: 100% !important;
+    }
+
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .card-header {
+        background-color: #ffc107 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+    }
+
+        .table th {
+            background-color: #f2f2f2 !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+    .btn, .export-buttons, #exportExcelBtn, #exportPdfBtn {
+        display: none !important;
+    }
+
+    body {
+        background: white !important;
+        font-size: 11pt;
+    }
+
+    .bg-warning {
+        background-color: #ffc107 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+</style>
+
+<div class="card">
+    <div class="card-header bg-warning">
+        <h3 class="card-title">
+            <i class="fas fa-exclamation-triangle me-2"></i>Partially Paid Shares Register
+        </h3>
+    </div>
+
+    <div class="card-body">
+        <!-- Filter Section - Hidden when printing -->
+        <div class="row mb-4 no-print">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Report Date</h5>
+                    </div>
+                    <div class="card-body">
+                        <form asp-action="PartiallyPaidShares" method="post" id="reportForm">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">As At Date</label>
+                                        <input type="date" name="reportDate" id="reportDate"
+                                               class="form-control"
+                                               value="@reportDate.ToString("yyyy-MM-dd")"
+                                               required />
+                                    </div>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="form-group">
+                                        <label class="form-label fw-bold">&nbsp;</label>
+                                        <div>
+                                            <button type="submit" class="btn btn-primary">
+                                                <i class="fas fa-search me-1"></i>Generate Report
+                                            </button>
+                                            <button type="button" class="btn btn-success" id="exportExcelBtn" onclick="exportPartiallyPaidSharesToExcel(); return false;">
+                                                <i class="fas fa-file-excel me-1"></i>Excel
+                                            </button>
+                                            <button type="button" class="btn btn-danger" id="exportPdfBtn" onclick="exportPartiallyPaidSharesToPdf(); return false;">
+                                                <i class="fas fa-file-pdf me-1"></i>PDF
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- Export Forms -->
+                        <form asp-action="ExportPartiallyPaidSharesToExcel" method="post" id="excelForm" style="display:none;">
+                            <input type="hidden" name="reportDate" id="excelReportDate" />
+                        </form>
+                        <form asp-action="ExportPartiallyPaidSharesToPdf" method="post" id="pdfForm" style="display:none;">
+                            <input type="hidden" name="reportDate" id="pdfReportDate" />
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (hasData)
+        {
+            <!-- SACCO Header -->
+            <div class="text-center mb-4">
+                <h2 class="display-6 fw-bold">@companyName.ToUpper()</h2>
+                <h4 class="text-muted">PARTIALLY PAID SACCO SHARES AS AT @reportDate.ToString("dd/MM/yyyy")</h4>
+                <hr class="my-3" />
+            </div>
+
+            <!-- Members Table - Exactly as in the image, NO requirement values displayed -->
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover" id="membersTable">
+                    <thead class="bg-warning">
+                        <tr>
+                            <th width="50">#</th>
+                            <th>MEMBERNO</th>
+                            <th>NAMES</th>
+                            <th>SEX</th>
+                            <th class="text-end">SHARE CAPITAL</th>
+                            <th class="text-end">SAVINGS/DEPOSITS</th>
+                            <th class="text-end">REGISTRATION FEE</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            int counter = 1;
+                        }
+                        @foreach (var item in Model.Members)
+                        {
+                            <tr>
+                                <td class="text-center">@counter</td>
+                                <td>@item.MemberNo</td>
+                                <td>@item.FullName</td>
+                                <td>@item.Sex</td>
+                                <td class="text-end @(item.ShareCapital == 0 ? "text-danger fw-bold" : "")">
+                                    @item.ShareCapital.ToString("N2")
+                                </td>
+                                <td class="text-end @(item.SavingsDeposits == 0 ? "text-danger fw-bold" : "")">
+                                    @item.SavingsDeposits.ToString("N2")
+                                </td>
+                                <td class="text-end @(item.RegistrationFee == 0 ? "text-danger fw-bold" : "")">
+                                    @item.RegistrationFee.ToString("N2")
+                                </td>
+                            </tr>
+                            counter++;
+                        }
+                    </tbody>
+                    <tfoot class="bg-light fw-bold">
+                        <tr>
+                            <td colspan="4" class="text-end">GRAND TOTAL:</td>
+                            <td class="text-end">@Model.TotalShareCapital.ToString("N2")</td>
+                            <td class="text-end">@Model.TotalSavingsDeposits.ToString("N2")</td>
+                            <td class="text-end">@Model.TotalRegistrationFee.ToString("N2")</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+
+            <!-- Statistics Section - Exactly as in the image, NO requirement values displayed -->
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Member Statistics</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td width="50%"><strong>TOTAL MEMBERS:</strong></td>
+                                    <td><strong>@Model.TotalMembers</strong></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>MALE:</strong></td>
+                                    <td><strong>@Model.MaleCount.ToString("N0")</strong></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>FEMALE:</strong></td>
+                                    <td><strong>@Model.FemaleCount.ToString("N0")</strong></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>OTHERS:</strong></td>
+                                    <td><strong>@Model.OtherCount.ToString("N0")</strong></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-light">
+                            <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Payment Summary</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-sm">
+                                <tr>
+                                    <td width="50%"><strong>Members with Zero Share Capital:</strong></td>
+                                    <td class="text-end">
+                                        <strong>@Model.Members.Count(m => m.ShareCapital == 0)</strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Members with Zero Savings:</strong></td>
+                                    <td class="text-end">
+                                        <strong>@Model.Members.Count(m => m.SavingsDeposits == 0)</strong>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Members with Zero Registration Fee:</strong></td>
+                                    <td class="text-end">
+                                        <strong>@Model.Members.Count(m => m.RegistrationFee == 0)</strong>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Information -->
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div class="small text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Generated By: @User.Identity.Name on @DateTime.Now.ToString("dd/MM/yyyy HH:mm:ss") |
+                        As At: @Model.ReportDate.ToString("dd/MM/yyyy") |
+                        Company: @companyName
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-success text-center py-5">
+                <i class="fas fa-check-circle fa-3x mb-3 text-success"></i>
+                <h5>No Partially Paid Members Found</h5>
+                <p>All active members have fully paid their shares as at @reportDate.ToString("dd/MM/yyyy")</p>
+            </div>
+        }
+    </div>
+</div>
+
+ 
+
+@section Scripts {
+    <script>
+        (function() {
+            'use strict';
+
+            // DOM ready helper
+            function domReady(fn) {
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', fn);
+                } else {
+                    fn();
+                }
+            }
+
+            domReady(function() {
+                // Get all required elements
+                const exportExcelBtn = document.getElementById('exportExcelBtn');
+                const exportPdfBtn = document.getElementById('exportPdfBtn');
+                const reportDate = document.getElementById('reportDate');
+                const excelReportDate = document.getElementById('excelReportDate');
+                const pdfReportDate = document.getElementById('pdfReportDate');
+                const excelForm = document.getElementById('excelForm');
+                const pdfForm = document.getElementById('pdfForm');
+                const reportForm = document.getElementById('reportForm');
+                const membersTable = document.getElementById('membersTable');
+
+                // Export to Excel
+                if (exportExcelBtn) {
+                    exportExcelBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (!reportDate) {
+                            alert('Report date input not found');
+                            return;
+                        }
+
+                        const date = reportDate.value;
+                        if (!date) {
+                            alert('Please select a report date');
+                            return;
+                        }
+
+                        if (!excelReportDate) {
+                            alert('Excel form hidden input not found');
+                            return;
+                        }
+
+                        if (!excelForm) {
+                            alert('Excel form not found');
+                            return;
+                        }
+
+                        // Show loading state
+                        const originalText = exportExcelBtn.innerHTML;
+                        exportExcelBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                        exportExcelBtn.disabled = true;
+
+                        // Set the date value and submit
+                        excelReportDate.value = date;
+                        excelForm.submit();
+
+                        // Reset button after a short delay
+                        setTimeout(function() {
+                            exportExcelBtn.innerHTML = originalText;
+                            exportExcelBtn.disabled = false;
+                        }, 2000);
+                    });
+                }
+
+                // Export to PDF
+                if (exportPdfBtn) {
+                    exportPdfBtn.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        if (!reportDate) {
+                            alert('Report date input not found');
+                            return;
+                        }
+
+                        const date = reportDate.value;
+                        if (!date) {
+                            alert('Please select a report date');
+                            return;
+                        }
+
+                        if (!pdfReportDate) {
+                            alert('PDF form hidden input not found');
+                            return;
+                        }
+
+                        if (!pdfForm) {
+                            alert('PDF form not found');
+                            return;
+                        }
+
+                        // Show loading state
+                        const originalText = exportPdfBtn.innerHTML;
+                        exportPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                        exportPdfBtn.disabled = true;
+
+                        // Set the date value and submit
+                        pdfReportDate.value = date;
+                        pdfForm.submit();
+
+                        // Reset button after a short delay
+                        setTimeout(function() {
+                            exportPdfBtn.innerHTML = originalText;
+                            exportPdfBtn.disabled = false;
+                        }, 2000);
+                    });
+                }
+
+                // Handle report form submission
+                if (reportForm) {
+                    reportForm.addEventListener('submit', function(e) {
+                        if (!reportDate) return;
+
+                        const date = reportDate.value;
+                        if (!date) {
+                            e.preventDefault();
+                            alert('Please select a report date');
+                            return false;
+                        }
+                    });
+                }
+
+                // Initialize DataTable if available and data exists
+                @if (hasData)
+                {
+                        <text>
+                        if (membersTable && typeof $.fn !== 'undefined' && $.fn.DataTable) {
+                            try {
+                                $(membersTable).DataTable({
+                                    pageLength: 25,
+                                    ordering: true,
+                                    responsive: true,
+                                    language: {
+                                        search: "Search:",
+                                        lengthMenu: "Show _MENU_ entries",
+                                        info: "Showing _START_ to _END_ of _TOTAL_ entries"
+                                    }
+                                });
+                            } catch (error) {
+                                console.error('DataTable initialization error:', error);
+                            }
+                        }
+                        </text>
+                }
+
+                // Add print button enhancement
+                const printBtn = document.querySelector('button[onclick="window.print()"]');
+                if (printBtn && !printBtn.hasAttribute('data-handler-attached')) {
+                    printBtn.setAttribute('data-handler-attached', 'true');
+                    printBtn.addEventListener('click', function(e) {
+                        const originalText = this.innerHTML;
+                        this.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Preparing Print...';
+                        this.disabled = true;
+
+                        setTimeout(function() {
+                            window.print();
+                            setTimeout(function() {
+                                printBtn.innerHTML = originalText;
+                                printBtn.disabled = false;
+                            }, 1000);
+                        }, 100);
+                    });
+                }
+            });
+
+            // Global fallback functions - These work even if event listeners fail
+            window.exportPartiallyPaidSharesToExcel = function() {
+                const reportDate = document.getElementById('reportDate');
+                const excelReportDate = document.getElementById('excelReportDate');
+                const excelForm = document.getElementById('excelForm');
+                const btn = document.getElementById('exportExcelBtn');
+
+                if (!reportDate || !excelReportDate || !excelForm) {
+                    alert('Export form not properly configured');
+                    return false;
+                }
+
+                const date = reportDate.value;
+                if (!date) {
+                    alert('Please select a report date');
+                    return false;
+                }
+
+                // Show loading state
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                    btn.disabled = true;
+                }
+
+                excelReportDate.value = date;
+                excelForm.submit();
+
+                // Reset button after a short delay
+                setTimeout(function() {
+                    if (btn) {
+                        btn.innerHTML = '<i class="fas fa-file-excel me-1"></i>Excel';
+                        btn.disabled = false;
+                    }
+                }, 2000);
+
+                return false;
+            };
+
+            window.exportPartiallyPaidSharesToPdf = function() {
+                const reportDate = document.getElementById('reportDate');
+                const pdfReportDate = document.getElementById('pdfReportDate');
+                const pdfForm = document.getElementById('pdfForm');
+                const btn = document.getElementById('exportPdfBtn');
+
+                if (!reportDate || !pdfReportDate || !pdfForm) {
+                    alert('Export form not properly configured');
+                    return false;
+                }
+
+                const date = reportDate.value;
+                if (!date) {
+                    alert('Please select a report date');
+                    return false;
+                }
+
+                // Show loading state
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exporting...';
+                    btn.disabled = true;
+                }
+
+                pdfReportDate.value = date;
+                pdfForm.submit();
+
+                // Reset button after a short delay
+                setTimeout(function() {
+                    if (btn) {
+                        btn.innerHTML = '<i class="fas fa-file-pdf me-1"></i>PDF';
+                        btn.disabled = false;
+                    }
+                }, 2000);
+
+                return false;
+            };
+
+            // Set onclick attributes as backup
+            domReady(function() {
+                const excelBtn = document.getElementById('exportExcelBtn');
+                const pdfBtn = document.getElementById('exportPdfBtn');
+
+                // Only set onclick if not already set and button exists
+                if (excelBtn && !excelBtn.hasAttribute('onclick')) {
+                    excelBtn.setAttribute('onclick', 'exportPartiallyPaidSharesToExcel(); return false;');
+                }
+
+                if (pdfBtn && !pdfBtn.hasAttribute('onclick')) {
+                    pdfBtn.setAttribute('onclick', 'exportPartiallyPaidSharesToPdf(); return false;');
+                }
+
+                // Add keyboard shortcut (Ctrl+E for Excel, Ctrl+P for PDF)
+                document.addEventListener('keydown', function(e) {
+                    if (e.ctrlKey && e.key === 'e') {
+                        e.preventDefault();
+                        if (excelBtn) {
+                            excelBtn.click();
+                        }
+                    }
+                    if (e.ctrlKey && e.key === 'p') {
+                        e.preventDefault();
+                        if (pdfBtn) {
+                            pdfBtn.click();
+                        }
+                    }
+                });
+            });
+
+            // Add loading indicator CSS if not exists
+            if (!document.getElementById('export-loading-styles')) {
+                const style = document.createElement('style');
+                style.id = 'export-loading-styles';
+                style.textContent = `
+                    .btn-loading {
+                        position: relative;
+                        pointer-events: none;
+                        opacity: 0.8;
+                    }
+
+                    .btn-loading:after {
+                        content: "";
+                        position: absolute;
+                        width: 16px;
+                        height: 16px;
+                        top: 50%;
+                        left: 50%;
+                        margin-left: -8px;
+                        margin-top: -8px;
+                        border: 2px solid rgba(255,255,255,0.3);
+                        border-radius: 50%;
+                        border-top-color: white;
+                        animation: spin 0.6s linear infinite;
+                    }
+
+                    @@keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+
+                    .fa-spinner {
+                        animation: spin 1s linear infinite;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            // Debug helper - log export attempts
+            domReady(function() {
+                console.log('Partially Paid Shares report page loaded');
+                console.log('Excel button exists:', !!document.getElementById('exportExcelBtn'));
+                console.log('PDF button exists:', !!document.getElementById('exportPdfBtn'));
+                console.log('Report date input exists:', !!document.getElementById('reportDate'));
+                console.log('Excel form exists:', !!document.getElementById('excelForm'));
+                console.log('PDF form exists:', !!document.getElementById('pdfForm'));
+            });
+        })();
+    </script>
+}

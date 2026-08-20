@@ -1,0 +1,512 @@
+﻿@model SACCOBlockChainSystem.Models.GlSetup
+
+@{
+    ViewData["Title"] = "Account Setup";
+}
+
+
+<h3 style="color:orange;">Account Setup</h3>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<form asp-action="Save" method="post" id="glSetupForm">
+    <input type="hidden" asp-for="GlId" />
+
+    <table cellpadding="5" cellspacing="5" style="width:100%;">
+        <tr>
+            <td>Account Type:</td>
+            <td>
+                <select asp-for="Type" id="accountType" class="form-control" required>
+                    <option value="">-- Select Account Type --</option>
+                    @if (ViewBag.AccountTypes != null)
+                    {
+                        foreach (var type in ViewBag.AccountTypes)
+                        {
+                            <option value="@type.Type">@type.Type</option>
+                        }
+                    }
+                </select>
+            </td>
+            <td>Account Group:</td>
+            <td>
+                <select asp-for="GlAccMainGroup" id="accountGroup" class="form-control" required>
+                    <option value="">-- Select Account Group --</option>
+                </select>
+            </td>
+            <td>Normal Balance:</td>
+            <td>
+                <input asp-for="Normalbal" id="normalBalance" class="form-control" readonly />
+            </td>
+        </tr>
+        <tr>
+            <td>Account No:</td>
+            <td>
+                <input asp-for="AccNo" class="form-control" required />
+            </td>
+            <td>Account Name:</td>
+            <td colspan="3">
+                <input asp-for="Glaccname" style="width:95%;" class="form-control" required />
+            </td>
+        </tr>
+        <tr>
+            <td>A/C Sub Group:</td>
+            <td>
+                <select asp-for="SubType" id="SubType" class="form-control">
+                    <option value="">-- Select Sub Group --</option>
+                </select>
+            </td>
+            <td>Currency:</td>
+            <td>
+                <select asp-for="Curr" class="form-control">
+                    <option value="">-- Select Currency --</option>
+                    @if (ViewBag.Currencies != null)
+                    {
+                        foreach (var currency in ViewBag.Currencies)
+                        {
+                            <option value="@currency.Code">@currency.Code - @currency.Name</option>
+                        }
+                    }
+                </select>
+            </td>
+            <td>Balance As At:</td>
+            <td>
+                <input asp-for="TransDate" type="date" class="form-control"
+                       value="@DateTime.Now.ToString("yyyy-MM-dd")" />
+            </td>
+        </tr>
+        <tr>
+            <td>A/C Category:</td>
+            <td>
+                <select asp-for="AccCategory" class="form-control">
+                    <option value="">-- Select Category --</option>
+                    @if (ViewBag.AccountCategories != null)
+                    {
+                        foreach (var cat in ViewBag.AccountCategories)
+                        {
+                            <option value="@cat.Name">@cat.Name</option>
+                        }
+                    }
+                </select>
+            </td>
+            <td>Opening Balance:</td>
+            <td>
+                <input asp-for="OpeningBal" class="form-control" type="number" step="0.01" placeholder="0.00" />
+            </td>
+            <td>Sub Category:</td>
+            <td>
+                <select asp-for="SubType" class="form-control">
+                    <option value="">-- Select Sub Category --</option>
+                    @if (ViewBag.SubCategories != null)
+                    {
+                        foreach (var sub in ViewBag.SubCategories)
+                        {
+                            <option value="@sub.Name">@sub.Name</option>
+                        }
+                    }
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td colspan="2">
+                <input asp-for="IsSuspense" type="checkbox" /> Is Suspense A/C
+                &nbsp;&nbsp;&nbsp;
+                <input asp-for="IsREarning" type="checkbox" /> Is Retained Earnings A/C
+            </td>
+        </tr>
+    </table>
+
+    <br />
+
+    <div style="text-align:center;">
+        <button type="submit" formaction="/GlSetup/Save" class="btn btn-primary">Save</button>
+        <button type="submit" formaction="/GlSetup/Update" class="btn btn-warning">Update</button>
+        <button type="submit" formaction="/GlSetup/Delete" class="btn btn-danger" id="deleteBtn">Delete</button>
+        <a href="@Url.Action("Index")" class="btn btn-secondary">Clear</a>
+    </div>
+</form>
+
+<hr />
+
+<h4>Chart of Accounts</h4>
+
+<table border="1" cellpadding="5" cellspacing="0" width="100%" style="border-collapse:collapse;">
+    <thead style="background-color:#3f2b96;color:white;">
+        <tr>
+            <th>Account No</th>
+            <th>Account Name</th>
+            <th>Account Type</th>
+            <th>Account Group</th>
+            <th>Normal Balance</th>
+            <th>Category</th>
+            <th>Currency</th>
+            <th>Company Code</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (ViewBag.Accounts != null && ((IEnumerable<dynamic>)ViewBag.Accounts).Any())
+        {
+            foreach (var account in ViewBag.Accounts)
+            {
+                <tr>
+                    <td>@account.AccNo</td>
+                    <td>@account.Glaccname</td>
+                    <td>@account.Type</td>
+                    <td>@account.GlAccMainGroup</td>
+                    <td style="text-align:center; font-weight:bold; color:@(account.Normalbal == "DR" ? "#28a745" : "#dc3545")">
+                        @account.Normalbal
+                    </td>
+                    <td>@account.AccCategory</td>
+                    <td>@account.Curr</td>
+                    <td>@account.CompanyCode</td>
+                    <td>
+                        <a href="@Url.Action("Edit", new { id = account.GlId })" class="btn btn-sm btn-primary">Edit</a>
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="9" style="text-align:center; padding:20px;">
+                    <em>No accounts found. Please add your first account.</em>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+
+            // Load account groups when account type changes
+            $('#accountType').change(function() {
+                var accountType = $(this).val();
+                var groupDropdown = $('#accountGroup');
+                var normalBalanceField = $('#normalBalance');
+
+                groupDropdown.empty();
+                groupDropdown.append('<option value="">-- Select Account Group --</option>');
+                normalBalanceField.val('');
+                normalBalanceField.prop('readonly', false);
+                normalBalanceField.css('background-color', '');
+
+                if (accountType) {
+                    $.getJSON('/GlSetup/GetGroupsByType', { accountType: accountType }, function(data) {
+                        $.each(data, function(i, group) {
+                            var option = $('<option></option>')
+                                .attr('value', group.name)
+                                .text(group.name)
+                                .data('normalbalance', group.normalBalance);
+
+                            groupDropdown.append(option);
+                        });
+                    }).fail(function(jqXHR, textStatus, errorThrown) {
+                        console.error('Error loading groups:', textStatus, errorThrown);
+                        alert('Error loading account groups. Please refresh the page.');
+                    });
+                }
+            });
+
+            // ===============================
+            // Account Group → Sub Categories & Normal Balance
+            // ===============================
+            $('#accountGroup').change(function() {
+                var groupName = $(this).val();
+                var selectedOption = $(this).find('option:selected');
+                var normalBalance = selectedOption.data('normalbalance');
+                var normalBalanceField = $('#normalBalance');
+                var subCategoryDropdown = $('#SubType');
+
+                // Handle Normal Balance based on Account Group
+                if (groupName === 'Capital Reserved') {
+                    // For Capital Reserved - clear and make editable
+                    normalBalanceField.val('');
+                    normalBalanceField.prop('readonly', false);
+                    normalBalanceField.attr('placeholder', 'Enter DR or CR manually');
+                    normalBalanceField.css('background-color', '#fff8e1'); // Light yellow to indicate editable
+                    normalBalanceField.css('border', '2px solid #ff9800');
+                } else if (groupName) {
+                    // For other groups - auto-set and make readonly
+                    normalBalanceField.val(normalBalance || '');
+                    normalBalanceField.prop('readonly', true);
+                    normalBalanceField.attr('placeholder', '');
+                    normalBalanceField.css('background-color', '#f5f5f5');
+                    normalBalanceField.css('border', '1px solid #ccc');
+                } else {
+                    // No group selected
+                    normalBalanceField.val('');
+                    normalBalanceField.prop('readonly', false);
+                    normalBalanceField.attr('placeholder', '');
+                    normalBalanceField.css('background-color', '');
+                    normalBalanceField.css('border', '1px solid #ccc');
+                }
+
+                // Load Sub Categories
+                subCategoryDropdown.empty();
+                subCategoryDropdown.append('<option value="">-- Select Sub Category --</option>');
+
+                if (groupName) {
+                    $.ajax({
+                        url: '/GlSetup/GetSubCategoriesByGroup',
+                        type: 'GET',
+                        data: { groupName: groupName },
+                        success: function(data) {
+                            console.log("Subcategories:", data);
+
+                            $.each(data, function(i, item) {
+                                subCategoryDropdown.append(
+                                    `<option value="${item.name}">${item.name}</option>`
+                                );
+                            });
+                        },
+                        error: function(err) {
+                            console.error('Error loading subcategories:', err);
+                        }
+                    });
+                }
+            });
+
+            // Handle Save button with validation for Capital Reserved
+            $('button[formaction="/GlSetup/Save"]').click(function(e) {
+                e.preventDefault();
+
+                var accNo = $('#AccNo').val();
+                var accName = $('#Glaccname').val();
+                var accType = $('#accountType').val();
+                var accGroup = $('#accountGroup').val();
+                var normalBalance = $('#normalBalance').val();
+
+                if (!accNo || !accNo.trim()) {
+                    alert('Account Number is required.');
+                    return false;
+                }
+                if (!accName || !accName.trim()) {
+                    alert('Account Name is required.');
+                    return false;
+                }
+                if (!accType) {
+                    alert('Please select an Account Type.');
+                    return false;
+                }
+                if (!accGroup) {
+                    alert('Please select an Account Group.');
+                    return false;
+                }
+
+                // Validate normal balance for Capital Reserved
+                if (accGroup === 'Capital Reserved') {
+                    if (!normalBalance || normalBalance.trim() === '') {
+                        alert('Please enter Normal Balance (DR or CR) for Capital Reserved accounts.');
+                        return false;
+                    }
+                    var upperBalance = normalBalance.trim().toUpperCase();
+                    if (upperBalance !== 'DR' && upperBalance !== 'CR') {
+                        alert('Normal Balance must be either DR or CR for Capital Reserved accounts.');
+                        return false;
+                    }
+                    // Set the value to uppercase for consistency
+                    $('#normalBalance').val(upperBalance);
+                }
+
+                $('#glSetupForm').attr('action', '/GlSetup/Save');
+                $('#glSetupForm').submit();
+            });
+
+            // Handle Update button with validation
+            $('button[formaction="/GlSetup/Update"]').click(function(e) {
+                e.preventDefault();
+
+                var glId = $('#GlId').val();
+                var accGroup = $('#accountGroup').val();
+                var normalBalance = $('#normalBalance').val();
+
+                if (!glId || glId === '0' || glId === '') {
+                    alert('Please select an account to update by clicking Edit on an existing account.');
+                    return false;
+                }
+
+                // Validate normal balance for Capital Reserved on update
+                if (accGroup === 'Capital Reserved') {
+                    if (!normalBalance || normalBalance.trim() === '') {
+                        alert('Please enter Normal Balance (DR or CR) for Capital Reserved accounts.');
+                        return false;
+                    }
+                    var upperBalance = normalBalance.trim().toUpperCase();
+                    if (upperBalance !== 'DR' && upperBalance !== 'CR') {
+                        alert('Normal Balance must be either DR or CR for Capital Reserved accounts.');
+                        return false;
+                    }
+                    $('#normalBalance').val(upperBalance);
+                }
+
+                $('#glSetupForm').attr('action', '/GlSetup/Update');
+                $('#glSetupForm').submit();
+            });
+
+            // Handle Delete button
+            $('#deleteBtn').click(function(e) {
+                e.preventDefault();
+
+                var glId = $('#GlId').val();
+                if (!glId || glId === '0' || glId === '') {
+                    alert('Please select an account to delete by clicking Edit on an existing account.');
+                    return false;
+                }
+
+                if (confirm('Are you sure you want to delete this account? This action cannot be undone.')) {
+                    var form = $('<form method="post" action="/GlSetup/Delete"></form>');
+                    form.append($('<input type="hidden" name="glId" value="' + glId + '"/>'));
+                    form.append('@Html.AntiForgeryToken()');
+                    $('body').append(form);
+                    form.submit();
+                }
+            });
+
+            // Auto-clear alerts after 5 seconds
+            setTimeout(function() {
+                $('.alert').fadeOut('slow');
+            }, 5000);
+
+            // If editing, trigger the account type change to load groups
+            var selectedAccountType = $('#accountType').val();
+            var selectedAccountGroup = '@Model?.GlAccMainGroup';
+            var selectedNormalBalance = '@Model?.Normalbal';
+
+            if (selectedAccountType) {
+                $('#accountType').trigger('change');
+
+                // Wait for groups to load then set the selected group
+                setTimeout(function() {
+                    if (selectedAccountGroup) {
+                        $('#accountGroup').val(selectedAccountGroup).trigger('change');
+
+                        // For Capital Reserved, set the normal balance value if it exists
+                        if (selectedAccountGroup === 'Capital Reserved' && selectedNormalBalance) {
+                            setTimeout(function() {
+                                $('#normalBalance').val(selectedNormalBalance);
+                                $('#normalBalance').css('background-color', '#fff8e1');
+                                $('#normalBalance').css('border', '2px solid #ff9800');
+                            }, 300);
+                        }
+                    }
+                }, 500);
+            }
+        });
+    </script>
+}
+
+<style>
+    .btn {
+        padding: 8px 16px;
+        margin: 2px;
+        border: none;
+        border-radius: 4px;
+        color: white;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s;
+    }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+    .btn-primary {
+        background-color: #007bff;
+    }
+
+    .btn-warning {
+        background-color: #ffc107;
+        color: black;
+    }
+
+    .btn-danger {
+        background-color: #dc3545;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+    }
+
+    .btn-sm {
+        padding: 3px 8px;
+        font-size: 12px;
+    }
+
+    .form-control {
+        padding: 6px 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+        .form-control:focus {
+            border-color: #3f2b96;
+            outline: none;
+            box-shadow: 0 0 0 0.2rem rgba(63,43,150,0.25);
+        }
+
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+    td {
+        padding: 8px;
+        vertical-align: middle;
+    }
+
+    th {
+        padding: 12px 8px;
+        text-align: left;
+    }
+
+    tr:hover {
+        background-color: #f5f5f5;
+    }
+
+    h2 {
+        color: #3f2b96;
+        margin-bottom: 10px;
+    }
+
+    h3 {
+        margin-top: 0;
+    }
+
+    hr {
+        border: 1px solid #3f2b96;
+        margin: 20px 0;
+    }
+
+    .alert {
+        padding: 15px;
+        margin-bottom: 20px;
+        border-radius: 4px;
+    }
+
+    .alert-success {
+        background-color: #d4edda;
+        color: #155724;
+        border: 1px solid #c3e6cb;
+    }
+
+    .alert-danger {
+        background-color: #f8d7da;
+        color: #721c24;
+        border: 1px solid #f5c6cb;
+    }
+</style>

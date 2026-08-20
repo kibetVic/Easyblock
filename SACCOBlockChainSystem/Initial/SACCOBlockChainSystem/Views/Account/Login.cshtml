@@ -1,0 +1,388 @@
+﻿@model SACCOBlockChainSystem.Models.ViewModels.LoginVm
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login - EasySacco BlockChain System</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <style>
+        body {
+            background: #f5f7fa;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+            margin: 0;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 900px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+        }
+
+        .login-row {
+            display: flex;
+            min-height: 550px;
+        }
+
+        /* Left side - Image Section */
+        .image-section {
+            flex: 1;
+            background: linear-gradient(145deg, #00AEEF 0%, #164799 100%);
+            padding: 30px 5px;
+            border-radius: 5px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        .blockchain-badge {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            border-radius: 50px;
+            padding: 8px 20px;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            font-weight: 500;
+            font-size: 0.7rem;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .security-tagline {
+            color: white;
+            font-size: 1.8rem;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-bottom: 15px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .security-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 25px;
+            justify-content: center;
+        }
+
+        .feature-pill {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 30px;
+            padding: 1px 8px;
+            color: white;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+            .feature-pill i {
+                color: #00ff9d;
+                font-size: 0.8rem;
+            }
+
+        .image-wrapper {
+            flex: 1;
+            display: flex;
+            border-radius: 5px;
+            align-items: flex-end;
+            justify-content: center;
+            margin-top: auto;
+            width: 100%;
+            padding: 0;
+        }
+
+            .image-wrapper img {
+                width: 100%;
+                height: auto;
+                border-radius: 5px;
+                max-height: none;
+                object-fit: cover;
+                display: block;
+            }
+
+        /* Right side - Form Section */
+        .form-section {
+            flex: 1;
+            background: white;
+            padding: 40px;
+            display: flex;
+            border-radius: 5px;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .brand-title {
+            color: #164799;
+            font-weight: 700;
+            margin-bottom: 5px;
+            text-align: center;
+        }
+
+        .brand-subtitle {
+            color: #6c757d;
+            font-size: 0.95rem;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .form-control {
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            padding: 12px 15px;
+            transition: all 0.3s;
+        }
+
+            .form-control:focus {
+                border-color: #00AEEF;
+                box-shadow: 0 0 0 0.2rem rgba(0, 174, 239, 0.15);
+            }
+
+        .btn-login {
+            background: linear-gradient(145deg, #00AEEF, #164799);
+            border: none;
+            border-radius: 10px;
+            padding: 12px;
+            font-weight: 600;
+            color: white;
+            width: 100%;
+            transition: all 0.3s;
+        }
+
+            .btn-login:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(0, 174, 239, 0.2);
+            }
+
+        .form-check-input:checked {
+            background-color: #00AEEF;
+            border-color: #00AEEF;
+        }
+
+        .signup-link {
+            color: #164799;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+            .signup-link:hover {
+                text-decoration: underline;
+            }
+
+        .footer-note {
+            text-align: center;
+            margin-top: 20px;
+            color: #8f9bb3;
+            font-size: 0.8rem;
+        }
+
+        .validation-summary-errors {
+            background: #fff5f5;
+            border: 1px solid #feb2b2;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 20px;
+            color: #c53030;
+        }
+
+
+        {
+            flex-direction: column;
+            min-height: auto;
+        }
+
+        .image-section {
+            padding: 20px;
+        }
+
+        .form-section {
+            padding: 30px;
+        }
+
+        body {
+            padding: 10px;
+        }
+
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-row">
+            <!-- Left side - Image Section with Blockchain Features -->
+            <div class="image-section">
+                <div class="blockchain-badge">
+                    <i class="fas fa-link"></i>
+                    <span>Powered by Blockchain Technology</span>
+                </div>
+
+                <div class="security-tagline">
+                    Secure. Transparent. Immutable.
+                </div>
+
+                <div class="security-features">
+                    <span class="feature-pill">
+                        <i class="fas fa-shield-alt"></i> End-to-End Encryption
+                    </span>
+                    <span class="feature-pill">
+                        <i class="fas fa-link"></i> Immutable Ledger
+                    </span>
+                    <span class="feature-pill">
+                        <i class="fas fa-fingerprint"></i> Digital Signatures
+                    </span>
+                    <span class="feature-pill">
+                        <i class="fas fa-clock"></i> Timestamped Records
+                    </span>
+                    <span class="feature-pill">
+                        <i class="fas fa-database"></i> Decentralized Storage
+                    </span>
+                    <span class="feature-pill">
+                        <i class="fas fa-check-circle"></i> Smart Contracts
+                    </span>
+                </div>
+
+                <div class="image-wrapper">
+                    <img src="/AdminLte/dist/assets/img/LoginPG.png" alt="Blockchain Secure Login" />
+                </div>
+            </div>
+
+            <!-- Right side - Form Section -->
+            <div class="form-section">
+                <h2 class="brand-title">EasySacco</h2>
+                <p class="brand-subtitle">BlockChain System - Secure Login</p>
+
+                <form asp-action="Login" method="post">
+                    @Html.AntiForgeryToken()
+
+                    @if (!ViewData.ModelState.IsValid)
+                    {
+                        <div class="validation-summary-errors">
+                            <ul class="mb-0">
+                                @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                {
+                                    <li>@error.ErrorMessage</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+
+                    <div class="mb-3">
+                        <label asp-for="Username" class="form-label fw-semibold">Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0">
+                                <i class="fas fa-user text-muted"></i>
+                            </span>
+                            <input asp-for="Username" class="form-control" placeholder="Enter your username" required />
+                        </div>
+                        <span asp-validation-for="Username" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Password" class="form-label fw-semibold">Password</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light border-0">
+                                <i class="fas fa-lock text-muted"></i>
+                            </span>
+                            <input asp-for="Password" id="passwordField" type="password" class="form-control" placeholder="Enter your password" required />
+                            <button class="btn btn-light border-0" type="button" onclick="togglePassword()">
+                                <i class="far fa-eye" id="toggleIcon"></i>
+                            </button>
+                        </div>
+                        <span asp-validation-for="Password" class="text-danger small"></span>
+                    </div>
+
+                    <div class="form-check mb-3">
+                        <input type="checkbox" id="rememberMe" class="form-check-input" />
+                        <label class="form-check-label small" for="rememberMe">Remember me</label>
+                    </div>
+
+                    <button type="submit" class="btn-login">
+                        <i class="fas fa-sign-in-alt me-2"></i>Login to Dashboard
+                    </button>
+
+                    <div class="text-center mt-3">
+                        <a asp-action="ForgotPassword" class="text-decoration-none">
+                            <i class="fas fa-key me-1"></i>Forgot Password?
+                        </a>
+                    </div>
+
+                    @* <div class="text-center mt-3">
+                        <p class="small mb-0">
+                            Don't have an account?
+                            <a asp-action="SignUp" class="signup-link">Sign Up</a>
+                        </p>
+                    </div> *@
+
+                    <div class="footer-note">
+                        <i class="fas fa-lock me-1"></i>
+                        Protected by blockchain encryption
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- jQuery Validation -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.3/jquery.validate.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validation-unobtrusive/3.2.12/jquery.validate.unobtrusive.min.js"></script>
+
+    <script>
+        function togglePassword() {
+            var passwordField = document.getElementById("passwordField");
+            var toggleIcon = document.getElementById("toggleIcon");
+
+            if (passwordField.type === "password") {
+                passwordField.type = "text";
+                toggleIcon.classList.remove("fa-eye");
+                toggleIcon.classList.add("fa-eye-slash");
+            } else {
+                passwordField.type = "password";
+                toggleIcon.classList.remove("fa-eye-slash");
+                toggleIcon.classList.add("fa-eye");
+            }
+        }
+
+        $(document).ready(function() {
+            // Clear validation messages on input
+            $('input').on('input', function() {
+                $(this).removeClass('is-invalid');
+            });
+
+            // Auto-hide success message after 5 seconds
+            setTimeout(function() {
+                $('.alert-success').fadeOut('slow');
+            }, 5000);
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+﻿@model SACCOBlockChainSystem.Models.ViewModels.FinancialReportViewModel
+
+<div class="card shadow-sm mt-4" style="border: none; border-radius: 10px;">
+    <div class="card-header bg-white py-3" style="border-bottom: 2px solid #3f2b96;">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0" style="color: #3f2b96; font-weight: 600;">
+                <i class="fas fa-file-invoice me-2"></i> BALANCE SHEET
+            </h5>
+            <span class="badge bg-info p-2">
+                <i class="fas fa-calendar me-1"></i> As at @Model.EndDate.ToString("dd/MM/yyyy")
+            </span>
+        </div>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" style="border-collapse: collapse; width: 100%;">
+                <thead style="background-color: #343a40; color: white;">
+                    <tr>
+                        <th style="padding: 15px; text-align: left;">GLAccMainGroup</th>
+                        <th style="padding: 15px; text-align: left;">AccName</th>
+                        <th style="padding: 15px; text-align: left;">AccNo</th>
+                        <th style="padding: 15px; text-align: right;">AssetsAmount</th>
+                        <th style="padding: 15px; text-align: right;">LiabilitiesAmount</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @{
+                        var groupedItems = new List<dynamic>();
+
+                        // Add all asset accounts
+                        foreach (var item in Model.BalanceSheet.Assets)
+                        {
+                            groupedItems.Add(new
+                            {
+                                GLAccMainGroup = "ASSETS",
+                                AccName = item.AccountName,
+                                AccNo = item.AccountNo,
+                                AssetsAmount = item.Amount,
+                                LiabilitiesAmount = 0m,
+                                IsSuspense = item.IsSuspense,
+                                IsTotal = false,
+                                Order = 1
+                            });
+                        }
+
+                        // Add all liability accounts
+                        foreach (var item in Model.BalanceSheet.Liabilities)
+                        {
+                            groupedItems.Add(new
+                            {
+                                GLAccMainGroup = "LIABILITIES",
+                                AccName = item.AccountName,
+                                AccNo = item.AccountNo,
+                                AssetsAmount = 0m,
+                                LiabilitiesAmount = item.Amount,
+                                IsSuspense = item.IsSuspense,
+                                IsTotal = false,
+                                Order = 2
+                            });
+                        }
+
+                        // Add all equity accounts (shown under LIABILITIES section as per your UI)
+                        foreach (var item in Model.BalanceSheet.Equity)
+                        {
+                            groupedItems.Add(new
+                            {
+                                GLAccMainGroup = "LIABILITIES",
+                                AccName = item.AccountName,
+                                AccNo = item.AccountNo,
+                                AssetsAmount = 0m,
+                                LiabilitiesAmount = item.Amount,
+                                IsSuspense = item.IsSuspense,
+                                IsTotal = false,
+                                Order = 2
+                            });
+                        }
+
+                        // Order by GLAccMainGroup then by AccountNo
+                        var orderedItems = groupedItems.OrderBy(x => x.GLAccMainGroup).ThenBy(x => x.AccNo);
+
+                        decimal totalAssets = 0;
+                        decimal totalLiabilities = 0;
+                    }
+
+                    @foreach (var item in orderedItems)
+                    {
+                        if (item.AssetsAmount > 0) totalAssets += item.AssetsAmount;
+                        if (item.LiabilitiesAmount > 0) totalLiabilities += item.LiabilitiesAmount;
+
+                        <tr class="@(item.IsSuspense ? "table-warning" : "")">
+                            <td style="padding: 12px; font-weight: 500;">@item.GLAccMainGroup</td>
+                            <td style="padding: 12px;">
+                                @item.AccName
+                                @if (item.IsSuspense)
+                                {
+                                    <span class="badge bg-warning ms-2">SUSPENSE</span>
+                                }
+                            </td>
+                            <td style="padding: 12px;">@item.AccNo</td>
+                            <td style="padding: 12px; text-align: right; color: #28a745; font-weight: 500;">
+                                @(item.AssetsAmount > 0 ? item.AssetsAmount.ToString("N4") : "0.0000")
+                            </td>
+                            <td style="padding: 12px; text-align: right; color: #dc3545; font-weight: 500;">
+                                @(item.LiabilitiesAmount > 0 ? item.LiabilitiesAmount.ToString("N4") : "0.0000")
+                            </td>
+                        </tr>
+                    }
+
+                    <!-- Total Assets Row -->
+                    <tr style="background-color: #e9ecef; font-weight: bold;">
+                        <td style="padding: 12px; font-weight: 600;">Assets</td>
+                        <td style="padding: 12px;">Total Assets</td>
+                        <td style="padding: 12px;"></td>
+                        <td style="padding: 12px; text-align: right; color: #28a745; font-weight: 600;">
+                            @totalAssets.ToString("N4")
+                        </td>
+                        <td style="padding: 12px; text-align: right; color: #dc3545; font-weight: 600;">
+                            0.0000
+                        </td>
+                    </tr>
+
+                    <!-- Total Liabilities Row -->
+                    <tr style="background-color: #e9ecef; font-weight: bold;">
+                        <td style="padding: 12px; font-weight: 600;">Liabilities</td>
+                        <td style="padding: 12px;">Total Liabilities</td>
+                        <td style="padding: 12px;"></td>
+                        <td style="padding: 12px; text-align: right; color: #28a745; font-weight: 600;">
+                            0.0000
+                        </td>
+                        <td style="padding: 12px; text-align: right; color: #dc3545; font-weight: 600;">
+                            @totalLiabilities.ToString("N4")
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Balance Check Summary (optional - can be removed if you want exact UI) -->
+    @if (!Model.BalanceSheet.IsBalanced)
+    {
+        <div class="card-footer bg-white py-3">
+            <div class="alert alert-warning mb-0">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>Note:</strong> Balance Sheet is unbalanced.
+                Assets (@totalAssets.ToString("N4")) vs Liabilities (@totalLiabilities.ToString("N4"))
+                Difference: @((totalAssets - totalLiabilities).ToString("N4"))
+            </div>
+        </div>
+    }
+
+    <div class="card-footer bg-white py-3">
+        <div class="row align-items-center">
+            <div class="col-md-6">
+                <small class="text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Generated: @DateTime.Now.ToString("dd/MM/yyyy HH:mm")
+                </small>
+            </div>
+            <div class="col-md-6 text-end">
+                <button class="btn btn-success btn-sm" onclick="exportToExcel()">
+                    <i class="fas fa-file-excel me-2"></i> Export to Excel
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function exportToExcel() {
+        var table = document.querySelector('.table');
+        var html = table.outerHTML;
+        var blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'Balance_Sheet_@Model.EndDate.ToString("yyyyMMdd")' + '.xls';
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+</script>
+
+<style>
+    .table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+
+        .table th {
+            background-color: #343a40;
+            color: white;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .table td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+
+    .table-warning {
+        background-color: #fff3cd !important;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        background-color: #ffc107;
+        color: #000;
+    }
+
+    .btn-success {
+        background: linear-gradient(135deg, #28a745 0%, #218838 100%);
+        border: none;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.3s;
+    }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+</style>

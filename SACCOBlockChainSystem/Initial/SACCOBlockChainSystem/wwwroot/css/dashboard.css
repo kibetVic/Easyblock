@@ -1,0 +1,148 @@
+﻿/* Dashboard specific styles */
+.chart-area {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+.chart-pie {
+    position: relative;
+    height: 250px;
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    .chart-area {
+        height: 320px;
+    }
+
+    .chart-pie {
+        height: 280px;
+    }
+}
+
+/* Card hover effects */
+.card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: none;
+}
+
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1) !important;
+    }
+
+/* Progress bar animations */
+.progress-bar {
+    transition: width 1s ease-in-out;
+}
+
+.progress-bar-animated {
+    animation: progress-bar-stripes 1s linear infinite;
+}
+
+@keyframes progress-bar-stripes {
+    from {
+        background-position: 1rem 0;
+    }
+
+    to {
+        background-position: 0 0;
+    }
+}
+
+/* Stat cards */
+.stat-card {
+    border-left: 4px solid;
+}
+
+.stat-card-primary {
+    border-left-color: #4e73df;
+}
+
+.stat-card-success {
+    border-left-color: #1cc88a;
+}
+
+.stat-card-info {
+    border-left-color: #36b9cc;
+}
+
+.stat-card-warning {
+    border-left-color: #f6c23e;
+}
+
+/* Blockchain status indicator */
+.blockchain-status {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.blockchain-status-active {
+    background-color: #28a745;
+    animation: pulse 2s infinite;
+}
+
+.blockchain-status-syncing {
+    background-color: #ffc107;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Responsive tables */
+.table-responsive {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+    /* Custom scrollbar */
+    .table-responsive::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .table-responsive::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 4px;
+    }
+
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: #888;
+        border-radius: 4px;
+    }
+
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+/* Loading animation */
+.loading-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(0,0,0,.1);
+    border-radius: 50%;
+    border-top-color: #3498db;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}

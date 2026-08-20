@@ -1,0 +1,288 @@
+@model SACCOBlockChainSystem.Models.ViewModels.LoanBalancePerMemberIndexViewModel
+@{
+    ViewData["Title"] = "Loan Balances Per Member Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">Loan Balances Per Member Report</h4>
+        </div>
+        <div class="card-body">
+            <!-- Filter Form -->
+            <form method="post" class="mb-4">
+                <div class="row">
+                    <div class="col-md-3">
+                        <label class="form-label">As At Date</label>
+                        <input type="date" name="asAtDate" class="form-control" value="@Model.AsAtDate.ToString("yyyy-MM-dd")" required />
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">Generate Report</button>
+                        <button type="button" id="exportExcelBtn" class="btn btn-success me-2">Export to Excel</button>
+                        <button type="button" id="exportPdfBtn" class="btn btn-danger">Export to PDF</button>
+                    </div>
+                </div>
+            </form>
+
+            @if (Model.HasData)
+            {
+                <!-- Report Header -->
+                <div class="text-center mb-4">
+                    <h4>@Model.CompanyName.ToUpper()</h4>
+                    <h5>LOAN BALANCES PER MEMBER AS AT @Model.AsAtDate.ToString("dd/MM/yyyy HH:mm:ss")</h5>
+                    <p>Printed By: @Model.PrintedBy On: @Model.GeneratedOn.ToString("dd-MMM-yyyy HH:mm")</p>
+                </div>
+
+                <!-- Statistics Summary Cards -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h5>Total Members</h5>
+                                <h3>@Model.TotalMembers.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h5>Active Members</h5>
+                                <h3>@Model.TotalActiveMembers.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h5>Total Loan Balance</h5>
+                                <h3>@Model.TotalLoanBalance.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-danger text-white">
+                            <div class="card-body text-center">
+                                <h5>Total Arrears</h5>
+                                <h3>@Model.TotalArrears.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Member DataTable -->
+                <div class="table-responsive">
+                    <table id="memberTable" class="table table-bordered table-striped table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>MemberNo</th>
+                                <th>Names</th>
+                                <th>IDNo</th>
+                                <th>PhoneNo</th>
+                                <th>GIG</th>
+                                <th class="text-center">Total Loans</th>
+                                <th class="text-center">Active</th>
+                                <th class="text-center">Completed</th>
+                                <th class="text-end">Amount Issued</th>
+                                <th class="text-end">Loan Balance</th>
+                                <th class="text-end">Amount Paid</th>
+                                <th class="text-end">Unpaid Interest</th>
+                                <th class="text-end">Arrears</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var member in Model.Members)
+                            {
+                                <tr>
+                                    <td>@member.MemberNo</td>
+                                    <td>@member.Names</td>
+                                    <td>@member.IDNo</td>
+                                    <td>@member.PhoneNo</td>
+                                    <td>@member.GigName</td>
+                                    <td class="text-center">@member.TotalLoans</td>
+                                    <td class="text-center">@member.ActiveLoans</td>
+                                    <td class="text-center">@member.CompletedLoans</td>
+                                    <td class="text-end">@member.TotalAmountIssued.ToString("N2")</td>
+                                    <td class="text-end">@member.TotalLoanBalance.ToString("N2")</td>
+                                    <td class="text-end">@member.TotalAmountPaid.ToString("N2")</td>
+                                    <td class="text-end">@member.TotalUnpaidInterest.ToString("N2")</td>
+                                    <td class="text-end">@member.TotalArrears.ToString("N2")</td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-sm btn-info view-loans-btn"
+                                                data-memberno="@member.MemberNo"
+                                                data-membername="@member.Names"
+                                                data-loans='@Json.Serialize(member.Loans)'>
+                                            <i class="fas fa-eye"></i> View Loans
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                        <tfoot class="table-secondary fw-bold">
+                            <tr>
+                                <td colspan="5" class="text-end">GRAND TOTAL:</td>
+                                <td class="text-center">@Model.Members.Sum(m => m.TotalLoans).ToString("N0")</td>
+                                <td class="text-center">@Model.Members.Sum(m => m.ActiveLoans).ToString("N0")</td>
+                                <td class="text-center">@Model.Members.Sum(m => m.CompletedLoans).ToString("N0")</td>
+                                <td class="text-end">@Model.TotalAmountIssued.ToString("N2")</td>
+                                <td class="text-end">@Model.TotalLoanBalance.ToString("N2")</td>
+                                <td class="text-end">@Model.TotalAmountPaid.ToString("N2")</td>
+                                <td class="text-end">@Model.TotalUnpaidInterest.ToString("N2")</td>
+                                <td class="text-end">@Model.TotalArrears.ToString("N2")</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info text-center">
+                    @(ViewBag.Message ?? "No data found for the selected date. Please select a date and click 'Generate Report'.")
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Modal for Viewing Member Loans -->
+<div class="modal fade" id="loansModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="loansModalTitle">Member Loans</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-striped" id="loansDetailTable">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>LoanNo</th>
+                                <th>Loan Name</th>
+                                <th>Loan Code</th>
+                                <th>Date Issued</th>
+                                <th>Period</th>
+                                <th class="text-end">Amount Issued</th>
+                                <th class="text-end">Loan Balance</th>
+                                <th class="text-end">Amount Paid</th>
+                                <th class="text-end">Unpaid Interest</th>
+                                <th class="text-end">Arrears</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="loansDetailBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" />
+
+    <script>
+        $(document).ready(function() {
+            // Initialize main DataTable
+            var memberTable = $('#memberTable').DataTable({
+                pageLength: 25,
+                order: [[1, 'asc']], // Sort by Names
+                language: {
+                    search: "Search:",
+                    lengthMenu: "Show _MENU_ entries per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ members"
+                },
+                columnDefs: [
+                    { orderable: false, targets: 13 } // Disable sorting on Actions column
+                ]
+            });
+
+            // View Loans Modal
+            $('.view-loans-btn').click(function() {
+                var memberNo = $(this).data('memberno');
+                var memberName = $(this).data('membername');
+                var loans = $(this).data('loans');
+
+                $('#loansModalTitle').text('Loans for Member: ' + memberNo + ' - ' + memberName);
+
+                var tbody = $('#loansDetailBody');
+                tbody.empty();
+
+                if (loans && loans.length > 0) {
+                    for (var i = 0; i < loans.length; i++) {
+                        var loan = loans[i];
+                        var row = '<tr>' +
+                            '<td>' + (loan.loanNo || '') + '</td>' +
+                            '<td>' + (loan.loanName || '') + '</td>' +
+                            '<td>' + (loan.loanCode || '') + '</td>' +
+                            '<td>' + (loan.dateIssued ? new Date(loan.dateIssued).toLocaleDateString() : '') + '</td>' +
+                            '<td class="text-center">' + (loan.repayPeriod || 0) + '</td>' +
+                            '<td class="text-end">' + formatNumber(loan.amountIssued) + '</td>' +
+                            '<td class="text-end">' + formatNumber(loan.loanBalance) + '</td>' +
+                            '<td class="text-end">' + formatNumber(loan.amountPaid) + '</td>' +
+                            '<td class="text-end">' + formatNumber(loan.unpaidInterest) + '</td>' +
+                            '<td class="text-end">' + formatNumber(loan.arrears) + '</td>' +
+                            '<td><span class="badge ' + (loan.status === 'ACTIVE' ? 'bg-warning' : 'bg-success') + '">' + (loan.status || '') + '</span></td>' +
+                            '</tr>';
+                        tbody.append(row);
+                    }
+                } else {
+                    tbody.append('<tr><td colspan="11" class="text-center">No loans found for this member</td></tr>');
+                }
+
+                $('#loansModal').modal('show');
+            });
+
+            function formatNumber(num) {
+                if (num === null || num === undefined) return '0.00';
+                return parseFloat(num).toLocaleString('en-KE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            }
+
+            // Export to Excel
+            $('#exportExcelBtn').click(function() {
+                var asAtDate = $('input[name="asAtDate"]').val();
+                if (!asAtDate) {
+                    alert('Please select a date first');
+                    return;
+                }
+                var form = $('<form>', {
+                    'method': 'post',
+                    'action': '@Url.Action("ExportLoanBalancePerMemberToExcel", "LoanReport")'
+                });
+                form.append($('<input>', {
+                    'type': 'hidden',
+                    'name': 'asAtDate',
+                    'value': asAtDate
+                }));
+                form.appendTo('body').submit();
+            });
+
+            // Export to PDF
+            $('#exportPdfBtn').click(function() {
+                var asAtDate = $('input[name="asAtDate"]').val();
+                if (!asAtDate) {
+                    alert('Please select a date first');
+                    return;
+                }
+                var form = $('<form>', {
+                    'method': 'post',
+                    'action': '@Url.Action("ExportLoanBalancePerMemberToPdf", "LoanReport")'
+                });
+                form.append($('<input>', {
+                    'type': 'hidden',
+                    'name': 'asAtDate',
+                    'value': asAtDate
+                }));
+                form.appendTo('body').submit();
+            });
+        });
+    </script>
+}

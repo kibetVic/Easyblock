@@ -1,0 +1,47 @@
+﻿@model SACCOBlockChainSystem.Models.ViewModels.MemberTransactionsViewModel
+
+@{
+    ViewData["Title"] = "Transaction History";
+    var member = Model.Member;
+    var transactions = Model.Transactions;
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h4><i class="fas fa-history"></i> Transaction History</h4>
+                </div>
+                <div class="card-body">
+                    @if (member != null)
+                    {
+                        <div class="alert alert-primary">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p><strong>Member No:</strong> @member.MemberNo</p>
+                                    <p><strong>Name:</strong> @member.Surname @member.OtherNames</p>
+                                    <p><strong>ID Number:</strong> @member.Idno</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Total Transactions:</strong> @Model.TotalTransactions</p>
+                                    <p><strong>Total Deposits:</strong> KES @Model.TotalDeposits.ToString("N2")</p>
+                                    <p><strong>Total Withdrawals:</strong> KES @Model.TotalWithdrawals.ToString("N2")</p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else if (Model.IsAdmin)
+                    {
+                        <div class="alert alert-warning">
+                            <h5><i class="fas fa-users"></i> All Transactions</h5>
+                            <p>Showing transactions for all members</p>
+                        </div>
+                    }
+
+                    <!-- Rest of your view code... -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

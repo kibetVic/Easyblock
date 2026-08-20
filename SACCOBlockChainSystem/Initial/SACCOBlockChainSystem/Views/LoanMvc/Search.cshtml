@@ -1,0 +1,201 @@
+﻿@{
+    ViewData["Title"] = "Search Loans";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex align-items-center">
+            <a asp-action="Index" class="btn btn-outline-secondary me-3">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+            <h2 class="page-title mb-0">
+                <i class="bi bi-search me-2"></i>Search Loans
+            </h2>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Filter Loans</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="SearchResults" method="get" id="searchForm">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Loan Number</label>
+                            <input type="text" name="LoanNo" class="form-control" placeholder="Enter loan number" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Member Number</label>
+                            <input type="text" name="MemberNo" class="form-control" placeholder="Enter member number" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Member Name</label>
+                            <input type="text" name="MemberName" class="form-control" placeholder="Enter member name" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Loan Status</label>
+                            <select name="LoanStatus" class="form-select">
+                                <option value="">All Statuses</option>
+                                <option value="Draft">Draft</option>
+                                <option value="Submitted">Submitted</option>
+                                <option value="UnderAppraisal">Under Appraisal</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Approved">Approved</option>
+                                <option value="Rejected">Rejected</option>
+                                <option value="Disbursed">Disbursed</option>
+                                <option value="Closed">Closed</option>
+                                <option value="WrittenOff">Written Off</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Loan Type</label>
+                            <select name="LoanCode" class="form-select" id="loanTypeSelect">
+                                <option value="">All Loan Types</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Date Range</label>
+                            <div class="d-flex gap-2">
+                                <input type="date" name="FromDate" class="form-control" placeholder="From" />
+                                <input type="date" name="ToDate" class="form-control" placeholder="To" />
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Min Amount (KES)</label>
+                            <input type="number" name="MinAmount" class="form-control" step="0.01" min="0" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Max Amount (KES)</label>
+                            <input type="number" name="MaxAmount" class="form-control" step="0.01" min="0" />
+                        </div>
+                        <div class="col-12">
+                            <hr>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <button type="button" class="btn btn-outline-secondary" onclick="resetForm()">
+                                    <i class="bi bi-eraser me-2"></i>Clear Filters
+                                </button>
+                                <div>
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="bi bi-search me-2"></i>Search Loans
+                                    </button>
+                                    <button type="button" class="btn btn-outline-success ms-2" onclick="exportResults()">
+                                        <i class="bi bi-download me-2"></i>Export
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Saved Searches -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Saved Searches</h5>
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-exclamation-triangle fs-1 text-warning"></i>
+                                <h6 class="mt-2">Overdue Loans</h6>
+                                <p class="text-muted small">Loans with overdue payments</p>
+                                <a asp-action="SearchResults" asp-route-LoanStatus="Disbursed"
+                                   asp-route-OverdueOnly="true" class="btn btn-sm btn-outline-warning">
+                                    View
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-clock-history fs-1 text-info"></i>
+                                <h6 class="mt-2">Pending Approval</h6>
+                                <p class="text-muted small">Loans awaiting approval</p>
+                                <a asp-action="SearchResults" asp-route-LoanStatus="Submitted"
+                                   class="btn btn-sm btn-outline-info">
+                                    View
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-cash-stack fs-1 text-success"></i>
+                                <h6 class="mt-2">Ready for Disbursement</h6>
+                                <p class="text-muted small">Approved loans pending disbursement</p>
+                                <a asp-action="SearchResults" asp-route-LoanStatus="Approved"
+                                   class="btn btn-sm btn-outline-success">
+                                    View
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card h-100">
+                            <div class="card-body text-center">
+                                <i class="bi bi-check-circle fs-1 text-primary"></i>
+                                <h6 class="mt-2">Active Loans</h6>
+                                <p class="text-muted small">Currently disbursed loans</p>
+                                <a asp-action="SearchResults" asp-route-LoanStatus="Disbursed"
+                                   class="btn btn-sm btn-outline-primary">
+                                    View
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Load loan types
+            $.ajax({
+                url: '/api/LoanTypeMvc/GetLoanTypes',
+                type: 'GET',
+                success: function(response) {
+                    var select = $('#loanTypeSelect');
+                    response.forEach(function(loanType) {
+                        select.append(new Option(loanType.loanType1, loanType.loanCode));
+                    });
+                }
+            });
+
+            // Load saved search parameters from URL
+            var urlParams = new URLSearchParams(window.location.search);
+            urlParams.forEach(function(value, key) {
+                var input = $('[name="' + key + '"]');
+                if (input.length) {
+                    input.val(value);
+                }
+            });
+        });
+
+        function resetForm() {
+            $('#searchForm')[0].reset();
+            window.location.href = '@Url.Action("Search")';
+        }
+
+        function exportResults() {
+            var formData = $('#searchForm').serialize();
+            window.location.href = '@Url.Action("ExportLoans")?' + formData;
+        }
+    </script>
+}

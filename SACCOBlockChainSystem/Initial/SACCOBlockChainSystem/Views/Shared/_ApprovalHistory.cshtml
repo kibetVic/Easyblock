@@ -1,0 +1,109 @@
+﻿@model List<SACCOBlockChainSystem.Models.Endmain>
+
+<div class="card">
+    <div class="card-header">
+        <h5 class="card-title mb-0">Approval / Endorsement History</h5>
+    </div>
+    <div class="card-body p-0">
+        @if (Model != null && Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Minute No</th>
+                            <th>Meeting Date</th>
+                            <th>Approved By</th>
+                            <th>Amount Approved</th>
+                            <th>Status</th>
+                            <th>Remarks</th>
+                            <th>Blockchain</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var approval in Model.OrderByDescending(a => a.MeetingDate))
+                        {
+                            <tr>
+                                <td>
+                                    <span class="fw-bold">@approval.MinuteNo</span>
+                                </td>
+                                <td>@(approval.MeetingDate?.ToString("dd/MM/yyyy HH:mm") ?? "N/A")</td>
+                                <td>
+                                    <strong>@approval.ChairSigned</strong>
+                                    @if (!string.IsNullOrEmpty(approval.SecSigned) && approval.SecSigned != approval.ChairSigned)
+                                    {
+                                        <br />
+                                        <small class="text-muted">Sec: @approval.SecSigned</small>
+                                    }
+                                </td>
+                                <td class="fw-bold text-success">KES @approval.AmtApproved.ToString("N2")</td>
+                                <td>
+                                    @{
+                                        var statusClass = approval.Accepted?.ToLower() switch
+                                        {
+                                            "approved" => "success",
+                                            "accepted" => "success",
+                                            "rejected" => "danger",
+                                            "pending" => "warning",
+                                            _ => "secondary"
+                                        };
+                                    }
+                                    <span class="badge bg-@statusClass">@(approval.Accepted ?? "Pending")</span>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(approval.Reasons))
+                                    {
+                                        <span title="@approval.Reasons">
+                                            <i class="bi bi-chat-dots text-muted"></i> @(approval.Reasons.Length > 50 ? approval.Reasons.Substring(0, 47) + "..." : approval.Reasons)
+                                        </span>
+                                    }
+                                    else if (!string.IsNullOrEmpty(approval.Remarks))
+                                    {
+                                        <span class="text-muted">@approval.Remarks</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(approval.BlockchainTxId))
+                                    {
+                                        <i class="bi bi-shield-check text-success" title="Blockchain Verified"></i>
+                                        <span class="text-success ms-1">Verified</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-shield-slash text-muted" title="Not on Blockchain"></i>
+                                        <span class="text-muted ms-1">Pending</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-check2-circle fs-1 text-muted"></i>
+                <p class="text-muted mt-3">No approval/endorsement records found</p>
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    .table th {
+        font-weight: 600;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .table td {
+        vertical-align: middle;
+        font-size: 0.9rem;
+    }
+</style>

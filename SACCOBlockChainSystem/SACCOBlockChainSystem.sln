@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36930.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SACCOBlockChainSystem", "Initial\SACCOBlockChainSystem\SACCOBlockChainSystem.csproj", "{D0845D23-5A51-2CF3-4765-77F4DA32933D}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D0845D23-5A51-2CF3-4765-77F4DA32933D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D0845D23-5A51-2CF3-4765-77F4DA32933D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D0845D23-5A51-2CF3-4765-77F4DA32933D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D0845D23-5A51-2CF3-4765-77F4DA32933D}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {903E23A6-B423-4AA5-B7DB-0A3EA02633D8}
+	EndGlobalSection
+EndGlobal

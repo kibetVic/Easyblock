@@ -1,0 +1,517 @@
+﻿@model SACCOBlockChainSystem.Models.Loan
+@{
+    ViewData["Title"] = $"Loan Details - {Model.LoanNo}";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var guarantors = ViewBag.Guarantors as List<SACCOBlockChainSystem.Models.DTOs.GuarantorResponseDTO>;
+    var appraisal = ViewBag.Appraisal as SACCOBlockChainSystem.Models.Appraisal;
+    var approvals = ViewBag.Approvals as List<SACCOBlockChainSystem.Models.Endmain>;
+    var disbursement = ViewBag.Disbursement as SACCOBlockChainSystem.Models.Cheque;
+    var schedule = ViewBag.Schedule as List<SACCOBlockChainSystem.Models.DTOs.LoanScheduleDTO>;
+    var repayments = ViewBag.Repayments as List<SACCOBlockChainSystem.Models.Repay>;
+    var auditTrail = ViewBag.AuditTrail as List<SACCOBlockChainSystem.Models.AuditTrail>;
+}
+
+@section Styles {
+    <style>
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+            list-style: none;
+        }
+
+            .timeline:before {
+                content: '';
+                position: absolute;
+                top: 0;
+                bottom: 0;
+                width: 2px;
+                background: #e9ecef;
+                left: 20px;
+                margin-left: -1.5px;
+            }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 45px;
+            margin-bottom: 20px;
+        }
+
+        .timeline-badge {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .status-badge {
+            padding: 8px 16px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .action-card {
+            transition: all 0.3s;
+            border-left: 4px solid transparent;
+        }
+
+            .action-card:hover {
+                transform: translateX(5px);
+                border-left-color: #007bff;
+            }
+    </style>
+}
+
+<div class="row mb-4">
+    @if (ViewBag.SuccessMessage != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            @ViewBag.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            @ViewBag.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center">
+                <a asp-action="AllLoans" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Back
+                </a>
+                <h2 class="page-title mb-0">
+                    <i class="bi bi-file-text me-2"></i>Loan Details
+                </h2>
+            </div>
+            <div>
+                @{
+                    var statusValue = Model.Status ?? 0;
+                    var statusName = ((SACCOBlockChainSystem.Models.Status)statusValue).ToString();
+                    var statusColor = statusName switch
+                    {
+                        "Draft" => "secondary",
+                        "Submitted" => "info",
+                        "UnderAppraisal" => "warning",
+                        "Approved" => "success",
+                        "Endorsed" => "primary",
+                        "Disbursed" => "primary",
+                        "Closed" => "success",
+                        "Rejected" => "danger",
+                        "WrittenOff" => "dark",
+                        "Defaulted" => "danger",
+                        _ => "secondary"
+                    };
+                }
+                <span class="status-badge bg-@statusColor text-white">
+                    <i class="bi bi-circle-fill me-2"></i>@statusName
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Action Buttons Based on Status -->
+@if (ViewBag.CanEdit)
+{
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">Quick Actions</h5>
+                    <div class="d-flex gap-2 flex-wrap">
+                        @if (Model.Status == (int)SACCOBlockChainSystem.Models.Status.Draft)
+                        {
+                            <form asp-action="UpdateLoanStatus" method="post" style="display: inline;">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="loanNo" value="@Model.LoanNo" />
+                                <input type="hidden" name="newStatus" value="Submitted" />
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-send me-2"></i>Submit for Approval
+                                </button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (ViewBag.CanAppraise)
+{
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-warning">
+                <div class="card-header bg-warning bg-opacity-10">
+                    <h5 class="card-title mb-0 text-warning">
+                        <i class="bi bi-exclamation-triangle me-2"></i>Pending Appraisal
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">This loan requires appraisal before it can proceed to approval.</p>
+                    <a asp-action="Appraise" asp-route-loanNo="@Model.LoanNo" class="btn btn-warning">
+                        <i class="bi bi-clipboard-check me-2"></i>Start Appraisal
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (ViewBag.CanApprove)
+{
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-header bg-info bg-opacity-10">
+                    <h5 class="card-title mb-0 text-info">
+                        <i class="bi bi-check2-circle me-2"></i>Pending Approval
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">This loan has been appraised and is ready for approval.</p>
+                    <a asp-action="Approve" asp-route-loanNo="@Model.LoanNo" class="btn btn-info">
+                        <i class="bi bi-check2-circle me-2"></i>Process Approval
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (ViewBag.CanEndorse)
+{
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-info">
+                <div class="card-header bg-info bg-opacity-10">
+                    <h5 class="card-title mb-0 text-info">
+                        <i class="bi bi-signature me-2"></i>Pending Endorsement
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">This loan has been approved and is ready for endorsement.</p>
+                    <a asp-action="Endorse" asp-route-loanNo="@Model.LoanNo" class="btn btn-info">
+                        <i class="bi bi-signature me-2"></i>Process Endorsement
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (ViewBag.CanDisburse)
+{
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-success">
+                <div class="card-header bg-success bg-opacity-10">
+                    <h5 class="card-title mb-0 text-success">
+                        <i class="bi bi-cash-stack me-2"></i>Ready for Disbursement
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="mb-3">This loan has been endorsed and is ready for disbursement.</p>
+                    <a asp-action="Disburse" asp-route-loanNo="@Model.LoanNo" class="btn btn-success">
+                        <i class="bi bi-cash-stack me-2"></i>Process Disbursement
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@if (ViewBag.CanRepay)
+{
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-primary">
+                <div class="card-header bg-primary bg-opacity-10">
+                    <h5 class="card-title mb-0 text-primary">
+                        <i class="bi bi-arrow-left-right me-2"></i>Loan Repayment
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <p class="mb-1">Outstanding Balance:</p>
+                            <h3 class="text-primary mb-0">KES @((Model.LoanAmt ?? 0).ToString("N2"))</h3>
+                        </div>
+                        <div class="col-md-6 text-md-end">
+                            <a asp-action="Repay" asp-route-loanNo="@Model.LoanNo" class="btn btn-primary">
+                                <i class="bi bi-cash me-2"></i>Make Payment
+                            </a>
+                            <a asp-action="Schedule" asp-route-loanNo="@Model.LoanNo" class="btn btn-outline-primary ms-2">
+                                <i class="bi bi-table me-2"></i>View Schedule
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Main Content Tabs -->
+<div class="row">
+    <div class="col-12">
+        <ul class="nav nav-tabs mb-4" id="loanTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary"
+                        type="button" role="tab">
+                    <i class="bi bi-info-circle me-2"></i>Summary
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="guarantors-tab" data-bs-toggle="tab" data-bs-target="#guarantors"
+                        type="button" role="tab">
+                    <i class="bi bi-people me-2"></i>Guarantors
+                    <span class="badge bg-secondary ms-2">@(guarantors?.Count ?? 0)</span>
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="appraisal-tab" data-bs-toggle="tab" data-bs-target="#appraisal"
+                        type="button" role="tab">
+                    <i class="bi bi-clipboard-data me-2"></i>Appraisal
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="approval-tab" data-bs-toggle="tab" data-bs-target="#approval"
+                        type="button" role="tab">
+                    <i class="bi bi-check2-circle me-2"></i>Approval
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="disbursement-tab" data-bs-toggle="tab" data-bs-target="#disbursement"
+                        type="button" role="tab">
+                    <i class="bi bi-cash-stack me-2"></i>Disbursement
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="schedule-tab" data-bs-toggle="tab" data-bs-target="#schedule"
+                        type="button" role="tab">
+                    <i class="bi bi-table me-2"></i>Schedule
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="repayments-tab" data-bs-toggle="tab" data-bs-target="#repayments"
+                        type="button" role="tab">
+                    <i class="bi bi-arrow-left-right me-2"></i>Repayments
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="audit-tab" data-bs-toggle="tab" data-bs-target="#audit"
+                        type="button" role="tab">
+                    <i class="bi bi-clock-history me-2"></i>Audit Trail
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="loanTabsContent">
+            <!-- Summary Tab -->
+            <div class="tab-pane fade show active" id="summary" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Loan Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="info-row">
+                                    <span class="text-muted">Loan Number:</span>
+                                    <span class="fw-bold">@Model.LoanNo</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="text-muted">Loan Code:</span>
+                                    <span>@Model.LoanCode</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="text-muted">Principal Amount:</span>
+                                    <span class="fw-bold">KES @(Model.LoanAmt?.ToString("N2") ?? "0.00")</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="text-muted">Interest Rate:</span>
+                                    <span>@(Model.Interest?.ToString("N2") ?? "0")% per annum</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="text-muted">Repayment Period:</span>
+                                    <span>@(Model.RepayPeriod?.ToString() ?? "0") months</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="text-muted">Repayment Method:</span>
+                                    <span>@Model.RepayMethod</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="text-muted">Application Date:</span>
+                                    <span>@Model.ApplicDate.ToString("dd MMM yyyy")</span>
+                                </div>
+                                @if (Model.AuditDateTime.HasValue)
+                                {
+                                    <div class="info-row">
+                                        <span class="text-muted">Disbursement Date:</span>
+                                        <span>@Model.AuditDateTime.Value.ToString("dd MMM yyyy")</span>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Member Information</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="bg-primary bg-opacity-10 p-3 rounded-circle me-3">
+                                        <i class="bi bi-person-circle fs-3 text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="mb-1">@Model.MemberNo</h5>
+                                        <p class="text-muted mb-0">Member Number</p>
+                                    </div>
+                                </div>
+                                <div class="info-row">
+                                    <span class="text-muted">ID Number:</span>
+                                    <span>@Model.IdNo</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="text-muted">Job Group:</span>
+                                    <span>@Model.JobGrp</span>
+                                </div>
+                                <div class="info-row">
+                                    <span class="text-muted">Basic Salary:</span>
+                                    <span>KES @(Model.BasicSalary?.ToString("N2") ?? "0.00")</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Loan Purpose</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>@Model.Purpose</p>
+                                @if (!string.IsNullOrEmpty(Model.AddSecurity))
+                                {
+                                    <hr>
+                                    <h6 class="text-muted mb-2">Additional Security:</h6>
+                                    <p class="mb-0">@Model.AddSecurity</p>
+                                }
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Blockchain Verification</h5>
+                            </div>
+                            <div class="card-body">
+                                @if (!string.IsNullOrEmpty(Model.BlockchainTxId))
+                                {
+                                    <div class="d-flex align-items-center text-success mb-2">
+                                        <i class="bi bi-shield-check fs-4 me-2"></i>
+                                        <div>
+                                            <strong>Verified on Blockchain</strong>
+                                            <p class="text-muted small mb-0">TX: @Model.BlockchainTxId</p>
+                                        </div>
+                                    </div>
+                                    <a href="#" class="btn btn-sm btn-outline-primary" onclick="verifyBlockchainTx('@Model.BlockchainTxId')">
+                                        <i class="bi bi-link me-2"></i>Verify Transaction
+                                    </a>
+                                }
+                                else
+                                {
+                                    <div class="text-muted">
+                                        <i class="bi bi-shield me-2"></i>Not yet recorded on blockchain
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Guarantors Tab -->
+            <div class="tab-pane fade" id="guarantors" role="tabpanel">
+                @await Html.PartialAsync("_GuarantorList", guarantors ?? new List<SACCOBlockChainSystem.Models.DTOs.GuarantorResponseDTO>())
+            </div>
+
+            <!-- Appraisal Tab -->
+            <div class="tab-pane fade" id="appraisal" role="tabpanel">
+                @await Html.PartialAsync("_AppraisalDetails", appraisal)
+            </div>
+
+            <!-- Approval Tab -->
+            <div class="tab-pane fade" id="approval" role="tabpanel">
+                @await Html.PartialAsync("_ApprovalHistory", approvals ?? new List<SACCOBlockChainSystem.Models.Endmain>())
+            </div>
+
+            <!-- Disbursement Tab -->
+            <div class="tab-pane fade" id="disbursement" role="tabpanel">
+                @await Html.PartialAsync("_DisbursementDetails", disbursement)
+            </div>
+
+            <!-- Schedule Tab -->
+            <div class="tab-pane fade" id="schedule" role="tabpanel">
+                @await Html.PartialAsync("_RepaymentSchedule", schedule ?? new List<SACCOBlockChainSystem.Models.DTOs.LoanScheduleDTO>())
+            </div>
+
+            <!-- Repayments Tab -->
+            <div class="tab-pane fade" id="repayments" role="tabpanel">
+                @await Html.PartialAsync("_RepaymentHistory", repayments ?? new List<SACCOBlockChainSystem.Models.Repay>())
+            </div>
+
+            <!-- Audit Trail Tab -->
+            <div class="tab-pane fade" id="audit" role="tabpanel">
+                @await Html.PartialAsync("_AuditTrail", auditTrail ?? new List<SACCOBlockChainSystem.Models.AuditTrail>())
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function verifyBlockchainTx(txId) {
+            $.ajax({
+                url: '/api/Blockchain/Verify',
+                type: 'GET',
+                data: { transactionId: txId },
+                success: function(response) {
+                    if (response.success) {
+                        alert('Transaction verified on blockchain: ' + response.data.blockHash);
+                    } else {
+                        alert('Transaction not found on blockchain');
+                    }
+                },
+                error: function() {
+                    alert('Error verifying transaction');
+                }
+            });
+        }
+
+        $(document).ready(function() {
+        });
+    </script>
+}

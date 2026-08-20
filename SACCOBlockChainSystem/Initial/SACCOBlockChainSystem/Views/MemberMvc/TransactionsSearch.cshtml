@@ -1,0 +1,100 @@
+﻿@{
+    ViewData["Title"] = "Find Member Transactions";
+}
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card mt-5">
+                <div class="card-header bg-primary text-white">
+                    <h4><i class="fas fa-search"></i> Find Member Transactions</h4>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Transactions" method="get" id="searchForm">
+                        <div class="mb-3">
+                            <label for="memberNo" class="form-label">Enter Member Number</label>
+                            <input type="text" class="form-control form-control-lg"
+                                   id="memberNo" name="memberNo"
+                                   placeholder="e.g., DEFAULT-00001" required>
+                            <div class="form-text">Enter the member number to view their transaction history</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-search"></i> View Transactions
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-users"></i> Browse Members
+                            </a>
+                        </div>
+                    </form>
+
+                    <!-- Quick Search -->
+                    <div class="mt-4">
+                        <h6>Quick Search</h6>
+                        <div class="input-group">
+                            <input type="text" class="form-control" id="quickSearch"
+                                   placeholder="Search by name or ID...">
+                            <button class="btn btn-outline-secondary" type="button"
+                                    onclick="quickSearch()">
+                                <i class="fas fa-search"></i>
+                            </button>
+                        </div>
+                        <div id="quickResults" class="mt-2"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function quickSearch() {
+            var searchTerm = $('#quickSearch').val();
+            if (!searchTerm) return;
+
+            $('#quickResults').html(`
+                <div class="text-center">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="sr-only">Searching...</span>
+                    </div>
+                </div>
+            `);
+
+            $.ajax({
+                url: '/api/Member/search',
+                type: 'GET',
+                data: { searchTerm: searchTerm },
+                success: function(response) {
+                    if (response.success && response.data.length > 0) {
+                        var html = '<div class="list-group">';
+                        response.data.forEach(function(member) {
+                            html += `
+                                <a href="/MemberMvc/Transactions/${member.memberNo}"
+                                   class="list-group-item list-group-item-action">
+                                    <strong>${member.memberNo}</strong> -
+                                    ${member.surname} ${member.otherNames}
+                                    <span class="badge bg-success float-end">
+                                        ${member.status == 1 ? 'Active' : 'Inactive'}
+                                    </span>
+                                </a>
+                            `;
+                        });
+                        html += '</div>';
+                        $('#quickResults').html(html);
+                    } else {
+                        $('#quickResults').html('<div class="alert alert-info">No members found</div>');
+                    }
+                }
+            });
+        }
+
+        $('#quickSearch').keypress(function(e) {
+            if (e.which == 13) {
+                quickSearch();
+                return false;
+            }
+        });
+    </script>
+}

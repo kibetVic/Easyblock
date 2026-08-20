@@ -1,0 +1,240 @@
+﻿@model SACCOBlockChainSystem.Models.ViewModels.UserDetailsVm
+
+@{
+    ViewData["Title"] = "User Details";
+    Layout = "_Layout";
+}
+
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-info text-white">
+                    <h4 class="mb-0">
+                        <i class="fas fa-user me-2"></i>User Details
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <!-- Basic Information -->
+                            <div class="form-section-title mb-3">
+                                <i class="fas fa-user-circle me-2"></i>Basic Information
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">User ID:</div>
+                                <div class="col-md-9">@Model.UserId</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">Username:</div>
+                                <div class="col-md-9">@Model.UserName</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">Login ID:</div>
+                                <div class="col-md-9">@Model.UserLoginId</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">Email:</div>
+                                <div class="col-md-9">@Model.Email</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">Phone:</div>
+                                <div class="col-md-9">@Model.Phone</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">Department:</div>
+                                <div class="col-md-9">@(string.IsNullOrEmpty(Model.Department) ? "N/A" : Model.Department)</div>
+                            </div>
+
+                            <!-- Role & Company Information -->
+                            <div class="form-section-title mb-3 mt-3">
+                                <i class="fas fa-building me-2"></i>Role & Company Information
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">User Group/Role:</div>
+                                <div class="col-md-9">
+                                    <span class="badge bg-primary">@Model.UserGroup</span>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">Company:</div>
+                                <div class="col-md-9">@Model.CompanyName (@Model.CompanyCode)</div>
+                            </div>
+
+                            <!-- Location Information -->
+                            <div class="form-section-title mb-3 mt-3">
+                                <i class="fas fa-map-marker-alt me-2"></i>Location Information
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">Sub-County:</div>
+                                <div class="col-md-9">@(string.IsNullOrEmpty(Model.SubCounty) ? "N/A" : Model.SubCounty)</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">Ward:</div>
+                                <div class="col-md-9">@(string.IsNullOrEmpty(Model.Ward) ? "N/A" : Model.Ward)</div>
+                            </div>
+
+                            <!-- Account Status -->
+                            <div class="form-section-title mb-3 mt-3">
+                                <i class="fas fa-chart-line me-2"></i>Account Status
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">Status:</div>
+                                <div class="col-md-9">
+                                    @if (Model.Status == "Active" && !Model.IsLocked)
+                                    {
+                                        <span class="badge bg-success">Active</span>
+                                    }
+                                    else if (Model.IsLocked)
+                                    {
+                                        <span class="badge bg-danger">Locked</span>
+                                    }
+                                    else if (Model.Status == "Pending")
+                                    {
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@Model.Status</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">User Status:</div>
+                                <div class="col-md-9">
+                                    <span class="badge bg-info">@Model.Userstatus</span>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">Approval Status:</div>
+                                <div class="col-md-9">
+                                    @if (Model.ApprovalStatus == "Approved")
+                                    {
+                                        <span class="badge bg-success">Approved</span>
+                                    }
+                                    else if (Model.ApprovalStatus == "Pending")
+                                    {
+                                        <span class="badge bg-warning text-dark">Pending</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">@Model.ApprovalStatus</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">Lock Status:</div>
+                                <div class="col-md-9">
+                                    @if (Model.IsLocked)
+                                    {
+                                        <span class="badge bg-danger">Locked</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-success">Unlocked</span>
+                                    }
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">Failed Attempts:</div>
+                                <div class="col-md-9">@Model.FailedAttempts</div>
+                            </div>
+
+                            <!-- Password Information -->
+                            <div class="form-section-title mb-3 mt-3">
+                                <i class="fas fa-lock me-2"></i>Password Information
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">Password Status:</div>
+                                <div class="col-md-9">
+                                    <span class="badge @(Model.PasswordStatus == "Active" ? "bg-success" : "bg-warning")">
+                                        @Model.PasswordStatus
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">Password Expiry:</div>
+                                <div class="col-md-9">@(Model.PassExpire == "Yes" ? "Expired" : "Not Expired")</div>
+                            </div>
+
+                            <!-- Audit Information -->
+                            <div class="form-section-title mb-3 mt-3">
+                                <i class="fas fa-history me-2"></i>Audit Information
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">Date Created:</div>
+                                <div class="col-md-9">@(Model.DateCreated?.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A")</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">Last Modified:</div>
+                                <div class="col-md-9">@(Model.DateModified?.ToString("yyyy-MM-dd HH:mm:ss") ?? "N/A")</div>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-md-3 fw-bold">Modified By:</div>
+                                <div class="col-md-9">@(string.IsNullOrEmpty(Model.ModifiedBy) ? "N/A" : Model.ModifiedBy)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a asp-action="Index" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Back to List
+                        </a>
+                        <div>
+                            <a asp-action="Edit" asp-route-id="@Model.UserId" class="btn btn-warning">
+                                <i class="fas fa-edit me-1"></i>Edit User
+                            </a>
+                            @if (Model.IsLocked)
+                            {
+                                <button type="button" class="btn btn-success ms-2" onclick="unlockUser(@Model.UserId)">
+                                    <i class="fas fa-unlock me-1"></i>Unlock User
+                                </button>
+                            }
+                            else
+                            {
+                                <button type="button" class="btn btn-danger ms-2" onclick="lockUser(@Model.UserId)">
+                                    <i class="fas fa-lock me-1"></i>Lock User
+                                </button>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function lockUser(userId) {
+            if (confirm('Are you sure you want to lock this user?')) {
+                $.post('/Account/LockUser', { userId: userId }, function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert(response.message || 'Error locking user');
+                    }
+                });
+            }
+        }
+
+        function unlockUser(userId) {
+            if (confirm('Are you sure you want to unlock this user?')) {
+                $.post('/Account/UnlockUser', { userId: userId }, function(response) {
+                    if (response.success) {
+                        location.reload();
+                    } else {
+                        alert(response.message || 'Error unlocking user');
+                    }
+                });
+            }
+        }
+    </script>
+}

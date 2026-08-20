@@ -1,0 +1,275 @@
+﻿@model SACCOBlockChainSystem.Models.ViewModels.LoanIssuedPerProductIndexViewModel
+@{
+    ViewData["Title"] = "Loans Issued Per Product Report";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .table th, .table td {
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    .search-box {
+        margin-bottom: 15px;
+        max-width: 300px;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f5f5f5;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0">
+                <i class="fas fa-chart-line me-2"></i>
+                Loans Issued Per Product Report
+            </h4>
+        </div>
+
+        <div class="card-body">
+
+            <!-- Filter Form -->
+            <form method="post" class="mb-4">
+                <div class="row align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Start Date</label>
+                        <input type="date" name="startDate" class="form-control"
+                               value="@Model.StartDate.ToString("yyyy-MM-dd")" required />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">End Date</label>
+                        <input type="date" name="endDate" class="form-control"
+                               value="@Model.EndDate.ToString("yyyy-MM-dd")" required />
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-search me-1"></i>Generate Report
+                            </button>
+
+                            <button type="button" id="exportPdfBtn" class="btn btn-danger">
+                                <i class="fas fa-file-pdf me-1"></i>Export to PDF
+                            </button>
+
+                            <button type="button" id="exportExcelBtn" class="btn btn-success">
+                                <i class="fas fa-file-excel me-1"></i>Export to Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+
+            @if (Model.HasData)
+            {
+                <!-- Report Header -->
+                <div class="text-center mb-4">
+                    <h4>@Model.CompanyName.ToUpper()</h4>
+                    <h5>LOANS ISSUED PER PRODUCT REPORT</h5>
+                    <p>@Model.StartDate.ToString("dd/MM/yyyy") - @Model.EndDate.ToString("dd/MM/yyyy")</p>
+                    <p>Printed By: @Model.PrintedBy On: @Model.GeneratedOn.ToString("dd-MMM-yyyy HH:mm")</p>
+                </div>
+
+                <!-- Statistics Summary -->
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <div class="card bg-info text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-tags"></i> Loan Products</h5>
+                                <h3>@Model.TotalLoanTypes.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-success text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-hand-holding-usd"></i> Total Loans</h5>
+                                <h3>@Model.TotalLoans.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body text-center">
+                                <h5><i class="fas fa-money-bill-wave"></i> Total Amount</h5>
+                                <h3>@Model.TotalLoanApplied.ToString("N0")</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Global Search Box -->
+                <div class="search-box">
+                    <input type="text" id="globalSearch" class="form-control" placeholder="🔍 Search across all loans...">
+                </div>
+
+                int globalCounter = 0;
+
+                @foreach (var group in Model.Groups)
+                {
+                    <!-- GROUP HEADER -->
+                    <div class="bg-primary text-white p-2 mt-4 fw-bold rounded">
+                        @group.LoanType (@group.LoanCode)
+                    </div>
+
+                    <!-- TABLE PER GROUP -->
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-striped group-table" data-group="@group.LoanType">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>No</th>
+                                    <th>Member No</th>
+                                    <th>Loan No</th>
+                                    <th>Name</th>
+                                    <th>Apply Date</th>
+                                    <th>Appraisal Date</th>
+                                    <th>Endorsement</th>
+                                    <th>Period</th>
+                                    <th class="text-end">Loan Applied</th>
+                                    <th class="text-end">Approved Amount</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                @foreach (var loan in group.Loans)
+                                {
+                                    globalCounter++;
+
+                                    <tr>
+                                        <td>@globalCounter</td>
+                                        <td>@loan.MemberNo</td>
+                                        <td>@loan.LoanNo</td>
+                                        <td>@loan.Name</td>
+                                        <td>@(loan.ApplicationDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                        <td>@(loan.AppraisalDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                        <td>@(loan.EndorsementDate?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                        <td class="text-center">@loan.LoanPeriodMonths</td>
+                                        <td class="text-end">@loan.LoanApplied.ToString("N2")</td>
+                                        <td class="text-end">@loan.ApprovedAmount.ToString("N2")</td>
+                                    </tr>
+                                }
+
+                                <!-- SUBTOTAL -->
+                                <tr class="table-secondary fw-bold">
+                                    <td colspan="8" class="text-end">
+                                        Subtotal (@group.LoanType):
+                                    </td>
+                                    <td class="text-end">@group.TotalLoanApplied.ToString("N2")</td>
+                                    <td class="text-end">@group.TotalApprovedAmount.ToString("N2")</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                }
+
+                <!-- Grand Total -->
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="bg-dark text-white p-3 text-end fw-bold rounded">
+                            GRAND TOTAL:
+                            Applied: @Model.TotalLoanApplied.ToString("N2") |
+                            Approved: @Model.TotalApprovedAmount.ToString("N2")
+                        </div>
+                    </div>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    @(ViewBag.Message ?? "No data found for the selected date range.")
+                </div>
+            }
+
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Simple search/filter functionality (no DataTables)
+            $('#globalSearch').on('keyup', function () {
+                var searchText = $(this).val().toLowerCase();
+
+                // Loop through each group table
+                $('.group-table').each(function() {
+                    var $table = $(this);
+                    var $rows = $table.find('tbody tr:not(.table-secondary)'); // Exclude subtotal rows
+                    var hasVisibleRow = false;
+
+                    $rows.each(function() {
+                        var rowText = $(this).text().toLowerCase();
+                        if (rowText.indexOf(searchText) > -1) {
+                            $(this).show();
+                            hasVisibleRow = true;
+                        } else {
+                            $(this).hide();
+                        }
+                    });
+
+                    // Show/hide the entire table container based on whether any row is visible
+                    var $container = $table.closest('.table-responsive');
+                    if (hasVisibleRow || searchText === '') {
+                        $container.show();
+                        // Also show the group header (previous element)
+                        $container.prev('.bg-primary').show();
+                    } else {
+                        $container.hide();
+                        $container.prev('.bg-primary').hide();
+                    }
+                });
+            });
+
+            // Export to Excel
+            $('#exportExcelBtn').off('click').on('click', function () {
+                var startDate = $('input[name="startDate"]').val();
+                var endDate = $('input[name="endDate"]').val();
+
+                if (!startDate || !endDate) {
+                    alert('Please select both dates first');
+                    return;
+                }
+
+                var form = $('<form>', {
+                    method: 'post',
+                    action: '@Url.Action("ExportLoansIssuedPerProductToExcel", "LoanReport")'
+                });
+
+                form.append('<input type="hidden" name="startDate" value="' + startDate + '" />');
+                form.append('<input type="hidden" name="endDate" value="' + endDate + '" />');
+
+                form.appendTo('body').submit();
+            });
+
+            // Export to PDF
+            $('#exportPdfBtn').off('click').on('click', function () {
+                var startDate = $('input[name="startDate"]').val();
+                var endDate = $('input[name="endDate"]').val();
+
+                if (!startDate || !endDate) {
+                    alert('Please select both dates first');
+                    return;
+                }
+
+                var form = $('<form>', {
+                    method: 'post',
+                    action: '@Url.Action("ExportLoansIssuedPerProductToPdf", "LoanReport")'
+                });
+
+                form.append('<input type="hidden" name="startDate" value="' + startDate + '" />');
+                form.append('<input type="hidden" name="endDate" value="' + endDate + '" />');
+
+                form.appendTo('body').submit();
+            });
+        });
+    </script>
+}

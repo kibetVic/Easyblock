@@ -1,0 +1,314 @@
+﻿@using System.Security.Claims
+@{
+    ViewData["Title"] = "Switch Company";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    var currentUserRole = User.FindFirstValue(ClaimTypes.Role);
+    var currentUserGroup = User.FindFirstValue("UserGroup");
+    var currentUserName = User.Identity?.Name;
+    var currentUserLoginId = User.FindFirstValue("UserLoginId");
+    var currentUserEmail = User.FindFirstValue("Email");
+
+    // Allow Super Admin, Admin, and System Administrator
+    var canSwitchCompanies = currentUserRole == "Super Admin" ||
+                              currentUserRole == "Admin" ||
+                              currentUserRole == "System Administrator" ||
+                              currentUserGroup == "Super Admin" ||
+                              currentUserGroup == "Admin" ||
+                              currentUserGroup == "System Administrator";
+
+    var currentCompanyCode = User.FindFirstValue("CompanyCode");
+    var currentCompanyName = User.FindFirstValue("CompanyName");
+    var totalCompanies = ViewBag.TotalCompanies as int? ?? 0;
+}
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="card-title mb-0">
+                        <i class="bi bi-arrow-left-right me-2"></i>Switch Company
+                    </h4>
+                </div>
+                <div class="card-body">
+                    @if (!canSwitchCompanies)
+                    {
+                        <div class="alert alert-danger">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <strong>Access Denied!</strong> Only Super Admin, Admin, and System Administrator can switch between companies.
+                        </div>
+
+                        <div class="text-center mt-3">
+                            <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">
+                                <i class="bi bi-arrow-left"></i> Back to Dashboard
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        @if (TempData["SuccessMessage"] != null)
+                        {
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        }
+                        @if (TempData["ErrorMessage"] != null)
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        }
+
+                        <!-- Current User Information Card -->
+                        <div class="card mb-4 border-primary">
+                            <div class="card-header bg-primary bg-opacity-10">
+                                <h6 class="mb-0">
+                                    <i class="bi bi-person-circle me-2"></i>Current User Information
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <label class="text-muted small">Username:</label>
+                                        <p class="fw-bold mb-0">@currentUserName</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="text-muted small">Login ID:</label>
+                                        <p class="fw-bold mb-0">@currentUserLoginId</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="text-muted small">Email:</label>
+                                        <p class="fw-bold mb-0">@currentUserEmail</p>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="text-muted small">Role:</label>
+                                        <p class="fw-bold mb-0">
+                                            <span class="badge bg-info">@currentUserRole</span>
+                                            @if (!string.IsNullOrEmpty(currentUserGroup) && currentUserGroup != currentUserRole)
+                                            {
+                                                <span class="badge bg-secondary ms-1">@currentUserGroup</span>
+                                            }
+                                        </p>
+                                    </div>
+                                </div>
+                                <hr class="my-2" />
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <label class="text-muted small">Current Company:</label>
+                                        <p class="fw-bold text-primary mb-0">
+                                            <i class="bi bi-building me-1"></i>@currentCompanyName (@currentCompanyCode)
+                                        </p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="text-muted small">Department:</label>
+                                        <p class="mb-0">@(User.FindFirstValue("Department") ?? "N/A")</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Company Selection with Search -->
+                        <form asp-action="SwitchCompany" method="post">
+                            @Html.AntiForgeryToken()
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold">
+                                    <i class="bi bi-building me-1"></i>Select Company to Switch To
+                                </label>
+
+                                <!-- Search input that filters the dropdown -->
+                                <div class="mb-2">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-light">
+                                            <i class="bi bi-search"></i>
+                                        </span>
+                                        <input type="text" id="companySearchInput" class="form-control"
+                                               placeholder="Type company code or name to filter..."
+                                               onkeyup="filterCompanyList()" />
+                                        <button type="button" class="btn btn-outline-secondary" onclick="clearSearch()">
+                                            <i class="bi bi-x-lg"></i> Clear
+                                        </button>
+                                    </div>
+                                    <small class="text-muted">Type initials to filter companies (e.g., "KE" for Kenya, "SAC" for SACCO)</small>
+                                </div>
+
+                                <!-- Dropdown list of companies -->
+                                <select name="companyCode" id="companySelect" class="form-select form-select-lg" required size="8" style="height: auto; min-height: 250px;">
+                                    <option value="">-- Select a company --</option>
+                                    @if (ViewBag.Companies != null)
+                                    {
+                                        foreach (var company in ViewBag.Companies)
+                                        {
+                                            var isCurrent = company.CompanyCode == currentCompanyCode;
+                                            var searchData = $"{company.CompanyCode} {company.CompanyName} {company.DisplayText}".ToLower();
+                                            if (isCurrent)
+                                            {
+                                                <option value="@company.CompanyCode" disabled selected class="bg-light" data-search="@searchData">
+                                                    ✅ @company.DisplayText (Current)
+                                                </option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@company.CompanyCode" data-search="@searchData">
+                                                    @company.DisplayText
+                                                </option>
+                                            }
+                                        }
+                                    }
+                                </select>
+                                <small class="text-muted mt-2 d-block">
+                                    <i class="bi bi-info-circle"></i> Click on a company to select it. Use the search box above to filter the list.
+                                </small>
+                            </div>
+
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                                <strong>Note:</strong> Switching companies will refresh your session. You will continue to have the same permissions but with the selected company context.
+                            </div>
+
+                            <div class="d-flex justify-content-between gap-2 mt-3">
+                                <a asp-controller="Home" asp-action="Index" class="btn btn-secondary">
+                                    <i class="bi bi-x-circle"></i> Cancel
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="bi bi-check-circle"></i> Switch Company
+                                </button>
+                            </div>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .form-select-lg {
+        font-size: 1rem;
+        padding: 0.75rem;
+    }
+
+    .form-select option {
+        padding: 8px 12px;
+        border-bottom: 1px solid #f0f0f0;
+    }
+
+        .form-select option:hover {
+            background-color: #e8f0fe;
+        }
+
+    .bg-primary.bg-opacity-10 {
+        background-color: rgba(13, 110, 253, 0.1);
+    }
+
+    .border-primary {
+        border-color: #0d6efd !important;
+    }
+
+    .card-header.bg-primary.bg-opacity-10 {
+        border-bottom: 1px solid rgba(13, 110, 253, 0.2);
+    }
+
+    #companySearchInput {
+        border-radius: 6px;
+    }
+
+    #companySelect {
+        border-radius: 8px;
+    }
+</style>
+
+@section Scripts {
+    <script>
+        // Filter companies as user types
+        function filterCompanyList() {
+            var input = document.getElementById('companySearchInput');
+            var filter = input.value.toLowerCase().trim();
+            var select = document.getElementById('companySelect');
+            var options = select.getElementsByTagName('option');
+
+            var visibleCount = 0;
+            var firstVisibleValue = null;
+
+            for (var i = 0; i < options.length; i++) {
+                var option = options[i];
+                var text = option.textContent || option.innerText;
+                var value = option.value;
+
+                // Get search data from data-search attribute or use text
+                var searchData = option.getAttribute('data-search') || text.toLowerCase();
+
+                if (value === "") {
+                    // Always show the placeholder option
+                    option.style.display = '';
+                    option.disabled = true;
+                    continue;
+                }
+
+                if (filter === "" || searchData.indexOf(filter) > -1 || text.toLowerCase().indexOf(filter) > -1) {
+                    option.style.display = '';
+                    option.disabled = false;
+                    visibleCount++;
+                    if (firstVisibleValue === null) {
+                        firstVisibleValue = value;
+                    }
+                } else {
+                    option.style.display = 'none';
+                    option.disabled = true;
+                }
+            }
+
+            // Auto-select first visible option if there's exactly one match
+            if (visibleCount === 1 && firstVisibleValue) {
+                select.value = firstVisibleValue;
+            }
+
+            // Show/hide no results message
+            var noResultsMsg = document.getElementById('noResultsMsg');
+            if (visibleCount === 0 && filter !== "") {
+                if (!noResultsMsg) {
+                    var msg = document.createElement('option');
+                    msg.id = 'noResultsMsg';
+                    msg.disabled = true;
+                    msg.textContent = '-- No companies match "' + filter + '" --';
+                    select.appendChild(msg);
+                } else {
+                    noResultsMsg.textContent = '-- No companies match "' + filter + '" --';
+                    noResultsMsg.style.display = '';
+                }
+            } else if (noResultsMsg) {
+                noResultsMsg.style.display = 'none';
+            }
+        }
+
+        // Clear search input and show all options
+        function clearSearch() {
+            document.getElementById('companySearchInput').value = '';
+            filterCompanyList();
+            document.getElementById('companySearchInput').focus();
+        }
+
+        // Show loading on form submit
+        $('form').on('submit', function() {
+            var $btn = $(this).find('button[type="submit"]');
+            $btn.prop('disabled', true);
+            $btn.html('<i class="bi bi-hourglass-split me-2"></i> Switching...');
+            return true;
+        });
+
+        // Allow Enter key to trigger search
+        document.getElementById('companySearchInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                var select = document.getElementById('companySelect');
+                var visibleOptions = Array.from(select.options).filter(opt => opt.style.display !== 'none' && opt.value !== "");
+                if (visibleOptions.length === 1) {
+                    select.value = visibleOptions[0].value;
+                }
+            }
+        });
+    </script>
+}

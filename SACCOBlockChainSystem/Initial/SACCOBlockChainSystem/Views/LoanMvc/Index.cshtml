@@ -1,0 +1,313 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.LoanDashboardDTO
+@{
+    ViewData["Title"] = "Loan Management Dashboard";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Styles {
+    <style>
+        .stat-card {
+            border-radius: 10px;
+            border: none;
+            box-shadow: 0 0 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+        .progress-thin {
+            height: 6px;
+            border-radius: 3px;
+        }
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+    </style>
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="page-title">
+                <i class="bi bi-bank me-2"></i>Loan Management Dashboard
+            </h2>
+            <div>
+                <a asp-action="Apply" class="btn btn-primary">
+                    <i class="bi bi-plus-circle me-2"></i>New Loan Application
+                </a>
+                <a asp-action="Search" class="btn btn-outline-secondary ms-2">
+                    <i class="bi bi-search me-2"></i>Search Loans
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Key Statistics -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon bg-primary bg-opacity-10 text-primary me-3">
+                        <i class="bi bi-file-text"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">Total Loan Portfolio</h6>
+                        <h3 class="mb-0 fw-bold">@Model.TotalLoanAmount.ToString("N0")</h3>
+                        <small class="text-muted">@Model.TotalLoans Active Loans</small>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">Disbursed</span>
+                        <span class="fw-bold">@Model.TotalDisbursed.ToString("N0")</span>
+                    </div>
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Outstanding</span>
+                        <span class="fw-bold text-warning">@Model.TotalOutstanding.ToString("N0")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon bg-info bg-opacity-10 text-info me-3">
+                        <i class="bi bi-hourglass-split"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">Pending Applications</h6>
+                        <h3 class="mb-0 fw-bold">@Model.PendingApplications</h3>
+                        <small class="text-muted">@Model.UnderAppraisal Under Appraisal</small>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Awaiting Approval</span>
+                        <span class="fw-bold">@Model.PendingApproval</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon bg-success bg-opacity-10 text-success me-3">
+                        <i class="bi bi-check-circle"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">Approved Loans</h6>
+                        <h3 class="mb-0 fw-bold">@Model.ApprovedPendingDisbursement</h3>
+                        <small class="text-muted">Ready for Disbursement</small>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Active Loans</span>
+                        <span class="fw-bold">@Model.ActiveLoans</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6">
+        <div class="stat-card card">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="stat-icon bg-danger bg-opacity-10 text-danger me-3">
+                        <i class="bi bi-exclamation-triangle"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-muted mb-1">Risk Exposure</h6>
+                        <h3 class="mb-0 fw-bold">@Model.OverdueLoans</h3>
+                        <small class="text-muted">Overdue Loans</small>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <div class="d-flex justify-content-between">
+                        <span class="text-muted">Arrears Amount</span>
+                        <span class="fw-bold text-danger">@Model.TotalArrears.ToString("N0")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Loan Portfolio Chart -->
+    <div class="col-xl-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Loan Portfolio by Type</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="portfolioChart" style="height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loan Status Distribution -->
+    <div class="col-xl-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Loan Status Distribution</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="statusChart" style="height: 300px;"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Loans -->
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Recent Loan Applications</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Loan No</th>
+                                <th>Member</th>
+                                <th>Loan Type</th>
+                                <th>Amount</th>
+                                <th>Application Date</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var loan in Model.RecentLoans)
+                            {
+                                <tr>
+                                    <td><strong>@loan.LoanNo</strong></td>
+                                    <td>
+                                        <div>@loan.MemberName</div>
+                                        <small class="text-muted">@loan.MemberNo</small>
+                                    </td>
+                                    <td>@loan.LoanType</td>
+                                    <td>@loan.PrincipalAmount.ToString("N0")</td>
+                                    <td>@loan.ApplicationDate.ToString("dd/MM/yyyy")</td>
+                                    <td>
+                                        @{
+                                            var statusClass = loan.LoanStatus switch
+                                            {
+                                                "Draft" => "bg-secondary",
+                                                "Submitted" => "bg-info",
+                                                "UnderAppraisal" => "bg-warning",
+                                                "Approved" => "bg-success",
+                                                "Disbursed" => "bg-primary",
+                                                "Rejected" => "bg-danger",
+                                                "Closed" => "bg-success",
+                                                _ => "bg-secondary"
+                                            };
+                                        }
+                                        <span class="badge @statusClass">@loan.LoanStatus</span>
+                                    </td>
+                                    <td>
+                                        <a asp-action="Details" asp-route-loanNo="@loan.LoanNo"
+                                           class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-eye"></i> View
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @if (!Model.RecentLoans.Any())
+            {
+                <div class="card-body text-center py-5">
+                    <i class="bi bi-inbox fs-1 text-muted"></i>
+                    <p class="text-muted mt-3">No loan applications found</p>
+                    <a asp-action="Apply" class="btn btn-primary">Apply for Loan</a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        $(document).ready(function() {
+            // Portfolio Chart
+            var portfolioCtx = document.getElementById('portfolioChart').getContext('2d');
+            var portfolioData = @Html.Raw(Json.Serialize(Model.LoanPortfolioByType));
+
+            new Chart(portfolioCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(portfolioData),
+                    datasets: [{
+                        data: Object.values(portfolioData),
+                        backgroundColor: [
+                            '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', '#858796'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Status Chart
+            var statusCtx = document.getElementById('statusChart').getContext('2d');
+            var statusData = @Html.Raw(Json.Serialize(Model.LoansByStatus));
+
+            new Chart(statusCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(statusData),
+                    datasets: [{
+                        label: 'Number of Loans',
+                        data: Object.values(statusData),
+                        backgroundColor: '#4e73df'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                stepSize: 1
+                            }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+}

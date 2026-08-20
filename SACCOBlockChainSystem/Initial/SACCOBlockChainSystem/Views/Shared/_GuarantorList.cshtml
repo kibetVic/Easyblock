@@ -1,0 +1,150 @@
+﻿@model List<SACCOBlockChainSystem.Models.DTOs.GuarantorResponseDTO>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="card-title mb-0">Guarantors</h5>
+        @if (ViewBag.CanEdit != null && ViewBag.CanEdit)
+        {
+            <a asp-action="AssignGuarantor" asp-route-loanNo="@ViewBag.LoanNo" class="btn btn-sm btn-primary">
+                <i class="bi bi-person-plus"></i> Assign Guarantor
+            </a>
+        }
+    </div>
+    <div class="card-body p-0">
+        @if (Model.Any())
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Guarantor</th>
+                            <th>Member No</th>
+                            <th class="text-end">Guarantee Amount</th>
+                            <th class="text-end">Available Shares</th>
+                            <th>Status</th>
+                            <th>Assigned Date</th>
+                            <th>Approved Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var guarantor in Model)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@guarantor.GuarantorName</strong>
+                                </td>
+                                <td>@guarantor.GuarantorMemberNo</td>
+                                <td class="text-end fw-bold">KES @guarantor.GuaranteeAmount.ToString("N2")</td>
+                                <td class="text-end">KES @guarantor.AvailableShares.ToString("N2")</td>
+                                <td>
+                                    @{
+                                        var statusClass = guarantor.Status switch
+                                        {
+                                            "Pending" => "bg-warning",
+                                            "Approved" => "bg-success",
+                                            "Rejected" => "bg-danger",
+                                            "Released" => "bg-secondary",
+                                            _ => "bg-info"
+                                        };
+                                    }
+                                    <span class="badge @statusClass">@guarantor.Status</span>
+                                </td>
+                                <td>@guarantor.AssignedDate.ToString("dd/MM/yyyy")</td>
+                                <td>
+                                    @if (guarantor.ApprovedDate.HasValue)
+                                    {
+                                        @guarantor.ApprovedDate.Value.ToString("dd/MM/yyyy")
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (guarantor.Status == "Pending" && (User.IsInRole("LoanOfficer") || User.IsInRole("Admin")))
+                                    {
+                                        <div class="btn-group">
+                                            <form asp-action="ApproveGuarantor" method="post" style="display: inline;">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="guarantorId" value="@guarantor.Id" />
+                                                <input type="hidden" name="loanNo" value="@guarantor.LoanNo" />
+                                                <button type="submit" class="btn btn-sm btn-success" title="Approve">
+                                                    <i class="bi bi-check-lg"></i>
+                                                </button>
+                                            </form>
+                                            <button type="button" class="btn btn-sm btn-danger"
+                                                    onclick="showRejectModal(@guarantor.Id, '@guarantor.LoanNo')" title="Reject">
+                                                <i class="bi bi-x-lg"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                    @if (guarantor.Status == "Approved" && (User.IsInRole("Admin") || User.IsInRole("SuperAdmin")))
+                                    {
+                                        <form asp-action="ReleaseGuarantor" method="post" style="display: inline;">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="guarantorId" value="@guarantor.Id" />
+                                            <input type="hidden" name="loanNo" value="@guarantor.LoanNo" />
+                                            <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                                    title="Release" onclick="return confirm('Are you sure you want to release this guarantor?')">
+                                                <i class="bi bi-unlock"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-people fs-1 text-muted"></i>
+                <p class="text-muted mt-3">No guarantors assigned yet</p>
+                @if (ViewBag.CanEdit != null && ViewBag.CanEdit)
+                {
+                    <a asp-action="AssignGuarantor" asp-route-loanNo="@ViewBag.LoanNo" class="btn btn-primary">
+                        <i class="bi bi-person-plus"></i> Assign Guarantor
+                    </a>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Reject Guarantor Modal -->
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="RejectGuarantor" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="guarantorId" id="rejectGuarantorId" />
+                <input type="hidden" name="loanNo" id="rejectLoanNo" />
+                <div class="modal-header">
+                    <h5 class="modal-title">Reject Guarantor</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Reason for Rejection</label>
+                        <textarea name="remarks" class="form-control" rows="3" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Reject Guarantor</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showRejectModal(guarantorId, loanNo) {
+        $('#rejectGuarantorId').val(guarantorId);
+        $('#rejectLoanNo').val(loanNo);
+        $('#rejectModal').modal('show');
+    }
+</script>

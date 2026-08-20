@@ -1,0 +1,631 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.SendSmsRequestDTO
+@{
+    ViewData["Title"] = "Send SMS";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var templates = ViewBag.Templates as List<SACCOBlockChainSystem.Models.SmsTemplate> ?? new List<SACCOBlockChainSystem.Models.SmsTemplate>();
+    var companyCode = ViewBag.CompanyCode as string;
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center">
+                <a asp-action="Index" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Back to Messages
+                </a>
+                <h2 class="page-title mb-0">
+                    <i class="bi bi-send me-2"></i>Send SMS
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-envelope-paper me-2"></i>Compose Message
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form asp-action="Send" method="post" id="sendSmsForm">
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" style="display: none;"></div>
+
+                        <!-- Search Member Section -->
+                        <div class="card bg-light mb-4">
+                            <div class="card-header bg-secondary text-white">
+                                <h6 class="card-title mb-0">
+                                    <i class="bi bi-search me-2"></i>Search Member
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <div class="row align-items-end">
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label class="fw-bold">Search By</label>
+                                            <select id="searchType" class="form-select">
+                                                <option value="memberNo">Member Number</option>
+                                                <option value="idNo">ID Number</option>
+                                                <option value="phoneNo">Phone Number</option>
+                                                <option value="fullName">Full Name</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="fw-bold" id="searchLabel">Member Number</label>
+                                            <div class="input-group">
+                                                <input type="text" id="searchValue" class="form-control"
+                                                       placeholder="Enter member number..." />
+                                                <button type="button" class="btn btn-primary" onclick="searchMember()">
+                                                    <i class="bi bi-search"></i> Search
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label>&nbsp;</label>
+                                            <button type="button" class="btn btn-outline-secondary w-100" onclick="clearMemberSearch()">
+                                                <i class="bi bi-eraser"></i> Clear
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Search Results -->
+                                <div id="searchResults" class="mt-3" style="display: none;">
+                                    <div class="alert alert-success">
+                                        <div class="row align-items-center">
+                                            <div class="col-md-8">
+                                                <strong>Member Found:</strong>
+                                                <span id="memberInfo"></span>
+                                            </div>
+                                            <div class="col-md-4 text-end">
+                                                <button type="button" class="btn btn-sm btn-success" onclick="selectMember()">
+                                                    <i class="bi bi-check-circle me-1"></i> Select This Member
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Selected Member Display -->
+                                <div id="selectedMemberInfo" class="mt-3" style="display: none;">
+                                    <div class="alert alert-info">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <i class="bi bi-person-check-fill me-2"></i>
+                                                <strong>Selected Member:</strong>
+                                                <span id="selectedMemberName"></span>
+                                                <br />
+                                                <small class="text-muted">
+                                                    Phone: <span id="selectedMemberPhone"></span> |
+                                                    Member No: <span id="selectedMemberNo"></span>
+                                                </small>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" onclick="clearSelectedMember()">
+                                                <i class="bi bi-x-circle"></i> Remove
+                                            </button>
+                                        </div>
+                                        <input type="hidden" id="selectedMemberNoField" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Recipient Details -->
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="PhoneNumber" class="form-label fw-bold">Phone Number *</label>
+                                <input asp-for="PhoneNumber" class="form-control" id="phoneNumber"
+                                       placeholder="e.g., 0712345678" />
+                                <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                                <small class="text-muted">Enter phone number in international format or local format (e.g., 0712345678)</small>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="RecipientName" class="form-label fw-bold">Recipient Name</label>
+                                <input asp-for="RecipientName" class="form-control" id="recipientName"
+                                       placeholder="e.g., John Doe" />
+                                <span asp-validation-for="RecipientName" class="text-danger"></span>
+                                <small class="text-muted">Name of the recipient (for records)</small>
+                            </div>
+                        </div>
+
+                        <!-- Template Selection -->
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Select Template (Optional)</label>
+                            <div class="input-group">
+                                <select id="templateSelect" class="form-select" onchange="loadTemplate()">
+                                    <option value="">-- Select Template --</option>
+                                    @foreach (var template in templates.Where(t => t.IsActive))
+                                    {
+                                        <option value="@template.TemplateCode" data-content="@template.TemplateContent">
+                                            @template.TemplateName (@template.TemplateCode)
+                                        </option>
+                                    }
+                                </select>
+                                <a asp-action="Templates" class="btn btn-outline-secondary" target="_blank">
+                                    <i class="bi bi-gear"></i> Manage Templates
+                                </a>
+                            </div>
+                            <small class="text-muted">Select a template to auto-fill the message content</small>
+                        </div>
+
+                        <!-- Message Content -->
+                        <div class="mb-3">
+                            <label asp-for="Message" class="form-label fw-bold">Message Content *</label>
+                            <textarea asp-for="Message" class="form-control" id="messageContent" rows="6"
+                                      placeholder="Type your message here... Use {{Placeholder}} for dynamic content"></textarea>
+                            <span asp-validation-for="Message" class="text-danger"></span>
+                            <div class="d-flex justify-content-between mt-1">
+                                <small class="text-muted">
+                                    <i class="bi bi-info-circle me-1"></i>
+                                    Character count: <span id="charCount">0</span> / 160
+                                    <span id="smsCount" class="ms-2"></span>
+                                </small>
+                                <small class="text-muted">
+                                    <a href="#" onclick="showPlaceholders()">Available Placeholders</a>
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Placeholder Variables -->
+                        <div class="card bg-light mb-3">
+                            <div class="card-header">
+                                <i class="bi bi-code-square me-2"></i>Placeholder Variables
+                                <button type="button" class="btn btn-sm btn-link float-end" onclick="togglePlaceholders()">
+                                    <i class="bi bi-chevron-down"></i>
+                                </button>
+                            </div>
+                            <div class="card-body" id="placeholdersPanel" style="display: none;">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Member Information:</h6>
+                                        <ul class="list-unstyled">
+                                            <li><code>{{FullName}}</code> - Member's full name</li>
+                                            <li><code>{{Surname}}</code> - Member's surname</li>
+                                            <li><code>{{OtherNames}}</code> - Member's other names</li>
+                                            <li><code>{{MemberNo}}</code> - Member number</li>
+                                            <li><code>{{IdNo}}</code> - ID number</li>
+                                            <li><code>{{PhoneNo}}</code> - Phone number</li>
+                                            <li><code>{{Email}}</code> - Email address</li>
+                                        </ul>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>System Information:</h6>
+                                        <ul class="list-unstyled">
+                                            <li><code>{{CompanyName}}</code> - SACCO name</li>
+                                            <li><code>{{Date}}</code> - Current date</li>
+                                            <li><code>{{Time}}</code> - Current time</li>
+                                            <li><code>{{DateTime}}</code> - Current date and time</li>
+                                        </ul>
+                                        <h6 class="mt-2">Transaction Information:</h6>
+                                        <ul class="list-unstyled">
+                                            <li><code>{{Amount}}</code> - Transaction amount</li>
+                                            <li><code>{{Reference}}</code> - Transaction reference</li>
+                                            <li><code>{{LoanNo}}</code> - Loan number</li>
+                                            <li><code>{{WithdrawalNo}}</code> - Withdrawal number</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="alert alert-info mt-2">
+                                    <i class="bi bi-lightbulb me-2"></i>
+                                    <strong>Tip:</strong> Click on any placeholder to insert it into your message
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Message Type -->
+                        <div class="mb-3">
+                            <label asp-for="MessageType" class="form-label fw-bold">Message Type</label>
+                            <select asp-for="MessageType" class="form-select">
+                                <option value="General">General</option>
+                                <option value="Registration">Registration</option>
+                                <option value="Withdrawal">Withdrawal</option>
+                                <option value="Loan">Loan</option>
+                                <option value="Share Transfer">Share Transfer</option>
+                                <option value="Contribution">Contribution</option>
+                                <option value="Reminder">Reminder</option>
+                                <option value="Notification">Notification</option>
+                            </select>
+                            <span asp-validation-for="MessageType" class="text-danger"></span>
+                            <small class="text-muted">Categorize your message for reporting purposes</small>
+                        </div>
+
+                        <!-- Reference -->
+                        <div class="mb-3">
+                            <label asp-for="Reference" class="form-label fw-bold">Reference (Optional)</label>
+                            <input asp-for="Reference" class="form-control" placeholder="e.g., Loan No, Withdrawal No, etc." />
+                            <span asp-validation-for="Reference" class="text-danger"></span>
+                            <small class="text-muted">Reference ID to link this SMS to a specific transaction</small>
+                        </div>
+
+                        <!-- Preview Section -->
+                        <div class="card bg-light mb-3">
+                            <div class="card-header">
+                                <i class="bi bi-eye me-2"></i>Preview
+                            </div>
+                            <div class="card-body">
+                                <div id="messagePreview" class="alert alert-secondary">
+                                    <i class="bi bi-chat-text me-2"></i>
+                                    <span id="previewContent">Message preview will appear here</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr />
+
+                        <div class="d-flex justify-content-end gap-2">
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="bi bi-x-circle me-1"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="submitBtn">
+                                <i class="bi bi-send me-2"></i>Send SMS
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <!-- Tips Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-info text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-lightbulb me-2"></i>SMS Tips
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Keep it short</strong> - SMS is limited to 160 characters
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Be clear</strong> - State the purpose early
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Personalize</strong> - Use placeholders for names
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Include call to action</strong> - Tell them what to do
+                        </li>
+                        <li class="mb-2">
+                            <i class="bi bi-check-circle-fill text-success me-2"></i>
+                            <strong>Avoid abbreviations</strong> - Make it professional
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Recent Messages Card -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="bi bi-clock-history me-2"></i>Recent Messages
+                    </h5>
+                </div>
+                <div class="card-body" id="recentMessages">
+                    <div class="text-center py-3">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        let currentMemberData = null;
+        var companyName = '@(ViewBag.CompanyName)';
+
+        $(document).ready(function() {
+            // Character counter
+            $('#messageContent').on('input', function() {
+                updateCharacterCount();
+                updatePreview();
+            });
+
+            // Update on load
+            updateCharacterCount();
+            updatePreview();
+            loadRecentMessages();
+
+            // Search type change
+            $('#searchType').on('change', function() {
+                const searchType = $(this).val();
+                const searchLabel = $('#searchLabel');
+                const searchInput = $('#searchValue');
+
+                if (searchType === 'memberNo') {
+                    searchLabel.text('Member Number');
+                    searchInput.attr('placeholder', 'Enter member number...');
+                } else if (searchType === 'idNo') {
+                    searchLabel.text('ID Number');
+                    searchInput.attr('placeholder', 'Enter ID number...');
+                } else if (searchType === 'phoneNo') {
+                    searchLabel.text('Phone Number');
+                    searchInput.attr('placeholder', 'Enter phone number...');
+                } else {
+                    searchLabel.text('Full Name');
+                    searchInput.attr('placeholder', 'Enter full name...');
+                }
+                searchInput.val('');
+                $('#searchResults').hide();
+            });
+
+            // Enter key search
+            $('#searchValue').on('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    searchMember();
+                }
+            });
+
+            // Form submission validation
+            $('#sendSmsForm').on('submit', function(e) {
+                const phoneNumber = $('#phoneNumber').val();
+                const message = $('#messageContent').val();
+
+                if (!phoneNumber) {
+                    e.preventDefault();
+                    showToast('error', 'Please enter a phone number');
+                    return false;
+                }
+
+                if (!message) {
+                    e.preventDefault();
+                    showToast('error', 'Please enter a message');
+                    return false;
+                }
+
+                // Validate phone number format (Kenyan)
+                const phoneRegex = /^(0|\+254)?[7][0-9]{8}$/;
+                if (!phoneRegex.test(phoneNumber)) {
+                    e.preventDefault();
+                    showToast('error', 'Please enter a valid Kenyan phone number (e.g., 0712345678)');
+                    return false;
+                }
+
+                const submitBtn = $('#submitBtn');
+                submitBtn.prop('disabled', true);
+                submitBtn.html('<span class="spinner-border spinner-border-sm me-2"></span>Sending...');
+                return true;
+            });
+        });
+
+        function updateCharacterCount() {
+            const message = $('#messageContent').val();
+            const length = message.length;
+            $('#charCount').text(length);
+
+            if (length > 160) {
+                const smsCount = Math.ceil(length / 153);
+                $('#smsCount').html(`<span class="text-warning">Will be split into ${smsCount} SMS messages</span>`);
+                $('#charCount').addClass('text-warning');
+            } else {
+                $('#smsCount').html('');
+                $('#charCount').removeClass('text-warning');
+            }
+        }
+
+        function updatePreview() {
+            let message = $('#messageContent').val();
+
+            // Replace placeholders with sample data if member selected
+            if (currentMemberData) {
+                message = message.replace(/{{FullName}}/g, currentMemberData.fullName);
+                message = message.replace(/{{Surname}}/g, currentMemberData.surname || currentMemberData.fullName.split(' ')[0]);
+                message = message.replace(/{{MemberNo}}/g, currentMemberData.memberNo);
+                message = message.replace(/{{PhoneNo}}/g, currentMemberData.phoneNo);
+                message = message.replace(/{{IdNo}}/g, currentMemberData.idNo || 'N/A');
+                message = message.replace(/{{Email}}/g, currentMemberData.email || 'N/A');
+            }
+
+            // Replace system placeholders
+            const now = new Date();
+            message = message.replace(/{{Date}}/g, now.toLocaleDateString());
+            message = message.replace(/{{Time}}/g, now.toLocaleTimeString());
+            message = message.replace(/{{DateTime}}/g, now.toLocaleString());
+            message = message.replace(/{{CompanyName}}/g, companyName);
+
+            $('#previewContent').text(message || 'Message preview will appear here');
+        }
+
+        function loadTemplate() {
+            const templateCode = $('#templateSelect').val();
+            if (templateCode) {
+                const selectedOption = $('#templateSelect option:selected');
+                const content = selectedOption.data('content');
+                if (content) {
+                    $('#messageContent').val(content);
+                    updateCharacterCount();
+                    updatePreview();
+                }
+            }
+        }
+
+        async function searchMember() {
+            const searchType = $('#searchType').val();
+            const searchValue = $('#searchValue').val().trim();
+
+            if (!searchValue) {
+                showToast('warning', 'Please enter a ' + $('#searchLabel').text());
+                return;
+            }
+
+            let url = '';
+            let params = {};
+
+            if (searchType === 'memberNo') {
+                url = '/MemberMvc/SearchMember';
+                params = { memberNo: searchValue };
+            } else if (searchType === 'idNo') {
+                url = '/MemberMvc/SearchMember';
+                params = { idNo: searchValue };
+            } else if (searchType === 'phoneNo') {
+                url = '/MemberMvc/SearchMember';
+                params = { phoneNo: searchValue };
+            } else {
+                url = '/MemberMvc/SearchMember';
+                params = { fullName: searchValue };
+            }
+
+            const queryString = new URLSearchParams(params).toString();
+            url = `${url}?${queryString}`;
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data.success && data.member) {
+                    currentMemberData = data.member;
+                    $('#memberInfo').html(`
+                        <strong>${data.member.memberNo}</strong> - ${data.member.fullName}<br/>
+                        <small>Phone: ${data.member.phoneNo || 'N/A'} | ID: ${data.member.idNo || 'N/A'}</small>
+                    `);
+                    $('#searchResults').show();
+                } else {
+                    showToast('error', data.message || 'Member not found');
+                    $('#searchResults').hide();
+                }
+            } catch (error) {
+                console.error('Error searching member:', error);
+                showToast('error', 'Error searching for member');
+            }
+        }
+
+        function selectMember() {
+            if (currentMemberData) {
+                $('#selectedMemberName').text(`${currentMemberData.memberNo} - ${currentMemberData.fullName}`);
+                $('#selectedMemberPhone').text(currentMemberData.phoneNo);
+                $('#selectedMemberNo').text(currentMemberData.memberNo);
+                $('#selectedMemberNoField').val(currentMemberData.memberNo);
+                $('#phoneNumber').val(currentMemberData.phoneNo);
+                $('#recipientName').val(currentMemberData.fullName);
+                $('#selectedMemberInfo').show();
+                $('#searchResults').hide();
+                $('#searchValue').val('');
+
+                updatePreview();
+                showToast('success', `Member ${currentMemberData.fullName} selected`);
+            }
+        }
+
+        function clearSelectedMember() {
+            currentMemberData = null;
+            $('#selectedMemberInfo').hide();
+            $('#selectedMemberNoField').val('');
+            $('#phoneNumber').val('');
+            $('#recipientName').val('');
+            updatePreview();
+        }
+
+        function clearMemberSearch() {
+            $('#searchValue').val('');
+            $('#searchResults').hide();
+            currentMemberData = null;
+        }
+
+        function showPlaceholders() {
+            $('#placeholdersPanel').slideToggle();
+        }
+
+        function togglePlaceholders() {
+            $('#placeholdersPanel').slideToggle();
+        }
+
+        async function loadRecentMessages() {
+            try {
+                const response = await fetch('/Sms/RecentMessages');
+                const data = await response.json();
+
+                if (data.success && data.messages && data.messages.length > 0) {
+                    let html = '<div class="list-group list-group-flush">';
+                    data.messages.forEach(msg => {
+                        const preview = msg.messageContent.length > 50 ? msg.messageContent.substring(0, 50) + '...' : msg.messageContent;
+                        html += `
+                            <div class="list-group-item">
+                                <div class="d-flex justify-content-between">
+                                    <small class="text-muted">${msg.phoneNumber}</small>
+                                    <small class="text-muted">${new Date(msg.createdAt).toLocaleDateString()}</small>
+                                </div>
+                                <div class="mt-1">${escapeHtml(preview)}</div>
+                                <div class="mt-1">
+                                    <span class="badge bg-${msg.status === 'Sent' ? 'info' : msg.status === 'Delivered' ? 'success' : 'warning'}">
+                                        ${msg.status}
+                                    </span>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    html += '</div>';
+                    $('#recentMessages').html(html);
+                } else {
+                    $('#recentMessages').html(`
+                        <div class="text-center text-muted py-3">
+                            <i class="bi bi-envelope fs-1"></i>
+                            <p class="mt-2">No recent messages</p>
+                        </div>
+                    `);
+                }
+            } catch (error) {
+                console.error('Error loading recent messages:', error);
+                $('#recentMessages').html(`
+                    <div class="text-center text-muted py-3">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        <p class="mt-2">Could not load recent messages</p>
+                    </div>
+                `);
+            }
+        }
+
+        function showToast(type, message) {
+            const toastHtml = `
+                <div class="toast align-items-center text-white bg-${type === 'success' ? 'success' : type === 'warning' ? 'warning' : 'danger'} border-0 position-fixed bottom-0 end-0 m-3" role="alert" style="z-index: 9999;">
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="bi bi-${type === 'success' ? 'check-circle' : type === 'warning' ? 'exclamation-triangle' : 'x-circle'} me-2"></i>
+                            ${escapeHtml(message)}
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            `;
+            $('body').append(toastHtml);
+            const toast = $('.toast').last();
+            const bsToast = new bootstrap.Toast(toast[0]);
+            bsToast.show();
+            toast.on('hidden.bs.toast', function() { $(this).remove(); });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+    </script>
+}

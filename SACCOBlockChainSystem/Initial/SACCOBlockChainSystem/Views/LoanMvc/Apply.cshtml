@@ -1,0 +1,730 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.LoanApplicationDTO
+@{
+    ViewData["Title"] = "Loan Application";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var loanTypes = ViewBag.LoanTypes as List<SACCOBlockChainSystem.Models.DTOs.LoanTypeResponseDTO>;
+}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="d-flex align-items-center">
+            <a asp-action="AllLoans" class="btn btn-outline-secondary me-3">
+                <i class="bi bi-arrow-left"></i> Back to Dashboard
+            </a>
+            <h2 class="page-title mb-0">
+                <i class="bi bi-file-earmark-text me-2"></i> Loan Application
+            </h2>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (ViewBag.ErrorMessage != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            @ViewBag.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Loan Application Form</h5>
+            </div>
+            <div class="card-body">
+                <form asp-action="Apply" method="post" id="loanApplicationForm">
+                    @Html.AntiForgeryToken()
+
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <!-- Member Number with Search -->
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="MemberNo" class="fw-bold">Member Number *</label>
+                                <div class="input-group">
+                                    <input asp-for="MemberNo" class="form-control" id="memberNo"
+                                           placeholder="Enter member number..." required />
+                                    <button type="button" class="btn btn-outline-secondary" onclick="searchMember()">
+                                        <i class="bi bi-search"></i> Search
+                                    </button>
+                                </div>
+                                <small class="text-muted">Enter member number and click search to verify eligibility</small>
+                                <span asp-validation-for="MemberNo" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Member Information Display -->
+                    <div id="memberInfo" class="alert alert-info d-none">
+                        <i class="bi bi-person-check-fill me-2"></i>
+                        <strong id="memberName"></strong>
+                        <div id="memberDetails" class="mt-2"></div>
+                        <div id="contributionsInfo" class="mt-2"></div>
+                        <div id="eligibilityStatus" class="mt-2"></div>
+                    </div>
+
+                    <!-- Loan Type Selection -->
+                    <div class="row mb-3">
+                        <label asp-for="LoanCode" class="col-sm-3 col-form-label fw-bold">Loan Type</label>
+                        <div class="col-sm-9">
+                            <select asp-for="LoanCode" class="form-select" id="loanType" disabled required>
+                                <option value="">-- Select Loan Type --</option>
+                                @if (loanTypes != null)
+                                {
+                                    foreach (var loanType in loanTypes)
+                                    {
+                                        // When populating the loan type dropdown, add the repay method
+                                        <option value="@loanType.LoanCode"
+                                                data-max-amount="@loanType.MaxAmount"
+                                                data-interest="@loanType.Interest"
+                                                data-repay-period="@loanType.RepayPeriod"
+                                                data-guarantor="@loanType.Guarantor"
+                                                data-self-guarantee="@loanType.SelfGuarantee"
+                                                data-processing-fee="@loanType.ProcessingFee"
+                                                data-repay-method="@loanType.RepayMethod">
+                                            <!-- ADD THIS LINE -->
+                                            @loanType.LoanType
+                                        </option>
+                                    }
+                                }
+                            </select>
+                            <span asp-validation-for="LoanCode" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <!-- Loan Amount -->
+                    <div class="row mb-3">
+                        <label asp-for="PrincipalAmount" class="col-sm-3 col-form-label fw-bold">Loan Amount</label>
+                        <div class="col-sm-9">
+                            <div class="input-group">
+                                <span class="input-group-text">KES</span>
+                                <input asp-for="PrincipalAmount" class="form-control" id="principalAmount"
+                                       type="number" step="1000" min="0" disabled required />
+                            </div>
+                            <span asp-validation-for="PrincipalAmount" class="text-danger"></span>
+                            <div id="maxAmountHint" class="form-text"></div>
+                        </div>
+                    </div>
+
+                    <!-- Repayment Period - User enters value -->
+                    <div class="row mb-3">
+                        <label asp-for="RepayPeriod" class="col-sm-3 col-form-label fw-bold">Repayment Period</label>
+                        <div class="col-sm-9">
+                            <div class="input-group">
+                                <input asp-for="RepayPeriod" class="form-control" id="repayPeriod"
+                                       type="number" min="1" max="360" step="1" disabled required />
+                                <span class="input-group-text">months</span>
+                            </div>
+                            <span asp-validation-for="RepayPeriod" class="text-danger"></span>
+                            <div id="repayPeriodHint" class="form-text">
+                                <span id="maxRepayPeriodHint" class="text-warning"></span>
+                                <small class="text-muted d-block">Enter the number of months you want to repay this loan (e.g., 4 for 4 months)</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Application Date - Editable -->
+                    <div class="row mb-3">
+                        <label asp-for="ApplicationDate" class="col-sm-3 col-form-label fw-bold">Application Date</label>
+                        <div class="col-sm-9">
+                            <input asp-for="ApplicationDate" class="form-control" type="date"
+                                   value="@Model.ApplicationDate.ToString("yyyy-MM-dd")" />
+                            <span asp-validation-for="ApplicationDate" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                    <!-- Purpose -->
+                    <div class="row mb-3">
+                        <label asp-for="Purpose" class="col-sm-3 col-form-label fw-bold">Loan Purpose</label>
+                        <div class="col-sm-9">
+                            <textarea asp-for="Purpose" class="form-control" rows="3"
+                                      placeholder="Describe the purpose of this loan" disabled required></textarea>
+                            <span asp-validation-for="Purpose" class="text-danger"></span>
+                        </div>
+                    </div>
+
+                   @*  <!-- Remarks -->
+                    <div class="row mb-3">
+                        <label asp-for="Remarks" class="col-sm-3 col-form-label fw-bold">Additional Remarks</label>
+                        <div class="col-sm-9">
+                            <textarea asp-for="Remarks" class="form-control" rows="2" disabled></textarea>
+                            <span asp-validation-for="Remarks" class="text-danger"></span>
+                        </div>
+                    </div> *@
+
+                    <hr class="my-4">
+
+                    <!-- Guarantor Info -->
+                    <div id="guarantorInfo" class="alert alert-warning d-none">
+                        <i class="bi bi-info-circle-fill me-2"></i>
+                        <span id="guarantorMessage"></span>
+                    </div>
+
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary me-2" onclick="history.back()">
+                            Cancel
+                        </button>
+                        <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                            <i class="bi bi-send"></i> Submit Application
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Loan Summary</h5>
+            </div>
+            <div class="card-body">
+                <div id="loanSummary" class="text-center text-muted py-4">
+                    <i class="bi bi-calculator fs-1"></i>
+                    <p class="mt-3">Select loan type and enter amount to see summary</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Loan Guidelines</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        Minimum loan amount: KES 1,000
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        Must have made at least one contribution
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        Interest rates vary by loan type
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        Guarantors may be required
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add this after the existing error display section -->
+@if (ViewBag.ExistingLoans != null && ((List<SACCOBlockChainSystem.Models.DTOs.LoanSummaryDTO>)ViewBag.ExistingLoans).Any())
+{
+    var existingLoans = (List<SACCOBlockChainSystem.Models.DTOs.LoanSummaryDTO>)ViewBag.ExistingLoans;
+    <div class="alert alert-warning alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+        <strong>Existing Active Loans Found!</strong>
+        <p class="mb-2">This member has existing loans that need to be cleared before applying for a new loan:</p>
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered">
+                <thead>
+                    <tr>
+                        <th>Loan No</th>
+                        <th>Loan Type</th>
+                        <th>Principal</th>
+                        <th>Outstanding</th>
+                        <th>Status</th>
+                        <th>Application Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var loan in existingLoans)
+                    {
+                        <tr>
+                            <td>@loan.LoanNo</td>
+                            <td>@loan.LoanType</td>
+                            <td>KES @loan.PrincipalAmount.ToString("N0")</td>
+                            <td>KES @loan.OutstandingBalance.ToString("N0")</td>
+                            <td>
+                                <span class="badge @(loan.LoanStatus == "Disbursed" || loan.LoanStatus == "Active" ? "bg-warning" : "bg-info")">
+                                    @loan.LoanStatus
+                                </span>
+                            </td>
+                            <td>@loan.ApplicationDate.ToString("dd/MM/yyyy")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        let memberData = null;
+        let loanTypeData = null;
+        let currentMaxRepayPeriod = 360; // Store current max limit
+
+               async function searchMember() {
+            const memberNo = document.getElementById('memberNo').value.trim();
+            if (!memberNo) {
+                alert('Please enter a member number');
+                return;
+            }
+
+            // Show loading
+            const memberInfo = document.getElementById('memberInfo');
+            memberInfo.style.display = 'block';
+            memberInfo.className = 'alert alert-info';
+            memberInfo.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Checking member eligibility...';
+
+            try {
+                const response = await fetch(`/LoanMvc/CheckMemberEligibility?memberNo=${memberNo}`);
+                const data = await response.json();
+
+                if (data.success) {
+                    memberData = data.data;
+
+                    // Check if member has existing loans
+                    if (data.hasExistingLoan) {
+                        memberInfo.className = 'alert alert-warning';
+                        let existingLoansHtml = '';
+                        if (data.existingLoans && data.existingLoans.length > 0) {
+                            existingLoansHtml = `
+                                <div class="mt-2">
+                                    <strong>Existing Loans:</strong>
+                                    <ul class="mb-0 mt-1">
+                                        ${data.existingLoans.map(loan =>
+                                            `<li>${loan.loanNo} - ${loan.loanType || 'N/A'} - ${loan.loanStatus} - Outstanding: KES ${(loan.outstandingBalance || 0).toLocaleString()}</li>`
+                                        ).join('')}
+                                    </ul>
+                                </div>
+                            `;
+                        }
+                        memberInfo.innerHTML = `
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <strong>Member Not Eligible for New Loan</strong>
+                            <p class="mb-0 mt-1">${data.message}</p>
+                            ${existingLoansHtml}
+                            <small class="text-muted mt-2 d-block">Please clear existing loans before applying for a new loan.</small>
+                        `;
+                        document.getElementById('loanType').disabled = true;
+                        document.getElementById('principalAmount').disabled = true;
+                        document.getElementById('repayPeriod').disabled = true;
+                        document.getElementById('Purpose').disabled = true;
+                        document.getElementById('submitBtn').disabled = true;
+                        return;
+                    }
+
+                    // FIXED: Check hasValidShares instead of hasContributions
+                    if (!memberData.hasValidShares) {
+                        memberInfo.className = 'alert alert-danger';
+                        memberInfo.innerHTML = `
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                            <strong>Member Not Eligible</strong>
+                            <p class="mb-0 mt-1">${data.message || 'Member does not have eligible shares for a loan.'}</p>
+                            <small class="text-muted">Member must have shares in eligible share types (UsedToGuarantee=true, UsedToOffset=true, Withdrawable=true)</small>
+                        `;
+                        document.getElementById('loanType').disabled = true;
+                        document.getElementById('principalAmount').disabled = true;
+                        document.getElementById('repayPeriod').disabled = true;
+                        document.getElementById('Purpose').disabled = true;
+                        document.getElementById('submitBtn').disabled = true;
+                        return;
+                    }
+
+                    // Display member information with share-based data
+                    memberInfo.className = 'alert alert-success';
+                    memberInfo.innerHTML = `
+                        <i class="bi bi-person-check-fill me-2"></i>
+                        <strong>Member Verified: ${memberData.name || memberData.memberNo}</strong>
+                        <div class="row mt-2">
+                            <div class="col-md-6">
+                                <small><strong>Member No:</strong> ${memberData.memberNo}</small><br>
+                                <small><strong>Phone:</strong> ${memberData.phone || 'N/A'}</small>
+                            </div>
+                            <div class="col-md-6">
+                                <small><strong>Email:</strong> ${memberData.email || 'N/A'}</small><br>
+                                <small><strong>Eligible Shares:</strong> KES ${(memberData.eligibleShares || 0).toLocaleString()}</small>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <span class="badge bg-success">Maximum Loan: KES ${(memberData.maxLoanAmount || 0).toLocaleString()}</span>
+                            <span class="badge bg-info ms-2">Based on ${(memberData.eligibleShares || 0).toLocaleString()} eligible shares</span>
+                        </div>
+                    `;
+
+                    // Enable form fields
+                    document.getElementById('loanType').disabled = false;
+                    document.getElementById('principalAmount').disabled = false;
+                    document.getElementById('repayPeriod').disabled = false;
+                    document.getElementById('Purpose').disabled = false;
+
+                    // Set max loan amount from eligible shares
+                    const maxAmountFromShares = memberData.maxLoanAmount || 50000;
+                    const eligibleShares = memberData.eligibleShares || 0;
+                    document.getElementById('principalAmount').setAttribute('max', maxAmountFromShares);
+                    document.getElementById('principalAmount').setAttribute('min', 1000);
+                    document.getElementById('maxAmountHint').innerHTML = `
+                        <i class="bi bi-piggy-bank-fill me-1"></i>
+                        Maximum loan based on eligible shares (${eligibleShares.toLocaleString()}): KES ${maxAmountFromShares.toLocaleString()}
+                        <br><small class="text-muted">Loan-to-Share ratio: ${(maxAmountFromShares / (eligibleShares || 1)).toFixed(1)}x</small>
+                    `;
+
+                } else {
+                    memberInfo.className = 'alert alert-danger';
+                    memberInfo.innerHTML = `
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Error:</strong> ${data.message || 'Member not found or not eligible'}
+                    `;
+                    document.getElementById('loanType').disabled = true;
+                    document.getElementById('principalAmount').disabled = true;
+                    document.getElementById('repayPeriod').disabled = true;
+                    document.getElementById('Purpose').disabled = true;
+                    document.getElementById('submitBtn').disabled = true;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                memberInfo.className = 'alert alert-danger';
+                memberInfo.innerHTML = `
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    An error occurred while checking member eligibility. Please try again.
+                    <br><small class="text-muted">${error.message}</small>
+                `;
+            }
+        }
+
+        // Update loan type details when selected
+        $('#loanType').on('change', function() {
+            const selected = $(this).find('option:selected');
+            const maxAmount = parseFloat(selected.data('max-amount')) || 0;
+            const eligibleAmount = memberData?.maxLoanAmount || 0;
+            const guarantor = selected.data('guarantor');
+            const selfGuarantee = selected.data('self-guarantee');
+            const processingFee = parseFloat(selected.data('processing-fee')) || 0;
+            // Get max repayment period from loan type (this is the limit)
+            const maxRepayPeriodFromLoanType = parseInt(selected.data('repay-period')) || 360;
+
+            // Store the current max limit for validation
+            currentMaxRepayPeriod = maxRepayPeriodFromLoanType;
+
+            // Set the max attribute on the input field
+            $('#repayPeriod').attr('max', maxRepayPeriodFromLoanType);
+            $('#repayPeriod').attr('min', 1);
+
+            // Display the limit to the user
+            $('#maxRepayPeriodHint').html(`
+                <i class="bi bi-info-circle me-1"></i>
+                Maximum allowed for this loan type: <strong>${maxRepayPeriodFromLoanType} months</strong>
+                ${maxRepayPeriodFromLoanType < 12 ? '<span class="text-danger ms-2">Short-term loan</span>' : ''}
+            `);
+
+            // Validate current value if it exceeds the new max
+            const currentValue = parseInt($('#repayPeriod').val());
+            if (currentValue && currentValue > maxRepayPeriodFromLoanType) {
+                $('#repayPeriod').val(maxRepayPeriodFromLoanType);
+                alert(`Repayment period adjusted to maximum allowed: ${maxRepayPeriodFromLoanType} months`);
+            }
+
+            // Set default value if empty
+            if (!$('#repayPeriod').val()) {
+                // Default to min of 12 or max allowed
+                const defaultPeriod = Math.min(12, maxRepayPeriodFromLoanType);
+                $('#repayPeriod').val(defaultPeriod);
+            }
+
+            // Determine the maximum amount (loan type max vs member eligible amount)
+            let currentMaxAmount = maxAmount > 0 ? Math.min(maxAmount, eligibleAmount) : eligibleAmount;
+
+            if (currentMaxAmount > 0) {
+                $('#principalAmount').attr('max', currentMaxAmount);
+                $('#maxAmountHint').html(`
+                    Maximum allowed: KES ${currentMaxAmount.toLocaleString()}
+                    ${maxAmount > 0 && maxAmount < eligibleAmount ? '<br><small class="text-muted">Loan type limit: KES ' + maxAmount.toLocaleString() + '</small>' : ''}
+                    ${eligibleAmount > 0 && eligibleAmount < maxAmount ? '<br><small class="text-muted">Member limit: KES ' + eligibleAmount.toLocaleString() + '</small>' : ''}
+                `);
+                $('#submitBtn').prop('disabled', false);
+            } else {
+                $('#submitBtn').prop('disabled', true);
+                $('#maxAmountHint').html('<span class="text-danger">No eligible amount available for this loan type</span>');
+            }
+
+            // Show guarantor info
+            const requiresGuarantor = guarantor && guarantor !== 'No' && guarantor !== 'N';
+            if (requiresGuarantor) {
+                let guarantorCount = 1;
+                if (guarantor === 'Yes' || guarantor === 'Y') {
+                    guarantorCount = 1;
+                } else if (!isNaN(parseInt(guarantor))) {
+                    guarantorCount = parseInt(guarantor);
+                }
+
+                $('#guarantorInfo').removeClass('d-none');
+                if (selfGuarantee === true || selfGuarantee === 'true' || selfGuarantee === 'Yes') {
+                    $('#guarantorMessage').html(`
+                        <i class="bi bi-shield-check me-2"></i>
+                        <strong>Guarantor Required:</strong> This loan requires ${guarantorCount} guarantor(s).
+                        You can use your own shares as guarantee.
+                    `);
+                } else {
+                    $('#guarantorMessage').html(`
+                        <i class="bi bi-people me-2"></i>
+                        <strong>Guarantor Required:</strong> This loan requires ${guarantorCount} guarantor(s).
+                        You will need to assign guarantors after creating the application.
+                    `);
+                }
+            } else {
+                $('#guarantorInfo').addClass('d-none');
+            }
+
+            updateLoanSummary();
+        });
+
+        // Real-time validation when user enters repayment period
+        $('#repayPeriod').on('input', function() {
+            const enteredValue = parseInt($(this).val());
+            const maxAllowed = currentMaxRepayPeriod;
+
+            if (enteredValue > maxAllowed) {
+                $(this).val(maxAllowed);
+                $('#repayPeriodHint').html(`
+                    <span id="maxRepayPeriodHint" class="text-danger">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        Value adjusted to maximum allowed: ${maxAllowed} months
+                    </span>
+                    <small class="text-muted d-block">Enter the number of months you want to repay this loan</small>
+                `);
+                setTimeout(() => {
+                    $('#maxRepayPeriodHint').html(`
+                        <i class="bi bi-info-circle me-1"></i>
+                        Maximum allowed for this loan type: <strong>${maxAllowed} months</strong>
+                    `);
+                }, 3000);
+            } else if (enteredValue < 1) {
+                $(this).val(1);
+            } else {
+                $('#maxRepayPeriodHint').html(`
+                    <i class="bi bi-info-circle me-1"></i>
+                    Maximum allowed for this loan type: <strong>${maxAllowed} months</strong>
+                    ${enteredValue > 0 ? `<br><span class="text-success">Selected: ${enteredValue} months</span>` : ''}
+                `);
+            }
+
+            updateLoanSummary();
+        });
+
+        // Update summary on amount change or repayment period change
+        $('#principalAmount, #repayPeriod').on('input', updateLoanSummary);
+
+                 function updateLoanSummary() {
+            const amount = parseFloat($('#principalAmount').val()) || 0;
+            const repayPeriod = parseInt($('#repayPeriod').val()) || 12;
+            const selected = $('#loanType').find('option:selected');
+            const interestRate = parseFloat(selected.data('interest')) || 0;
+            const processingFee = parseFloat(selected.data('processing-fee')) || 0;
+            const maxAmount = parseFloat($('#principalAmount').attr('max')) || 0;
+            const maxRepayPeriod = currentMaxRepayPeriod;
+
+            const repaymentMethod = selected.data('repay-method') || 'AMT';
+
+            if (amount > 0 && interestRate > 0 && amount <= maxAmount && repayPeriod <= maxRepayPeriod && repayPeriod >= 1) {
+
+                const monthlyRate = interestRate / 100 / 12;
+                const months = repayPeriod;
+
+                let emi = 0;
+                let totalInterest = 0;
+                let totalRepayable = 0;
+                let netDisbursement = amount - processingFee;
+
+                // =========================
+                // AMORTIZED (EMI)
+                // =========================
+                if (repaymentMethod === 'AMT') {
+
+                    if (monthlyRate > 0) {
+                        const factor = Math.pow(1 + monthlyRate, months);
+                        emi = amount * monthlyRate * factor / (factor - 1);
+                    } else {
+                        emi = amount / months;
+                    }
+
+                    totalInterest = (emi * months) - amount;
+                    totalRepayable = amount + totalInterest;
+                }
+
+                // =========================
+                // STRAIGHT LINE (FLAT RATE)
+                // =========================
+                else if (repaymentMethod === 'STL') {
+
+                    // Interest on full principal
+                    totalInterest = amount * (interestRate / 100) * (months / 12);
+
+                    const monthlyPrincipal = amount / months;
+                    const monthlyInterest = totalInterest / months;
+
+                    emi = monthlyPrincipal + monthlyInterest;
+                    totalRepayable = amount + totalInterest;
+                }
+
+                // =========================
+                // REDUCING BALANCE
+                // =========================
+                else if (repaymentMethod === 'RBAL') {
+
+                    const monthlyPrincipal = amount / months;
+                    let balance = amount;
+                    let totalInterestRB = 0;
+
+                    for (let i = 0; i < months; i++) {
+                        const interest = balance * monthlyRate;
+                        totalInterestRB += interest;
+                        balance -= monthlyPrincipal;
+                    }
+
+                    totalInterest = totalInterestRB;
+                    totalRepayable = amount + totalInterest;
+
+                    // Average monthly payment (for summary)
+                    emi = totalRepayable / months;
+                }
+
+                // =========================
+                // DEFAULT
+                // =========================
+                else {
+                    const factor = Math.pow(1 + monthlyRate, months);
+                    emi = amount * monthlyRate * factor / (factor - 1);
+                    totalInterest = (emi * months) - amount;
+                    totalRepayable = amount + totalInterest;
+                }
+
+                // ROUNDING
+                emi = Math.round(emi * 100) / 100;
+                totalInterest = Math.round(totalInterest * 100) / 100;
+                totalRepayable = Math.round(totalRepayable * 100) / 100;
+                netDisbursement = Math.round(netDisbursement * 100) / 100;
+
+                // LABELS
+                let methodDescription = '';
+                if (repaymentMethod === 'AMT') {
+                    methodDescription = '<span class="badge bg-info">Amortized (EMI)</span>';
+                } else if (repaymentMethod === 'STL') {
+                    methodDescription = '<span class="badge bg-primary">Straight Line (Flat Rate)</span>';
+                } else if (repaymentMethod === 'RBAL') {
+                    methodDescription = '<span class="badge bg-warning">Reducing Balance</span>';
+                }
+
+                // UI OUTPUT
+                $('#loanSummary').html(`
+                    <h6>Loan Summary <small class="text-muted">${methodDescription}</small></h6>
+                    <table class="table table-sm table-borderless">
+                        <tr>
+                            <td>Principal:</td>
+                            <td class="text-end fw-bold">KES ${amount.toLocaleString()}</td>
+                        </tr>
+                        <tr>
+                            <td>Interest Rate:</td>
+                            <td class="text-end">${interestRate}% p.a.</td>
+                        </tr>
+                        <tr>
+                            <td>Repayment Period:</td>
+                            <td class="text-end">${months} months</td>
+                        </tr>
+                        <tr>
+                            <td>Monthly Payment:</td>
+                            <td class="text-end fw-bold">KES ${emi.toLocaleString()}</td>
+                        </tr>
+                        <tr>
+                            <td>Total Interest:</td>
+                            <td class="text-end">KES ${totalInterest.toLocaleString()}</td>
+                        </tr>
+                        ${processingFee > 0 ? `
+                        <tr>
+                            <td>Processing Fee:</td>
+                            <td class="text-end">KES ${processingFee.toLocaleString()}</td>
+                        </tr>
+                        <tr>
+                            <td>Net Disbursement:</td>
+                            <td class="text-end fw-bold text-primary">KES ${netDisbursement.toLocaleString()}</td>
+                        </tr>` : ''}
+                        <tr class="border-top">
+                            <td class="fw-bold">Total Repayable:</td>
+                            <td class="text-end fw-bold text-primary">
+                                KES ${totalRepayable.toLocaleString()}
+                            </td>
+                        </tr>
+                    </table>
+
+                    ${repaymentMethod === 'STL' ? `
+                    <div class="alert alert-info mt-2 small">
+                        STL (Flat Rate): Interest is calculated on full principal for entire period.
+                    </div>` : ''}
+
+                    ${repaymentMethod === 'RBAL' ? `
+                    <div class="alert alert-warning mt-2 small">
+                        RBAL: Interest reduces as balance decreases.
+                    </div>` : ''}
+                `);
+
+            } else {
+                $('#loanSummary').html(`
+                    <i class="bi bi-calculator fs-1"></i>
+                    <p class="mt-3">Enter loan details to see summary</p>
+                `);
+            }
+        }
+
+        // Validate before submit
+        $('#loanApplicationForm').on('submit', function(e) {
+            const amount = parseFloat($('#principalAmount').val()) || 0;
+            const maxAmount = parseFloat($('#principalAmount').attr('max')) || 0;
+            const repayPeriod = parseInt($('#repayPeriod').val()) || 0;
+            const maxRepayPeriod = currentMaxRepayPeriod;
+
+            if (amount <= 0) {
+                e.preventDefault();
+                alert('Please enter a valid loan amount');
+                return false;
+            }
+
+            if (amount > maxAmount) {
+                e.preventDefault();
+                alert(`Loan amount cannot exceed KES ${maxAmount.toLocaleString()}`);
+                return false;
+            }
+
+            if (amount < 1000) {
+                e.preventDefault();
+                alert('Minimum loan amount is KES 1,000');
+                return false;
+            }
+
+            if (repayPeriod <= 0) {
+                e.preventDefault();
+                alert('Please enter a valid repayment period');
+                return false;
+            }
+
+            if (repayPeriod > maxRepayPeriod) {
+                e.preventDefault();
+                alert(`Repayment period (${repayPeriod} months) exceeds maximum allowed of ${maxRepayPeriod} months for this loan type`);
+                return false;
+            }
+
+            return true;
+        });
+    </script>
+}

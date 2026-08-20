@@ -1,0 +1,556 @@
+﻿@model SACCOBlockChainSystem.Models.DTOs.SaccoParramDTO
+@{
+    ViewData["Title"] = "SACCO Parameters Management";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var parametersList = ViewBag.ParametersList as List<SACCOBlockChainSystem.Models.DTOs.SaccoParramListDTO> ?? new List<SACCOBlockChainSystem.Models.DTOs.SaccoParramListDTO>();
+    var glAccounts = ViewBag.GlAccounts as List<SACCOBlockChainSystem.Models.GlSetup> ?? new List<SACCOBlockChainSystem.Models.GlSetup>();
+    var isEdit = ViewBag.IsEdit as bool? ?? false;
+    var editId = ViewBag.EditId as int?;
+}
+
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex align-items-center">
+                <a asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary me-3">
+                    <i class="bi bi-arrow-left"></i> Back to Dashboard
+                </a>
+                <h2 class="page-title mb-0">
+                    <i class="bi bi-building me-2"></i>SACCO Parameters Management
+                </h2>
+            </div>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i> @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <!-- Form Card - Create/Edit -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="card-title mb-0">
+                @if (isEdit)
+                {
+                    <i class="bi bi-pencil-square me-2"></i>
+                    <text>Edit SACCO Parameters</text>
+                }
+                else
+                {
+                    <i class="bi bi-plus-circle me-2"></i>
+                    <text>Create SACCO Parameters</text>
+                }
+            </h5>
+        </div>
+        <div class="card-body">
+            <form asp-action="Save" method="post" id="saccoForm">
+                @Html.AntiForgeryToken()
+                <input type="hidden" asp-for="Id" />
+                <input type="hidden" asp-for="CompanyCode" />
+
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger" style="display: none;"></div>
+
+                <ul class="nav nav-tabs" id="saccoTab" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active" id="basic-tab" data-bs-toggle="tab" data-bs-target="#basic" type="button" role="tab">
+                            <i class="bi bi-info-circle"></i> Basic Information
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="contact-tab" data-bs-toggle="tab" data-bs-target="#contact" type="button" role="tab">
+                            <i class="bi bi-envelope"></i> Contact Details
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="rules-tab" data-bs-toggle="tab" data-bs-target="#rules" type="button" role="tab">
+                            <i class="bi bi-journal-bookmark-fill"></i> SACCO Rules
+                        </button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link" id="gl-tab" data-bs-toggle="tab" data-bs-target="#gl" type="button" role="tab">
+                            <i class="bi bi-journal"></i> GL Accounts
+                        </button>
+                    </li>
+                </ul>
+
+                <div class="tab-content mt-3">
+                    <!-- Basic Information Tab -->
+                    <div class="tab-pane fade show active" id="basic" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="SaccoName" class="form-label fw-bold">SACCO Name *</label>
+                                <input asp-for="SaccoName" class="form-control" required />
+                                <span asp-validation-for="SaccoName" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="CompanyCode" class="form-label fw-bold">Company Code *</label>
+                                <input asp-for="CompanyCode" class="form-control" readonly disabled />
+                                <span asp-validation-for="CompanyCode" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="NoOfEmployees" class="form-label">Number of Employees</label>
+                                <input asp-for="NoOfEmployees" class="form-control" type="number" />
+                                <span asp-validation-for="NoOfEmployees" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="PhysicalAddress" class="form-label">Physical Address</label>
+                                <input asp-for="PhysicalAddress" class="form-control" />
+                                <span asp-validation-for="PhysicalAddress" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Town" class="form-label">Town/City</label>
+                                <input asp-for="Town" class="form-control" />
+                                <span asp-validation-for="Town" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Address" class="form-label">Postal Address</label>
+                                <input asp-for="Address" class="form-control" />
+                                <span asp-validation-for="Address" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Details Tab -->
+                    <div class="tab-pane fade" id="contact" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Telephone" class="form-label">Telephone</label>
+                                <input asp-for="Telephone" class="form-control" />
+                                <span asp-validation-for="Telephone" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Fax" class="form-label">Fax</label>
+                                <input asp-for="Fax" class="form-control" />
+                                <span asp-validation-for="Fax" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="EmailAddress" class="form-label">Email Address</label>
+                                <input asp-for="EmailAddress" class="form-control" type="email" />
+                                <span asp-validation-for="EmailAddress" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="Website" class="form-label">Website</label>
+                                <input asp-for="Website" class="form-control" />
+                                <span asp-validation-for="Website" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label asp-for="CheckOffDate" class="form-label">Check-off Date</label>
+                                <input asp-for="CheckOffDate" class="form-control" type="date" />
+                                <span asp-validation-for="CheckOffDate" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SACCO Rules Tab -->
+                    <div class="tab-pane fade" id="rules" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="MembershipMaturityMonths" class="form-label fw-bold">Membership Maturity (Months)</label>
+                                <input asp-for="MembershipMaturityMonths" class="form-control" type="number" min="0" max="60" />
+                                <small class="text-muted">Minimum months before member can withdraw</small>
+                                <span asp-validation-for="MembershipMaturityMonths" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="WithdrawalNoticeDays" class="form-label fw-bold">Withdrawal Notice (Days)</label>
+                                <input asp-for="WithdrawalNoticeDays" class="form-control" type="number" min="0" max="180" />
+                                <small class="text-muted">Notice period required for withdrawal</small>
+                                <span asp-validation-for="WithdrawalNoticeDays" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="DividendProcessingDays" class="form-label fw-bold">Dividend Processing (Days)</label>
+                                <input asp-for="DividendProcessingDays" class="form-control" type="number" min="0" max="90" />
+                                <span asp-validation-for="DividendProcessingDays" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="MaxGuarantor" class="form-label fw-bold">Maximum Guarantors</label>
+                                <input asp-for="MaxGuarantor" class="form-control" type="number" min="1" max="10" />
+                                <span asp-validation-for="MaxGuarantor" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="MinGuarantor" class="form-label fw-bold">Minimum Guarantors</label>
+                                <input asp-for="MinGuarantor" class="form-control" type="number" min="1" max="10" />
+                                <span asp-validation-for="MinGuarantor" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="DefaultCurrency" class="form-label">Default Currency</label>
+                                <select asp-for="DefaultCurrency" class="form-select">
+                                    <option value="KES">KES - Kenyan Shilling</option>
+                                    <option value="USD">USD - US Dollar</option>
+                                    <option value="EUR">EUR - Euro</option>
+                                    <option value="GBP">GBP - British Pound</option>
+                                </select>
+                                <span asp-validation-for="DefaultCurrency" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="DefaultRounding" class="form-label">Default Rounding (Decimal Places)</label>
+                                <select asp-for="DefaultRounding" class="form-select">
+                                    <option value="0">0 - Whole Numbers</option>
+                                    <option value="2">2 - Standard Currency</option>
+                                    <option value="3">3 - Three Decimals</option>
+                                    <option value="4">4 - Four Decimals</option>
+                                </select>
+                                <span asp-validation-for="DefaultRounding" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="SignificantLoanBalance" class="form-label">Significant Loan Balance</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">KES</span>
+                                    <input asp-for="SignificantLoanBalance" class="form-control" type="number" step="1000" />
+                                </div>
+                                <span asp-validation-for="SignificantLoanBalance" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="ActionOnDefaultedInterest" class="form-label">Action on Defaulted Interest</label>
+                                <select asp-for="ActionOnDefaultedInterest" class="form-select">
+                                    <option value="Capitalize">Capitalize to Principal</option>
+                                    <option value="Penalty">Apply Penalty</option>
+                                    <option value="WriteOff">Write Off</option>
+                                    <option value="Suspend">Suspend Account</option>
+                                </select>
+                                <span asp-validation-for="ActionOnDefaultedInterest" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- GL Accounts Tab - FIXED with selected attribute -->
+                    <div class="tab-pane fade" id="gl" role="tabpanel">
+                        <div class="alert alert-info mb-3">
+                            <i class="bi bi-info-circle me-2"></i>
+                            Select GL accounts from your chart of accounts. These accounts are used for posting transactions.
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Suspense" class="form-label fw-bold">Suspense GL Account</label>
+                                <select asp-for="Suspense" class="form-select">
+                                    <option value="">-- Select Suspense Account --</option>
+                                    @foreach (var account in glAccounts)
+                                    {
+                                        if (Model != null && !string.IsNullOrEmpty(Model.Suspense) && Model.Suspense == account.AccNo)
+                                        {
+                                            <option value="@account.AccNo" selected="selected">@account.AccNo - @account.Glaccname</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@account.AccNo">@account.AccNo - @account.Glaccname</option>
+                                        }
+                                    }
+                                </select>
+                                <small class="text-muted">Account for suspense transactions</small>
+                                <span asp-validation-for="Suspense" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="RetainedEarnings" class="form-label fw-bold">Retained Earnings GL Account</label>
+                                <select asp-for="RetainedEarnings" class="form-select">
+                                    <option value="">-- Select Retained Earnings Account --</option>
+                                    @foreach (var account in glAccounts)
+                                    {
+                                        if (Model != null && !string.IsNullOrEmpty(Model.RetainedEarnings) && Model.RetainedEarnings == account.AccNo)
+                                        {
+                                            <option value="@account.AccNo" selected="selected">@account.AccNo - @account.Glaccname</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@account.AccNo">@account.AccNo - @account.Glaccname</option>
+                                        }
+                                    }
+                                </select>
+                                <small class="text-muted">Account for retained earnings</small>
+                                <span asp-validation-for="RetainedEarnings" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label asp-for="Creditors" class="form-label fw-bold">Creditors GL Account</label>
+                                <select asp-for="Creditors" class="form-select">
+                                    <option value="">-- Select Creditors Account --</option>
+                                    @foreach (var account in glAccounts)
+                                    {
+                                        if (Model != null && !string.IsNullOrEmpty(Model.Creditors) && Model.Creditors == account.AccNo)
+                                        {
+                                            <option value="@account.AccNo" selected="selected">@account.AccNo - @account.Glaccname</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@account.AccNo">@account.AccNo - @account.Glaccname</option>
+                                        }
+                                    }
+                                </select>
+                                <small class="text-muted">Account for creditors/accounts payable</small>
+                                <span asp-validation-for="Creditors" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <hr />
+
+                <div class="d-flex justify-content-end gap-2">
+                    <button type="button" class="btn btn-secondary" onclick="resetForm()">
+                        <i class="bi bi-eraser me-1"></i> Clear Form
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        @if (isEdit)
+                        {
+                            <i class="bi bi-pencil-square me-2"></i>
+                            <text>Update SACCO Parameters</text>
+                        }
+                        else
+                        {
+                            <i class="bi bi-save me-2"></i>
+                            <text>Create SACCO Parameters</text>
+                        }
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- List Card - All Parameters -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <h5 class="card-title mb-0">
+                <i class="bi bi-table me-2"></i>SACCO Parameters List
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover" id="parametersTable">
+                    <thead class="table-light">
+                        <tr>
+                            <th>SACCO Name</th>
+                            <th>Company Code</th>
+                            <th>Telephone</th>
+                            <th>Email</th>
+                            <th>Membership Maturity</th>
+                            <th>Withdrawal Notice</th>
+                            <th>Max Guarantors</th>
+                            <th>Created At</th>
+                            <th>Actions</th>
+                    </thead>
+                    <tbody>
+                        @if (parametersList.Any())
+                        {
+                            @foreach (var item in parametersList)
+                            {
+                                <tr id="row-@item.Id">
+                                    <td><strong>@item.SaccoName</strong></td>
+                                    <td><code>@item.CompanyCode</code></td>
+                                    <td>@(string.IsNullOrEmpty(item.Telephone) ? "-" : item.Telephone)</td>
+                                    <td>@(string.IsNullOrEmpty(item.EmailAddress) ? "-" : item.EmailAddress)</td>
+                                    <td>@item.MembershipMaturityMonths months</td>
+                                    <td>@item.WithdrawalNoticeDays days</td>
+                                    <td>@item.MaxGuarantor</td>
+                                    <td>@(item.CreatedAt?.ToString("dd/MM/yyyy") ?? "-")</td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button type="button" class="btn btn-sm btn-outline-info" onclick="viewDetails(@item.Id)" title="View Details">
+                                                <i class="bi bi-eye"></i> View
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-warning" onclick="editParameter(@item.Id)" title="Edit">
+                                                <i class="bi bi-pencil"></i> Load parametors
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="9" class="text-center text-muted py-4">
+                                    <i class="bi bi-info-circle me-2"></i>No SACCO parameters found
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- View Details Modal -->
+<div class="modal fade" id="detailsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-building me-2"></i>SACCO Parameters Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detailsContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        $(document).ready(function() {
+            $('#parametersTable').DataTable({
+                pageLength: 10,
+                ordering: true,
+                responsive: true,
+                language: {
+                    lengthMenu: "Show _MENU_ parameters per page",
+                    info: "Showing _START_ to _END_ of _TOTAL_ parameters",
+                    infoEmpty: "No parameters found",
+                    zeroRecords: "No matching parameters found"
+                }
+            });
+        });
+
+        function editParameter(id) {
+            window.location.href = `/Sacco/Edit/${id}`;
+        }
+
+        function viewDetails(id) {
+            $('#detailsModal').modal('show');
+            $('#detailsContent').html('<div class="text-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>');
+
+            $.get(`/Sacco/GetDetails/${id}`, function(data) {
+                if (data.success) {
+                    const p = data.parameter;
+                    let detailsHtml = `
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="fw-bold text-primary">Basic Information</h6>
+                                <hr />
+                                <p><strong>SACCO Name:</strong> ${p.saccoName || '-'}</p>
+                                <p><strong>Company Code:</strong> <code>${p.companyCode || '-'}</code></p>
+                                <p><strong>No. of Employees:</strong> ${p.noOfEmployees || '-'}</p>
+                                <p><strong>Physical Address:</strong> ${p.physicalAddress || '-'}</p>
+                                <p><strong>Town/City:</strong> ${p.town || '-'}</p>
+                                <p><strong>Postal Address:</strong> ${p.address || '-'}</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="fw-bold text-primary">Contact Information</h6>
+                                <hr />
+                                <p><strong>Telephone:</strong> ${p.telephone || '-'}</p>
+                                <p><strong>Fax:</strong> ${p.fax || '-'}</p>
+                                <p><strong>Email:</strong> ${p.emailAddress || '-'}</p>
+                                <p><strong>Website:</strong> ${p.website || '-'}</p>
+                                <p><strong>Check-off Date:</strong> ${p.checkOffDate || '-'}</p>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <h6 class="fw-bold text-primary">SACCO Rules</h6>
+                                <hr />
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <p><strong>Membership Maturity:</strong> ${p.membershipMaturityMonths} months</p>
+                                        <p><strong>Withdrawal Notice:</strong> ${p.withdrawalNoticeDays} days</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <p><strong>Dividend Processing:</strong> ${p.dividendProcessingDays} days</p>
+                                        <p><strong>Max Guarantors:</strong> ${p.maxGuarantor}</p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <p><strong>Min Guarantors:</strong> ${p.minGuarantor}</p>
+                                        <p><strong>Default Currency:</strong> ${p.defaultCurrency}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <h6 class="fw-bold text-primary">GL Accounts</h6>
+                                <hr />
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <p><strong>Suspense Account:</strong> <code>${p.suspense || 'Not configured'}</code></p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <p><strong>Retained Earnings:</strong> <code>${p.retainedEarnings || 'Not configured'}</code></p>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <p><strong>Creditors:</strong> <code>${p.creditors || 'Not configured'}</code></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-md-12">
+                                <h6 class="fw-bold text-primary">Audit Information</h6>
+                                <hr />
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <p><strong>Created At:</strong> ${p.createdAt || '-'}</p>
+                                        <p><strong>Created By:</strong> ${p.createdBy || '-'}</p>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <p><strong>Updated At:</strong> ${p.updatedAt || '-'}</p>
+                                        <p><strong>Updated By:</strong> ${p.updatedBy || '-'}</p>
+                                    </div>
+                                </div>
+                                ${p.blockchainTxId ? `<p><strong>Blockchain TX:</strong> <code>${p.blockchainTxId}</code></p>` : ''}
+                            </div>
+                        </div>
+                    `;
+                    $('#detailsContent').html(detailsHtml);
+                } else {
+                    $('#detailsContent').html(`<div class="alert alert-danger">${data.message || 'Error loading details'}</div>`);
+                }
+            }).fail(function() {
+                $('#detailsContent').html('<div class="alert alert-danger">Error loading details. Please try again.</div>');
+            });
+        }
+
+        function resetForm() {
+            if (confirm('Are you sure you want to clear the form? All unsaved data will be lost.')) {
+                document.getElementById('saccoForm').reset();
+                window.location.href = '/Sacco';
+            }
+        }
+
+        // Form validation with console logging for debugging
+        $('#saccoForm').on('submit', function(e) {
+            const saccoName = $('#SaccoName').val();
+            if (!saccoName) {
+                e.preventDefault();
+                alert('Please enter SACCO Name');
+                $('#SaccoName').focus();
+                return false;
+            }
+
+            // Log form data for debugging
+            console.log('Submitting form with data:');
+            console.log('SaccoName:', $('#SaccoName').val());
+            console.log('CompanyCode:', $('#CompanyCode').val());
+            console.log('NoOfEmployees:', $('#NoOfEmployees').val());
+            console.log('Telephone:', $('#Telephone').val());
+            console.log('EmailAddress:', $('#EmailAddress').val());
+            console.log('PhysicalAddress:', $('#PhysicalAddress').val());
+            console.log('Town:', $('#Town').val());
+            console.log('Address:', $('#Address').val());
+            console.log('Suspense:', $('#Suspense').val());
+            console.log('RetainedEarnings:', $('#RetainedEarnings').val());
+            console.log('Creditors:', $('#Creditors').val());
+
+            const submitBtn = $('#submitBtn');
+            submitBtn.prop('disabled', true);
+            submitBtn.html('<span class="spinner-border spinner-border-sm me-2"></span>Saving...');
+            return true;
+        });
+    </script>
+}
